@@ -1,6 +1,7 @@
 from loader import bot,dp
 from aiogram import types
 from database.admin.select import get_all_channels_cod
+from keyboards.users.keyboard import find_movie_markup
 
 @dp.callback_query_handler(text='check')
 async def check_channals(call:types.CallbackQuery):
@@ -8,7 +9,9 @@ async def check_channals(call:types.CallbackQuery):
     check = await check_user_sub(call.message)
     if check != False:
         await call.message.delete()
-        await bot.send_message(chat_id, f"<strong>Введите код для получения названия фильма :</strong>")
+        await bot.send_message(chat_id, "<strong>Отлично, вы подписались на все каналы!</strong>\n\n"
+                                        "Нажмите на кнопку ниже, чтобы найти фильм 👇🏻",
+                               reply_markup=find_movie_markup())
     else:
         await call.answer('Вы не подписались на каналы !',show_alert=True)
 

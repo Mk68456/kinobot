@@ -1,19 +1,52 @@
 from aiogram import types
 from loader import dp,bot
 from aiogram.dispatcher import FSMContext
-from database.admin.add_movie import add_new_movie
+from database.admin.add_movie import delete_movie_by_numb
 from states.admin_states import Admin_
-from keyboards.admin.keyboard import admin_markup
+from keyboards.admin.keyboard import admin_markup,allow_movie_delete_markup
 from database.admin.channels_func import delete_no_active_user
-from database.admin.select import get_all_bot_users
+from database.admin.select import get_all_bot_users,get_movie_title_by_numb
 import asyncio
 
 
-@dp.message_handler(state=Admin_.add_new_cod)
-async def add_new_cod_handler(message:types.Message,state:FSMContext):
-    await state.finish()
-    add_new_movie(message.text)
-    await bot.send_message(message.chat.id, "Успешно добавлено !",reply_markup=admin_markup())
+@dp.message_handler(state=Admin_.delete_movie)
+async def delete_movie_func(message:types.Message,state:FSMContext):
+    if message.text == 'Назад':
+        await state.finish()
+        await message.delete()
+        await bot.send_message(message.chat.id, 'Удаление фильма было отменено', reply_markup=types.ReplyKeyboardRemove())
+        await bot.send_message(message.chat.id, "Админ-панель\n\n"
+                                                f"Статистика : {int(len(get_all_bot_users()))}",
+                               reply_markup=admin_markup())
+        return
+    numb_part = message.text.split(' - ')[0].strip()
+    if not numb_part.isdigit():
+        await bot.send_message(message.chat.id, "Пожалуйста, выберите фильм кнопкой из списка.")
+        return
+    movie_title = get_movie_title_by_numb(int(numb_part))
+    if movie_title is None:
+        await bot.send_message(message.chat.id, "Такой фильм не найден, выберите из списка.")
+        return
+    await state.update_data(movie_number=int(numb_part))
+    await bot.send_message(message.chat.id, f"Удалить фильм «{movie_title}» (код {numb_part}) ?",
+                           reply_markup=allow_movie_delete_markup())
+
+
+@dp.callback_query_handler(lambda call: call.data.startswith('movdel_'), state=Admin_.delete_movie)
+async def confirm_delete_movie_handler(call:types.CallbackQuery,state:FSMContext):
+    if call.data == 'movdel_yes':
+        data = await state.get_data()
+        delete_movie_by_numb(data.get('movie_number'))
+        await call.message.delete()
+        await state.finish()
+        await bot.send_message(call.message.chat.id, "Фильм успешно удалён !", reply_markup=types.ReplyKeyboardRemove())
+        await bot.send_message(call.message.chat.id, "Админ-панель", reply_markup=admin_markup())
+    else:
+        await call.message.delete()
+        await state.finish()
+        await bot.send_message(call.message.chat.id, 'Удаление фильма было отменено', reply_markup=types.ReplyKeyboardRemove())
+        await bot.send_message(call.message.chat.id, "Админ-панель", reply_markup=admin_markup())
+
 
 @dp.message_handler(state=Admin_.send_)
 async def send_all_bot_users(message:types.Message,state:FSMContext):

@@ -12,7 +12,14 @@ def get_all_bot_users():
     cursor.execute("SELECT id FROM Users")
     users = cursor.fetchall()
     return users
-
+def get_all_movies():
+    cursor.execute("SELECT * FROM Movies")
+    movies = cursor.fetchall()
+    return movies
+def get_movie_title_by_numb(numb):
+    cursor.execute("SELECT movie_title FROM Movies WHERE movie_number=?", (numb,))
+    row = cursor.fetchone()
+    return row[0] if row else None
 
 
 def get_all_channels_title():

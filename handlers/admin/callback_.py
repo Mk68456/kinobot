@@ -2,7 +2,7 @@ from aiogram import types
 from loader import dp,bot
 from aiogram.dispatcher import FSMContext
 from database.admin.select import get_all_bot_users
-from keyboards.admin.keyboard import admin_return_markup,get_delete_channels,admin_markup
+from keyboards.admin.keyboard import admin_return_markup,get_delete_channels,get_delete_movies,admin_markup
 from states.admin_states import Admin_
 
 
@@ -34,3 +34,13 @@ async def admin_call_handler(call:types.CallbackQuery,state:FSMContext):
         await bot.send_message(chat_id, "<strong>Выберите канал который хотите удалить :</strong>",
                                reply_markup=get_delete_channels())
         await Admin_.delete_channel.set()
+    if call.data == 'delete_movie':
+        await bot.delete_message(chat_id, message_id=call.message.message_id)
+        await bot.send_message(chat_id, "<strong>Выберите фильм который хотите удалить :</strong>",
+                               reply_markup=get_delete_movies())
+        await Admin_.delete_movie.set()
+    if call.data == 'edit_movie':
+        await bot.delete_message(chat_id, message_id=call.message.message_id)
+        await bot.send_message(chat_id, "<strong>Выберите фильм который хотите изменить :</strong>",
+                               reply_markup=get_delete_movies())
+        await Admin_.edit_movie_select.set()
