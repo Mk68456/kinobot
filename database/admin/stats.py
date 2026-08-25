@@ -1,5 +1,9 @@
+import logging
+import sqlite3
 from datetime import datetime, timedelta
 from loader import database, cursor
+
+logger = logging.getLogger(__name__)
 
 
 def create_stats_tables():
@@ -21,16 +25,36 @@ def create_stats_tables():
     database.commit()
 
 
+def _safe_execute(sql, params):
+    """Выполняет INSERT для логов статистики так, чтобы это НИКОГДА не могло уронить бота.
+    Если нужной таблицы вдруг нет (например, миграции при старте не отработали на этом
+    хостинге) - создаём таблицы на лету и повторяем один раз. Любая другая ошибка просто
+    логируется и проглатывается: статистика - вспомогательная функция, а не критичная."""
+    try:
+        cursor.execute(sql, params)
+        database.commit()
+    except sqlite3.OperationalError as e:
+        if 'no such table' in str(e).lower():
+            try:
+                create_stats_tables()
+                cursor.execute(sql, params)
+                database.commit()
+            except Exception:
+                logger.exception("Не удалось записать событие статистики даже после создания таблиц")
+        else:
+            logger.exception("Ошибка записи статистики")
+    except Exception:
+        logger.exception("Ошибка записи статистики")
+
+
 def log_search(user_id: int, query: str, found_count: int):
-    cursor.execute("INSERT INTO SearchEvents (user_id, query, found_count, created_at) VALUES (?,?,?,?)",
-                   (user_id, query, found_count, datetime.utcnow().isoformat()))
-    database.commit()
+    _safe_execute("INSERT INTO SearchEvents (user_id, query, found_count, created_at) VALUES (?,?,?,?)",
+                 (user_id, query, found_count, datetime.utcnow().isoformat()))
 
 
 def log_watch(user_id: int, movie_number, movie_title: str):
-    cursor.execute("INSERT INTO WatchEvents (user_id, movie_number, movie_title, created_at) VALUES (?,?,?,?)",
-                   (user_id, movie_number, movie_title, datetime.utcnow().isoformat()))
-    database.commit()
+    _safe_execute("INSERT INTO WatchEvents (user_id, movie_number, movie_title, created_at) VALUES (?,?,?,?)",
+                 (user_id, movie_number, movie_title, datetime.utcnow().isoformat()))
 
 
 def _since(days: int):
