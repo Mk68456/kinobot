@@ -8,7 +8,7 @@ from .check_user_sub import check_user_sub
 
 @dp.message_handler(CommandStart())
 async def start_command_handler(message:types.Message):
-    add_user(message.chat.id)
+    add_user(message.chat.id, username=message.from_user.username)
     check = await check_user_sub(message)
     if check != False:
         await bot.send_message(message.chat.id, "Нажмите на кнопку ниже, чтобы найти фильм 👇🏻",

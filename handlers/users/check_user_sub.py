@@ -2,6 +2,7 @@ from loader import bot,dp
 from aiogram import types
 from database.admin.select import get_all_channels_cod
 from keyboards.users.keyboard import find_movie_markup
+import logging
 
 @dp.callback_query_handler(text='check')
 async def check_channals(call:types.CallbackQuery):
@@ -22,7 +23,15 @@ async def check_user_sub(message):
         return True
     else:
         for cod in all_cods:
-            user_status = await bot.get_chat_member(cod[0],user_id=message.chat.id)
+            try:
+                user_status = await bot.get_chat_member(cod[0], user_id=message.chat.id)
+            except Exception as error:
+                # Если Telegram не смог проверить участника (канал недоступен,
+                # бот не админ, юзер не найден и т.п.) - не роняем весь хендлер,
+                # а просто считаем, что подписки нет, и логируем причину.
+                logging.warning(f"Не удалось проверить подписку на канал {cod[0]} "
+                                f"для пользователя {message.chat.id}: {error}")
+                return False
             if user_status.status == 'left':
                 return False
         return True

@@ -46,6 +46,42 @@ def allow_channel_delete_markup():
     return markup
 
 
+def content_type_choice_markup():
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(InlineKeyboardButton(text='🎬 Фильм', callback_data='addtype_movie'),
+               InlineKeyboardButton(text='📺 Сериал', callback_data='addtype_series'))
+    return markup
+
+
+def stats_menu_markup():
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text='📋 Список пользователей', callback_data='stat_users'),
+               InlineKeyboardButton(text='🎬 Топ просмотров (7 дней)', callback_data='stat_top_watched'),
+               InlineKeyboardButton(text='🔍 Топ запросов (7 дней)', callback_data='stat_top_searches'),
+               InlineKeyboardButton(text='👤 История пользователя', callback_data='stat_user_lookup'),
+               InlineKeyboardButton(text='⬅️ Назад', callback_data='stat_back'))
+    return markup
+
+
+def stats_back_markup():
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='stat_menu_back'))
+    return markup
+
+
+def users_page_markup(page: int, has_more: bool):
+    markup = InlineKeyboardMarkup(row_width=2)
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton(text='⬅️ Назад', callback_data=f'statusers_{page-1}'))
+    if has_more:
+        nav.append(InlineKeyboardButton(text='Вперёд ➡️', callback_data=f'statusers_{page+1}'))
+    if nav:
+        markup.row(*nav)
+    markup.add(InlineKeyboardButton(text='⬅️ В меню статистики', callback_data='stat_menu_back'))
+    return markup
+
+
 def skip_markup():
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(InlineKeyboardButton(text='Пропустить', callback_data='skip_step'))
@@ -95,7 +131,9 @@ def edit_movie_menu_markup():
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(InlineKeyboardButton(text='✏️ Изменить название', callback_data='editm_title'),
                InlineKeyboardButton(text='📝 Изменить описание', callback_data='editm_desc'),
+               InlineKeyboardButton(text='🎬 Изменить трейлер', callback_data='editm_trailer'),
                InlineKeyboardButton(text='🗂 Категории (озвучки/качества)', callback_data='editm_cat'),
+               InlineKeyboardButton(text='📁 Torrent-файлы', callback_data='editm_torrents'),
                InlineKeyboardButton(text='⬅️ Назад', callback_data='editm_back'))
     return markup
 
@@ -114,6 +152,29 @@ def categories_delete_pick_markup(categories):
     for category_id, name in categories:
         markup.add(InlineKeyboardButton(text=name, callback_data=f'catdel_{category_id}'))
     markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='catmenu_back'))
+    return markup
+
+
+def torrents_menu_markup():
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text='➕ Добавить torrent-файл', callback_data='trmenu_add'),
+               InlineKeyboardButton(text='📋 Показать torrent-файлы', callback_data='trmenu_list'),
+               InlineKeyboardButton(text='🗑 Удалить torrent-файл', callback_data='trmenu_delete'),
+               InlineKeyboardButton(text='⬅️ Назад', callback_data='trmenu_back'))
+    return markup
+
+
+def torrents_delete_pick_markup(torrents):
+    markup = InlineKeyboardMarkup(row_width=1)
+    for torrent_id, name in torrents:
+        markup.add(InlineKeyboardButton(text=name, callback_data=f'trdel_{torrent_id}'))
+    markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='trmenu_back'))
+    return markup
+
+
+def torrents_finish_markup():
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text='✅ Завершить', callback_data='trbuild_finish'))
     return markup
 
 
