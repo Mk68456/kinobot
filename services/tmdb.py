@@ -1,7 +1,9 @@
 import os
+import socket
 import logging
 
 import aiohttp
+from aiohttp.resolver import AbstractResolver
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,59 @@ TMDB_API_KEY = os.getenv('TMDB_API_KEY', '').strip()
 _BASE_URL = 'https://api.themoviedb.org/3'
 _IMAGE_BASE = 'https://image.tmdb.org/t/p/w500'
 _TIMEOUT = aiohttp.ClientTimeout(total=8)
+
+# TMDB (api.themoviedb.org) заблокирован Роскомнадзором в РФ - обычный DNS хостинга
+# отдаёт для него 127.0.0.1 (DNS-заглушка), из-за чего прямое подключение падает.
+# Обходим это через DNS-over-HTTPS (Cloudflare 1.1.1.1): сам запрос идёт по IP,
+# поэтому DNS для него не нужен, а ответ содержит настоящий (не подменённый) IP TMDB.
+# Обычная картинка постера (image.tmdb.org) тут ни при чём - её скачивает сам Telegram
+# по URL, который мы просто передаём в send_photo, так что это не наша проблема.
+_DOH_ENDPOINT = 'https://1.1.1.1/dns-query'
+
+
+class _DoHResolver(AbstractResolver):
+    """DNS-резолвер поверх DNS-over-HTTPS, в обход DNS-заглушки хостинга."""
+
+    def __init__(self):
+        self._cache = {}
+
+    async def resolve(self, host, port=0, family=socket.AF_INET):
+        ip = self._cache.get(host)
+        if ip is None:
+            ip = await self._doh_lookup(host)
+            self._cache[host] = ip
+        return [{
+            'hostname': host,
+            'host': ip,
+            'port': port,
+            'family': socket.AF_INET,
+            'proto': 0,
+            'flags': 0,
+        }]
+
+    @staticmethod
+    async def _doh_lookup(host):
+        # '1.1.1.1' - это IP-адрес, для запроса к нему самому DNS не требуется,
+        # поэтому используем самую обычную сессию (без нашего резолвера).
+        async with aiohttp.ClientSession() as session:
+            async with session.get(_DOH_ENDPOINT, params={'name': host, 'type': 'A'},
+                                   headers={'Accept': 'application/dns-json'},
+                                   timeout=_TIMEOUT) as resp:
+                resp.raise_for_status()
+                data = await resp.json()
+        answers = [a['data'] for a in (data.get('Answer') or []) if a.get('type') == 1]
+        if not answers:
+            raise RuntimeError(f"DoH: не удалось получить A-запись для {host}")
+        return answers[0]
+
+    async def close(self):
+        pass
+
+
+def _new_session():
+    """Сессия с обходом DNS-заглушки - для запросов к самому TMDB API."""
+    connector = aiohttp.TCPConnector(resolver=_DoHResolver())
+    return aiohttp.ClientSession(connector=connector)
 
 
 async def _get_json(session, url, params):
@@ -36,7 +91,7 @@ async def search(query: str, content_type: str = 'movie', limit: int = 5):
     params = {'api_key': TMDB_API_KEY, 'query': query, 'language': 'ru-RU', 'include_adult': 'false'}
 
     try:
-        async with aiohttp.ClientSession() as session:
+        async with _new_session() as session:
             data = await _get_json(session, f'{_BASE_URL}/search/{endpoint}', params)
     except Exception:
         logger.exception("Ошибка запроса к TMDB при поиске «%s»", query)
@@ -68,7 +123,7 @@ async def get_overview(tmdb_id, content_type: str = 'movie'):
     endpoint = 'tv' if content_type == 'series' else 'movie'
     for lang in ('ru-RU', 'en-US'):
         try:
-            async with aiohttp.ClientSession() as session:
+            async with _new_session() as session:
                 data = await _get_json(session, f'{_BASE_URL}/{endpoint}/{tmdb_id}',
                                        {'api_key': TMDB_API_KEY, 'language': lang})
         except Exception:
@@ -78,3 +133,26 @@ async def get_overview(tmdb_id, content_type: str = 'movie'):
         if overview:
             return overview
     return None
+
+
+async def check_connectivity():
+    """Проверка при старте бота: доступен ли TMDB вообще с этого сервера.
+    Не должна ничего ломать - только пишет понятный результат в лог, чтобы
+    проблему с сетью/allowlist доменов на хостинге было видно сразу, а не
+    только при первом поиске фильма админом."""
+    if not TMDB_API_KEY:
+        logger.info("TMDB: TMDB_API_KEY не задан - автопоиск карточек через TMDB выключен")
+        return
+
+    try:
+        async with _new_session() as session:
+            await _get_json(session, f'{_BASE_URL}/configuration', {'api_key': TMDB_API_KEY})
+        logger.info("TMDB: соединение с api.themoviedb.org успешно, автопоиск карточек включён")
+    except Exception:
+        logger.exception(
+            "TMDB: не удалось подключиться к api.themoviedb.org при старте, даже через DNS-over-HTTPS. "
+            "Возможные причины: 1) TMDB заблокирован не только на уровне DNS, но и по IP - "
+            "тогда обход через DoH не поможет; 2) исходящий доступ к 1.1.1.1:443 (Cloudflare DoH) "
+            "тоже заблокирован на этом хостинге. Пока это не исправлено, поиск карточек "
+            "будет автоматически откатываться на ручной ввод."
+        )

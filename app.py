@@ -6,6 +6,7 @@ from database.admin.migrate_users import check_users_schema
 from database.admin.categories import create_categories_tables
 from database.admin.stats import create_stats_tables
 from database.admin.torrents import create_torrents_table
+from services.tmdb import check_connectivity
 import handlers
 
 
@@ -17,6 +18,7 @@ async def on_startup(dispatcher):
     create_categories_tables()
     create_stats_tables()
     create_torrents_table()
+    await check_connectivity()
     await set_default_commands(dispatcher)
 
 
