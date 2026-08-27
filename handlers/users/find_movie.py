@@ -1,3 +1,4 @@
+import logging
 from aiogram import types
 from loader import dp,bot
 from aiogram.dispatcher import FSMContext
@@ -9,6 +10,8 @@ from .check_user_sub import check_user_sub
 from keyboards.inline.sub_keyboard import sub_markup
 from keyboards.users.keyboard import find_movie_markup,get_movies_pick_markup,torrents_pick_markup
 from states.user_states import Users_
+
+logger = logging.getLogger(__name__)
 
 _TYPE_LABELS = {'movie': 'фильм', 'series': 'сериал'}
 _TYPE_LABELS_PLURAL = {'movie': 'Фильмы', 'series': 'Сериалы'}
@@ -102,22 +105,43 @@ async def _send_movie_card(chat_id:int, code:int, movie_info:dict, user_id:int =
         caption_hint = ""
     pick_markup = _build_pick_markup(code, movie_info)
 
+    sent_ok = False
     if movie_info.get('poster_image'):
         caption = f"<strong>Код : {code}</strong>\n\n<strong>{movie_info['movie_title']}</strong>"
         if movie_info.get('card_description'):
             caption += f"\n\n{movie_info['card_description']}"
         caption += caption_hint
-        await bot.send_photo(chat_id, photo=movie_info['poster_image'], caption=caption[:1024],
-                             reply_markup=pick_markup)
-    else:
-        await bot.send_message(chat_id, f"<strong>Код : {code}</strong>\n\n"
-                                        f"<strong>{movie_info['movie_title']}</strong>{caption_hint}",
-                               disable_web_page_preview=False, reply_markup=pick_markup)
+        try:
+            await bot.send_photo(chat_id, photo=movie_info['poster_image'], caption=caption[:1024],
+                                 reply_markup=pick_markup)
+            sent_ok = True
+        except Exception:
+            # Частая причина: постер был загружен через ДРУГОГО бота (например тестового),
+            # и его file_id недействителен для этого бота/токена - Telegram file_id
+            # привязан к конкретному боту. Не роняем всю карточку - отправляем текстом.
+            logger.exception("Не удалось отправить постер фильма %s (code=%s) - вероятно, "
+                             "невалидный file_id постера (загружен другим ботом/токеном?)",
+                             movie_info.get('movie_title'), code)
+
+    if not sent_ok:
+        try:
+            await bot.send_message(chat_id, f"<strong>Код : {code}</strong>\n\n"
+                                            f"<strong>{movie_info['movie_title']}</strong>{caption_hint}",
+                                   disable_web_page_preview=False, reply_markup=pick_markup)
+        except Exception:
+            logger.exception("Не удалось отправить карточку фильма %s (code=%s) даже без постера",
+                             movie_info.get('movie_title'), code)
+            await bot.send_message(chat_id, "⚠️ Не удалось показать карточку фильма. Сообщите об этом администратору.")
+            return
 
     # Вместе с карточкой фильма отправляем видео-трейлер (если он загружен),
     # чтобы пользователь мог посмотреть его перед выбором озвучки/скачиванием
     if movie_info.get('movie_trailer'):
-        await bot.send_video(chat_id, video=movie_info['movie_trailer'], caption='🎬 Трейлер')
+        try:
+            await bot.send_video(chat_id, video=movie_info['movie_trailer'], caption='🎬 Трейлер')
+        except Exception:
+            logger.exception("Не удалось отправить трейлер фильма %s (code=%s) - вероятно, "
+                             "невалидный file_id трейлера", movie_info.get('movie_title'), code)
 
     if user_id is not None:
         log_watch(user_id, code, movie_info.get('movie_title'))
@@ -127,13 +151,17 @@ async def _send_movie_card(chat_id:int, code:int, movie_info:dict, user_id:int =
 async def movie_pick_handler(call:types.CallbackQuery,state:FSMContext):
     numb = call.data.split('_', 1)[1]
     chat_id = call.message.chat.id
-    movie_info = get_movie_from_numb(numb)
     await state.finish()
     await call.message.delete()
-    if movie_info is None:
-        await bot.send_message(chat_id, f"<strong>Фильм с таким кодом не найден : {numb} !</strong>")
-    else:
-        await _send_movie_card(chat_id, numb, movie_info, user_id=chat_id)
+    try:
+        movie_info = get_movie_from_numb(numb)
+        if movie_info is None:
+            await bot.send_message(chat_id, f"<strong>Фильм с таким кодом не найден : {numb} !</strong>")
+        else:
+            await _send_movie_card(chat_id, numb, movie_info, user_id=chat_id)
+    except Exception:
+        logger.exception("Ошибка при показе карточки фильма (code=%s)", numb)
+        await bot.send_message(chat_id, "⚠️ Произошла ошибка при загрузке карточки. Попробуйте ещё раз чуть позже.")
     await bot.send_message(chat_id, "Искать ещё?", reply_markup=find_movie_markup())
     await call.answer()
 
@@ -240,14 +268,17 @@ async def find_movie_handler(message:types.Message,state:FSMContext):
     query = message.text.strip()
 
     if query.isdigit():
-        movie_info = get_movie_from_numb(query)
         await state.finish()
-        if movie_info is None:
-            await bot.send_message(chat_id, f"<strong>Не найдено с таким кодом : {query} !</strong>")
-            await bot.send_message(chat_id, "Попробовать ещё раз?", reply_markup=find_movie_markup())
-        else:
-            await _send_movie_card(chat_id, query, movie_info, user_id=chat_id)
-            await bot.send_message(chat_id, "Искать ещё?", reply_markup=find_movie_markup())
+        try:
+            movie_info = get_movie_from_numb(query)
+            if movie_info is None:
+                await bot.send_message(chat_id, f"<strong>Не найдено с таким кодом : {query} !</strong>")
+            else:
+                await _send_movie_card(chat_id, query, movie_info, user_id=chat_id)
+        except Exception:
+            logger.exception("Ошибка при показе карточки фильма по коду (code=%s)", query)
+            await bot.send_message(chat_id, "⚠️ Произошла ошибка при загрузке карточки. Попробуйте ещё раз чуть позже.")
+        await bot.send_message(chat_id, "Искать ещё?", reply_markup=find_movie_markup())
         return
 
     matches = get_movies_by_title(query, content_type)
@@ -259,9 +290,13 @@ async def find_movie_handler(message:types.Message,state:FSMContext):
         await bot.send_message(chat_id, "Попробовать ещё раз?", reply_markup=find_movie_markup())
     elif len(matches) == 1:
         title, numb = matches[0]
-        movie_info = get_movie_from_numb(numb)
         await state.finish()
-        await _send_movie_card(chat_id, numb, movie_info, user_id=chat_id)
+        try:
+            movie_info = get_movie_from_numb(numb)
+            await _send_movie_card(chat_id, numb, movie_info, user_id=chat_id)
+        except Exception:
+            logger.exception("Ошибка при показе карточки фильма из поиска (code=%s)", numb)
+            await bot.send_message(chat_id, "⚠️ Произошла ошибка при загрузке карточки. Попробуйте ещё раз чуть позже.")
         await bot.send_message(chat_id, "Искать ещё?", reply_markup=find_movie_markup())
     else:
         listing = '\n'.join(f'{numb} - {title}' for title, numb in matches[:15])

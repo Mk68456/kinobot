@@ -4,6 +4,7 @@ from aiogram.dispatcher.filters.state import State,StatesGroup
 
 class Admin_(StatesGroup):
     add_new_cod = State()
+    add_tmdb_pick = State()
     add_movie_poster = State()
     add_movie_trailer = State()
     add_movie_description = State()

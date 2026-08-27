@@ -53,6 +53,17 @@ def content_type_choice_markup():
     return markup
 
 
+def tmdb_pick_markup(results):
+    markup = InlineKeyboardMarkup(row_width=1)
+    for i, r in enumerate(results):
+        label = f"{r['title']} ({r['year']})" if r.get('year') else r['title']
+        if len(label) > 64:
+            label = label[:61] + '...'
+        markup.add(InlineKeyboardButton(text=f'🔎 {label}', callback_data=f'tmdbpick_{i}'))
+    markup.add(InlineKeyboardButton(text='✍️ Ввести всё вручную', callback_data='tmdbpick_manual'))
+    return markup
+
+
 def stats_menu_markup():
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(InlineKeyboardButton(text='📋 Список пользователей', callback_data='stat_users'),
