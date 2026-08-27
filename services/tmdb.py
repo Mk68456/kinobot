@@ -53,7 +53,10 @@ class _DoHResolver(AbstractResolver):
                                    headers={'Accept': 'application/dns-json'},
                                    timeout=_TIMEOUT) as resp:
                 resp.raise_for_status()
-                data = await resp.json()
+                # Cloudflare отдаёт Content-Type: application/dns-json, а не
+                # application/json - по умолчанию aiohttp считает это несоответствием
+                # и падает с ContentTypeError. content_type=None отключает эту проверку.
+                data = await resp.json(content_type=None)
         answers = [a['data'] for a in (data.get('Answer') or []) if a.get('type') == 1]
         if not answers:
             raise RuntimeError(f"DoH: не удалось получить A-запись для {host}")
