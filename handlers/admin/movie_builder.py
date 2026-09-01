@@ -1,25 +1,118 @@
+import logging
 from aiogram import types
 from loader import dp,bot
 from aiogram.dispatcher import FSMContext
 from database.admin.add_movie import add_new_movie,update_movie_title,update_movie_description,update_movie_trailer
 from database.admin.categories import (add_movie_category,add_movie_subcategory,get_categories_by_movie,
                                         get_subcategories_by_category,delete_category)
-from database.admin.select import get_movie_title_by_numb
+from database.admin.torrents import (add_movie_torrent,get_torrents_by_movie,delete_torrent)
+from database.admin.select import get_movie_title_by_numb,get_movie_content_type
+from services import tmdb
 from states.admin_states import Admin_
 from keyboards.admin.keyboard import (admin_markup,skip_markup,file_mode_markup,catbuild_finish_markup,
                                        catbuild_finish_category_markup,edit_movie_menu_markup,
-                                       categories_menu_markup,categories_delete_pick_markup)
+                                       categories_menu_markup,categories_delete_pick_markup,
+                                       torrents_menu_markup,torrents_delete_pick_markup,torrents_finish_markup,
+                                       tmdb_pick_markup)
+
+logger = logging.getLogger(__name__)
+
+
+# ==================== ВЫБОР ТИПА КОНТЕНТА (ФИЛЬМ / СЕРИАЛ) ====================
+
+@dp.callback_query_handler(lambda call: call.data in ('addtype_movie', 'addtype_series'))
+async def add_content_type_handler(call:types.CallbackQuery,state:FSMContext):
+    content_type = 'series' if call.data == 'addtype_series' else 'movie'
+    await state.update_data(content_type=content_type)
+    await call.message.delete()
+    label = 'сериала' if content_type == 'series' else 'фильма'
+    await bot.send_message(call.message.chat.id, f"<strong>Отправьте название {label} :</strong>")
+    await Admin_.add_new_cod.set()
 
 
 # ==================== ДОБАВЛЕНИЕ ФИЛЬМА ====================
 
-@dp.message_handler(state=Admin_.add_new_cod)
-async def add_new_cod_handler(message:types.Message,state:FSMContext):
-    await state.update_data(movie_title=message.text)
-    await bot.send_message(message.chat.id,
+async def _ask_poster_manually(chat_id):
+    await bot.send_message(chat_id,
                            "<strong>Отправьте постер (фото) для карточки фильма или нажмите Пропустить :</strong>",
                            reply_markup=skip_markup())
     await Admin_.add_movie_poster.set()
+
+
+@dp.message_handler(state=Admin_.add_new_cod)
+async def add_new_cod_handler(message:types.Message,state:FSMContext):
+    await state.update_data(movie_title=message.text)
+    data = await state.get_data()
+    content_type = data.get('content_type', 'movie')
+
+    results = await tmdb.search(message.text, content_type)
+    if results:
+        await state.update_data(tmdb_candidates=results)
+        label = 'сериалов' if content_type == 'series' else 'фильмов'
+        await bot.send_message(message.chat.id,
+                               f"<strong>Нашёл похожее в TMDB среди {label} - выберите нужный вариант, "
+                               f"или введите всё вручную :</strong>",
+                               reply_markup=tmdb_pick_markup(results))
+        await Admin_.add_tmdb_pick.set()
+    else:
+        # TMDB ничего не нашёл (или ключ не настроен, или TMDB недоступен) -
+        # просто продолжаем как раньше, полностью вручную.
+        await _ask_poster_manually(message.chat.id)
+
+
+@dp.callback_query_handler(lambda call: call.data.startswith('tmdbpick_') and call.data != 'tmdbpick_manual',
+                           state=Admin_.add_tmdb_pick)
+async def tmdb_pick_handler(call:types.CallbackQuery,state:FSMContext):
+    idx = int(call.data.split('_', 1)[1])
+    data = await state.get_data()
+    candidates = data.get('tmdb_candidates', [])
+    content_type = data.get('content_type', 'movie')
+    await call.message.delete()
+
+    if idx >= len(candidates):
+        await bot.send_message(call.message.chat.id, "<strong>Этот вариант больше недоступен, попробуйте ещё раз.</strong>")
+        await _ask_poster_manually(call.message.chat.id)
+        return
+
+    chosen = candidates[idx]
+    full_title = f"{chosen['title']} ({chosen['year']})" if chosen.get('year') else chosen['title']
+    overview = chosen.get('overview')
+    if not overview:
+        overview = await tmdb.get_overview(chosen.get('tmdb_id'), content_type)
+
+    await state.update_data(movie_title=full_title, card_description=overview)
+
+    poster_image_id = None
+    if chosen.get('poster_url'):
+        try:
+            caption = f"<strong>{full_title}</strong>"
+            if overview:
+                caption += f"\n\n{overview}"
+            sent = await bot.send_photo(call.message.chat.id, photo=chosen['poster_url'], caption=caption[:1024])
+            poster_image_id = sent.photo[-1].file_id
+        except Exception:
+            logger.exception("Не удалось загрузить постер с TMDB для «%s»", full_title)
+            await bot.send_message(call.message.chat.id,
+                                   f"<strong>{full_title}</strong>" + (f"\n\n{overview}" if overview else ""))
+    else:
+        await bot.send_message(call.message.chat.id,
+                               f"<strong>{full_title}</strong>" + (f"\n\n{overview}" if overview else ""))
+
+    if poster_image_id:
+        await state.update_data(poster_image=poster_image_id)
+
+    await bot.send_message(call.message.chat.id,
+                           "<strong>Данные подтянуты с TMDB ✅</strong> "
+                           "(название/постер/описание можно будет поправить позже через «✏️ Изменить»)\n\n"
+                           "Отправьте видео-трейлер к фильму или нажмите Пропустить :",
+                           reply_markup=skip_markup())
+    await Admin_.add_movie_trailer.set()
+
+
+@dp.callback_query_handler(lambda call: call.data == 'tmdbpick_manual', state=Admin_.add_tmdb_pick)
+async def tmdb_pick_manual_handler(call:types.CallbackQuery,state:FSMContext):
+    await call.message.delete()
+    await _ask_poster_manually(call.message.chat.id)
 
 
 @dp.message_handler(state=Admin_.add_movie_poster, content_types=types.ContentTypes.PHOTO)
@@ -105,10 +198,13 @@ async def filemode_simple_handler(call:types.CallbackQuery,state:FSMContext):
 async def filemode_categories_handler(call:types.CallbackQuery,state:FSMContext):
     await bot.delete_message(call.message.chat.id, call.message.message_id)
     await state.update_data(categories=[])
-    await bot.send_message(call.message.chat.id,
-                           "<strong>Введите название категории (например: Русская озвучка), "
-                           "или нажмите «Завершить», если категории не нужны :</strong>",
-                           reply_markup=catbuild_finish_markup())
+    data = await state.get_data()
+    if data.get('content_type') == 'series':
+        prompt = "<strong>Введите номер сезона (например: 1), или нажмите «Завершить», если сезоны не нужны :</strong>"
+    else:
+        prompt = ("<strong>Введите название категории (например: Русская озвучка), "
+                 "или нажмите «Завершить», если категории не нужны :</strong>")
+    await bot.send_message(call.message.chat.id, prompt, reply_markup=catbuild_finish_markup())
     await Admin_.add_category_name.set()
 
 
@@ -138,9 +234,20 @@ async def skip_file_handler(call:types.CallbackQuery,state:FSMContext):
 
 @dp.message_handler(state=Admin_.add_category_name, content_types=types.ContentTypes.TEXT)
 async def add_category_name_handler(message:types.Message,state:FSMContext):
-    await state.update_data(current_category_name=message.text, current_subcategories=[])
-    await bot.send_message(message.chat.id,
-                           "<strong>Введите название подкатегории/качества (например: 720p) :</strong>")
+    data = await state.get_data()
+    if data.get('content_type') == 'series':
+        season_text = message.text.strip()
+        season_number = int(season_text) if season_text.isdigit() else None
+        category_name = f"Сезон {season_text}"
+        await state.update_data(current_category_name=category_name, current_season_number=season_number,
+                                current_subcategories=[])
+        await bot.send_message(message.chat.id,
+                               "<strong>Введите название/номер серии (например: Серия 1) :</strong>")
+    else:
+        await state.update_data(current_category_name=message.text, current_season_number=None,
+                                current_subcategories=[])
+        await bot.send_message(message.chat.id,
+                               "<strong>Введите название подкатегории/качества (например: 720p) :</strong>")
     await Admin_.add_subcategory_name.set()
 
 
@@ -164,10 +271,14 @@ async def add_subcategory_name_handler(message:types.Message,state:FSMContext):
 async def catbuild_finish_category_handler(call:types.CallbackQuery,state:FSMContext):
     await bot.delete_message(call.message.chat.id, call.message.message_id)
     await _close_current_category(state)
-    await bot.send_message(call.message.chat.id,
-                           "<strong>Введите название следующей категории (например: Английская озвучка), "
-                           "или нажмите «Завершить», если категории больше не нужны :</strong>",
-                           reply_markup=catbuild_finish_markup())
+    data = await state.get_data()
+    if data.get('content_type') == 'series':
+        prompt = ("<strong>Введите номер следующего сезона (например: 2), "
+                 "или нажмите «Завершить», если сезоны больше не нужны :</strong>")
+    else:
+        prompt = ("<strong>Введите название следующей категории (например: Английская озвучка), "
+                 "или нажмите «Завершить», если категории больше не нужны :</strong>")
+    await bot.send_message(call.message.chat.id, prompt, reply_markup=catbuild_finish_markup())
     await Admin_.add_category_name.set()
 
 
@@ -201,8 +312,10 @@ async def _close_current_category(state:FSMContext):
     categories = data.get('categories', [])
     current_name = data.get('current_category_name')
     if current_name:
-        categories.append({'name': current_name, 'subcategories': data.get('current_subcategories', [])})
-    await state.update_data(categories=categories, current_category_name=None, current_subcategories=[])
+        categories.append({'name': current_name, 'season_number': data.get('current_season_number'),
+                           'subcategories': data.get('current_subcategories', [])})
+    await state.update_data(categories=categories, current_category_name=None, current_season_number=None,
+                            current_subcategories=[])
 
 
 async def _finalize_movie_and_categories(chat_id:int, state:FSMContext):
@@ -225,14 +338,15 @@ async def _finalize_movie_and_categories(chat_id:int, state:FSMContext):
         movie_file = data.get('movie_file')
         movie_file_type = data.get('movie_file_type')
         movie_trailer = data.get('movie_trailer')
+        content_type = data.get('content_type', 'movie')
         card_style = 'card' if poster_image else 'simple'
         movie_number = add_new_movie(title, poster_image=poster_image, card_description=card_description,
                                      card_style=card_style, movie_file=movie_file, movie_file_type=movie_file_type,
-                                     movie_trailer=movie_trailer)
+                                     movie_trailer=movie_trailer, content_type=content_type)
         result_message = "Успешно добавлено !"
 
     for category in categories:
-        category_id = add_movie_category(movie_number, category['name'])
+        category_id = add_movie_category(movie_number, category['name'], category.get('season_number'))
         for sub in category.get('subcategories', []):
             add_movie_subcategory(category_id, sub['name'], sub['file_id'], sub['file_type'])
 
@@ -353,12 +467,17 @@ async def catmenu_back_handler(call:types.CallbackQuery,state:FSMContext):
 @dp.callback_query_handler(lambda call: call.data == 'catmenu_add', state=Admin_.edit_categories_menu)
 async def catmenu_add_handler(call:types.CallbackQuery,state:FSMContext):
     data = await state.get_data()
-    await state.update_data(existing_movie_number=data.get('edit_movie_number'), categories=[])
+    numb = data.get('edit_movie_number')
+    content_type = get_movie_content_type(numb)
+    await state.update_data(existing_movie_number=numb, categories=[], content_type=content_type)
     await call.message.delete()
-    await bot.send_message(call.message.chat.id,
-                           "<strong>Введите название категории (например: Русская озвучка), "
-                           "или нажмите «Завершить», если больше добавлять не нужно :</strong>",
-                           reply_markup=catbuild_finish_markup())
+    if content_type == 'series':
+        prompt = ("<strong>Введите номер сезона (например: 1), "
+                 "или нажмите «Завершить», если больше добавлять не нужно :</strong>")
+    else:
+        prompt = ("<strong>Введите название категории (например: Русская озвучка), "
+                 "или нажмите «Завершить», если больше добавлять не нужно :</strong>")
+    await bot.send_message(call.message.chat.id, prompt, reply_markup=catbuild_finish_markup())
     await Admin_.add_category_name.set()
 
 
@@ -407,3 +526,105 @@ async def catdel_back_handler(call:types.CallbackQuery,state:FSMContext):
     await call.message.edit_text("<strong>Категории (озвучки/качества) фильма :</strong>",
                                  reply_markup=categories_menu_markup())
     await Admin_.edit_categories_menu.set()
+
+
+# ==================== TORRENT-ФАЙЛЫ ====================
+
+@dp.callback_query_handler(lambda call: call.data == 'editm_torrents', state=Admin_.edit_movie_menu)
+async def editm_torrents_handler(call:types.CallbackQuery,state:FSMContext):
+    await call.message.edit_text("<strong>Torrent-файлы фильма/сериала :</strong>",
+                                 reply_markup=torrents_menu_markup())
+    await Admin_.edit_torrents_menu.set()
+
+
+@dp.callback_query_handler(lambda call: call.data == 'trmenu_back', state=Admin_.edit_torrents_menu)
+async def trmenu_back_handler(call:types.CallbackQuery,state:FSMContext):
+    data = await state.get_data()
+    numb = data.get('edit_movie_number')
+    movie_title = get_movie_title_by_numb(numb)
+    await call.message.edit_text(f"<strong>Фильм «{movie_title}» (код {numb})</strong>\n\nЧто хотите изменить ?",
+                                 reply_markup=edit_movie_menu_markup())
+    await Admin_.edit_movie_menu.set()
+
+
+@dp.callback_query_handler(lambda call: call.data == 'trmenu_add', state=Admin_.edit_torrents_menu)
+async def trmenu_add_handler(call:types.CallbackQuery,state:FSMContext):
+    await call.message.delete()
+    await bot.send_message(call.message.chat.id,
+                           "<strong>Введите название torrent-файла (например: 1080p или Сезон 1) :</strong>")
+    await Admin_.add_torrent_name.set()
+
+
+@dp.message_handler(state=Admin_.add_torrent_name, content_types=types.ContentTypes.TEXT)
+async def add_torrent_name_handler(message:types.Message,state:FSMContext):
+    await state.update_data(current_torrent_name=message.text)
+    await bot.send_message(message.chat.id, f"<strong>Отправьте torrent-файл для «{message.text}» :</strong>")
+    await Admin_.add_torrent_file.set()
+
+
+@dp.message_handler(state=Admin_.add_torrent_file, content_types=types.ContentTypes.DOCUMENT)
+async def add_torrent_file_handler(message:types.Message,state:FSMContext):
+    data = await state.get_data()
+    numb = data.get('edit_movie_number')
+    add_movie_torrent(numb, data.get('current_torrent_name'), message.document.file_id)
+    await bot.send_message(message.chat.id,
+                           "<strong>Torrent-файл добавлен ✅</strong>\n\n"
+                           "Введите название следующего torrent-файла, или нажмите «Завершить» :",
+                           reply_markup=torrents_finish_markup())
+    await Admin_.add_torrent_name.set()
+
+
+@dp.message_handler(state=Admin_.add_torrent_file, content_types=types.ContentTypes.TEXT)
+async def add_torrent_file_wrong_content_handler(message:types.Message,state:FSMContext):
+    await bot.send_message(message.chat.id, "<strong>Нужно отправить именно файл (документ), например .torrent :</strong>")
+
+
+@dp.callback_query_handler(lambda call: call.data == 'trbuild_finish', state=Admin_.add_torrent_name)
+async def trbuild_finish_handler(call:types.CallbackQuery,state:FSMContext):
+    await call.message.delete()
+    await bot.send_message(call.message.chat.id, "<strong>Torrent-файлы фильма/сериала :</strong>",
+                           reply_markup=torrents_menu_markup())
+    await Admin_.edit_torrents_menu.set()
+
+
+@dp.callback_query_handler(lambda call: call.data == 'trmenu_list', state=Admin_.edit_torrents_menu)
+async def trmenu_list_handler(call:types.CallbackQuery,state:FSMContext):
+    data = await state.get_data()
+    numb = data.get('edit_movie_number')
+    torrents = get_torrents_by_movie(numb)
+    if not torrents:
+        await call.answer("У этого фильма/сериала пока нет torrent-файлов.", show_alert=True)
+        return
+    lines = [name for _, name in torrents]
+    await bot.send_message(call.message.chat.id, "<strong>Torrent-файлы :</strong>\n\n" + '\n'.join(lines))
+    await call.answer()
+
+
+@dp.callback_query_handler(lambda call: call.data == 'trmenu_delete', state=Admin_.edit_torrents_menu)
+async def trmenu_delete_handler(call:types.CallbackQuery,state:FSMContext):
+    data = await state.get_data()
+    numb = data.get('edit_movie_number')
+    torrents = get_torrents_by_movie(numb)
+    if not torrents:
+        await call.answer("У этого фильма/сериала пока нет torrent-файлов.", show_alert=True)
+        return
+    await call.message.edit_text("<strong>Выберите torrent-файл для удаления :</strong>",
+                                 reply_markup=torrents_delete_pick_markup(torrents))
+    await Admin_.edit_torrents_delete.set()
+
+
+@dp.callback_query_handler(lambda call: call.data.startswith('trdel_'), state=Admin_.edit_torrents_delete)
+async def trdel_handler(call:types.CallbackQuery,state:FSMContext):
+    torrent_id = int(call.data.split('_', 1)[1])
+    delete_torrent(torrent_id)
+    await call.answer("Torrent-файл удалён")
+    await call.message.edit_text("<strong>Torrent-файлы фильма/сериала :</strong>",
+                                 reply_markup=torrents_menu_markup())
+    await Admin_.edit_torrents_menu.set()
+
+
+@dp.callback_query_handler(lambda call: call.data == 'trmenu_back', state=Admin_.edit_torrents_delete)
+async def trdel_back_handler(call:types.CallbackQuery,state:FSMContext):
+    await call.message.edit_text("<strong>Torrent-файлы фильма/сериала :</strong>",
+                                 reply_markup=torrents_menu_markup())
+    await Admin_.edit_torrents_menu.set()
