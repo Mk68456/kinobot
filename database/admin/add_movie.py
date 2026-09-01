@@ -52,6 +52,11 @@ def update_movie_trailer(numb, new_trailer):
     database.commit()
 
 
+def update_movie_content_type(numb, content_type):
+    cursor.execute("UPDATE Movies SET content_type=? WHERE movie_number=?", (content_type, numb))
+    database.commit()
+
+
 def delete_movie_by_numb(numb):
     delete_categories_by_movie(numb)
     cursor.execute("DELETE FROM Movies WHERE movie_number=?", (numb,))

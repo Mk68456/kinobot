@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardButton,InlineKeyboardMarkup,ReplyKeyboardMarkup,KeyboardButton
-from database.admin.select import get_all_channels_info,get_all_channels_title,get_all_movies
+from database.admin.select import get_all_channels_info,get_all_channels_title,get_all_movies,get_movie_content_type
 
 def admin_markup():
     markup = InlineKeyboardMarkup(row_width=2)
@@ -104,7 +104,8 @@ def get_delete_movies():
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     for movie in all_movies:
         title, numb = movie[0], movie[1]
-        label = f'{numb} - {title}'
+        icon = '📺' if get_movie_content_type(numb) == 'series' else '🎬'
+        label = f'{icon} {numb} - {title}'
         if len(label) > 64:
             label = label[:61] + '...'
         markup.add(KeyboardButton(text=label))
@@ -138,14 +139,49 @@ def catbuild_finish_category_markup():
     return markup
 
 
-def edit_movie_menu_markup():
+def edit_movie_menu_markup(content_type='movie'):
     markup = InlineKeyboardMarkup(row_width=1)
+    if content_type == 'series':
+        markup.add(InlineKeyboardButton(text='📺 Сезоны и серии', callback_data='editm_seasons'),
+                   InlineKeyboardButton(text='🎬 Изменить на фильм', callback_data='editm_type_movie'))
+    else:
+        markup.add(InlineKeyboardButton(text='🗂 Категории (озвучки/качества)', callback_data='editm_cat'),
+                   InlineKeyboardButton(text='📺 Изменить на сериал', callback_data='editm_type_series'))
     markup.add(InlineKeyboardButton(text='✏️ Изменить название', callback_data='editm_title'),
                InlineKeyboardButton(text='📝 Изменить описание', callback_data='editm_desc'),
                InlineKeyboardButton(text='🎬 Изменить трейлер', callback_data='editm_trailer'),
-               InlineKeyboardButton(text='🗂 Категории (озвучки/качества)', callback_data='editm_cat'),
                InlineKeyboardButton(text='📁 Torrent-файлы', callback_data='editm_torrents'),
                InlineKeyboardButton(text='⬅️ Назад', callback_data='editm_back'))
+    return markup
+
+
+def seasons_menu_markup(seasons):
+    markup = InlineKeyboardMarkup(row_width=1)
+    for season_id, name, season_number in seasons:
+        label = name or (f'Сезон {season_number}' if season_number is not None else 'Сезон')
+        markup.add(InlineKeyboardButton(text=f'📺 {label}', callback_data=f'seasonedit_{season_id}'))
+    markup.add(InlineKeyboardButton(text='➕ Добавить сезон', callback_data='season_add'))
+    markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='seasons_back'))
+    return markup
+
+
+def season_edit_markup(season_id, subcategories):
+    markup = InlineKeyboardMarkup(row_width=1)
+    for sub_id, name, file_id, file_type in subcategories:
+        markup.add(InlineKeyboardButton(text=f'🎬 {name}', callback_data=f'episodeedit_{sub_id}'))
+    markup.add(InlineKeyboardButton(text='➕ Добавить серию', callback_data=f'episode_add_{season_id}'))
+    markup.add(InlineKeyboardButton(text='✏️ Изменить название сезона', callback_data=f'seasonrename_{season_id}'))
+    markup.add(InlineKeyboardButton(text='🗑 Удалить сезон', callback_data=f'seasondelete_{season_id}'))
+    markup.add(InlineKeyboardButton(text='⬅️ Назад к сезонам', callback_data='seasons_back_menu'))
+    return markup
+
+
+def episode_edit_markup(sub_id, season_id):
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text='✏️ Изменить название серии', callback_data=f'episodename_{sub_id}'),
+               InlineKeyboardButton(text='📁 Заменить файл серии', callback_data=f'episodefile_{sub_id}'),
+               InlineKeyboardButton(text='🗑 Удалить серию', callback_data=f'episodedelete_{sub_id}'),
+               InlineKeyboardButton(text='⬅️ Назад к сезону', callback_data=f'seasonedit_{season_id}'))
     return markup
 
 
