@@ -1,4 +1,5 @@
 import logging
+import re
 from aiogram import types
 from loader import dp,bot
 from aiogram.dispatcher import FSMContext
@@ -366,7 +367,8 @@ async def edit_movie_select_handler(message:types.Message,state:FSMContext):
         await bot.send_message(message.chat.id, 'Изменение фильма отменено', reply_markup=types.ReplyKeyboardRemove())
         await bot.send_message(message.chat.id, "Админ-панель", reply_markup=admin_markup())
         return
-    numb_part = message.text.split(' - ')[0].strip()
+    match = re.match(r'^\D*(\d+)\s*-\s*', (message.text or '').strip())
+    numb_part = match.group(1) if match else ''
     if not numb_part.isdigit():
         await bot.send_message(message.chat.id, "Пожалуйста, выберите фильм кнопкой из списка.")
         return

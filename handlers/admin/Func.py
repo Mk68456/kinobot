@@ -7,6 +7,7 @@ from keyboards.admin.keyboard import admin_markup,allow_movie_delete_markup
 from database.admin.channels_func import delete_no_active_user
 from database.admin.select import get_all_bot_users,get_movie_title_by_numb
 import asyncio
+import re
 
 
 @dp.message_handler(state=Admin_.delete_movie)
@@ -19,7 +20,8 @@ async def delete_movie_func(message:types.Message,state:FSMContext):
                                                 f"Статистика : {int(len(get_all_bot_users()))}",
                                reply_markup=admin_markup())
         return
-    numb_part = message.text.split(' - ')[0].strip()
+    match = re.match(r'^\D*(\d+)\s*-\s*', (message.text or '').strip())
+    numb_part = match.group(1) if match else ''
     if not numb_part.isdigit():
         await bot.send_message(message.chat.id, "Пожалуйста, выберите фильм кнопкой из списка.")
         return
