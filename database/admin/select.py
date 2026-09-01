@@ -12,10 +12,27 @@ def get_all_bot_users():
     cursor.execute("SELECT id FROM Users")
     users = cursor.fetchall()
     return users
-def get_all_movies():
-    cursor.execute("SELECT * FROM Movies")
+def get_all_movies(content_type=None):
+    """Если content_type не задан - возвращает всё (для админ-панели).
+    Если задан ('movie' или 'series') - только фильмы/сериалы этого типа (для пользователей)."""
+    cursor.execute("PRAGMA table_info(Movies)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if content_type and 'content_type' in columns:
+        cursor.execute("SELECT * FROM Movies WHERE COALESCE(content_type,'movie')=?", (content_type,))
+    else:
+        cursor.execute("SELECT * FROM Movies")
     movies = cursor.fetchall()
     return movies
+
+
+def get_movie_content_type(numb):
+    cursor.execute("PRAGMA table_info(Movies)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if 'content_type' not in columns:
+        return 'movie'
+    cursor.execute("SELECT content_type FROM Movies WHERE movie_number=?", (numb,))
+    row = cursor.fetchone()
+    return (row[0] if row and row[0] else 'movie')
 def get_movie_title_by_numb(numb):
     cursor.execute("SELECT movie_title FROM Movies WHERE movie_number=?", (numb,))
     row = cursor.fetchone()

@@ -31,7 +31,8 @@ def get_movie_from_numb(numb : int):
             'card_style': info.get('card_style') or 'simple',
             'movie_file': info.get('movie_file') or None,
             'movie_file_type': info.get('movie_file_type') or None,
-            'movie_trailer': info.get('movie_trailer') or None}
+            'movie_trailer': info.get('movie_trailer') or None,
+            'content_type': info.get('content_type') or 'movie'}
 
 
 def _word_matches(keyword, title_words, threshold=0.75):
@@ -46,15 +47,22 @@ def _word_matches(keyword, title_words, threshold=0.75):
     return False
 
 
-def get_movies_by_title(query:str):
+def get_movies_by_title(query:str, content_type=None):
     """Ищет фильмы по ключевым словам в названии (без учёта регистра,
     с прощением небольших опечаток). Запрос разбивается на отдельные
     слова, и фильм подходит, если КАЖДОЕ слово из запроса встречается
     (точно или почти точно) где-то в его названии - слова можно вводить
     в любом порядке. SQLite сам не умеет регистронезависимо сравнивать
     кириллицу, поэтому фильтруем в Python.
+    content_type: если задан ('movie'/'series') - ищет только среди этого типа.
     Возвращает список (movie_title, movie_number)."""
-    cursor.execute("SELECT movie_title, movie_number FROM Movies")
+    cursor.execute("PRAGMA table_info(Movies)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if content_type and 'content_type' in columns:
+        cursor.execute("SELECT movie_title, movie_number FROM Movies WHERE COALESCE(content_type,'movie')=?",
+                       (content_type,))
+    else:
+        cursor.execute("SELECT movie_title, movie_number FROM Movies")
     all_movies = cursor.fetchall()
 
     keywords = _split_words(query)
