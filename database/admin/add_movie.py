@@ -4,8 +4,7 @@ from .categories import delete_categories_by_movie
 
 
 def add_new_movie(title: str, poster_image: str = None, card_description: str = None, card_style: str = 'simple',
-                  movie_file: str = None, movie_file_type: str = None, movie_trailer: str = None,
-                  content_type: str = 'movie'):
+                  movie_file: str = None, movie_file_type: str = None, movie_trailer: str = None):
     """Добавляет новый фильм. Заполняет только те колонки карточки/файла,
     которые реально существуют в таблице Movies (на случай если миграция ещё не выполнена).
     Возвращает movie_number созданного фильма."""
@@ -24,7 +23,6 @@ def add_new_movie(title: str, poster_image: str = None, card_description: str = 
         ('movie_file', movie_file or ''),
         ('movie_file_type', movie_file_type or ''),
         ('movie_trailer', movie_trailer or ''),
-        ('content_type', content_type or 'movie'),
     ]
     for column, value in optional:
         if column in columns:

@@ -4,7 +4,6 @@ from aiogram.dispatcher.filters.state import State,StatesGroup
 
 class Admin_(StatesGroup):
     add_new_cod = State()
-    add_tmdb_pick = State()
     add_movie_poster = State()
     add_movie_trailer = State()
     add_movie_description = State()
@@ -21,12 +20,7 @@ class Admin_(StatesGroup):
     edit_movie_trailer = State()
     edit_categories_menu = State()
     edit_categories_delete = State()
-    edit_torrents_menu = State()
-    edit_torrents_delete = State()
-    add_torrent_name = State()
-    add_torrent_file = State()
     send_ = State()
     add_channel_link = State()
     add_channel = State()
     delete_channel = State()
-    stats_user_lookup = State()

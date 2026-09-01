@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardButton,InlineKeyboardMarkup,ReplyKeyboardMarkup,KeyboardButton
 from database.admin.select import get_all_channels_info,get_all_channels_title,get_all_movies
+from keyboards.admin.analytics import analytics_menu_markup
 
 def admin_markup():
     markup = InlineKeyboardMarkup(row_width=2)
@@ -43,53 +44,6 @@ def allow_channel_delete_markup():
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(InlineKeyboardButton(text='Да',callback_data='del_yes'),
                InlineKeyboardButton(text='Нет',callback_data='del_no'))
-    return markup
-
-
-def content_type_choice_markup():
-    markup = InlineKeyboardMarkup(row_width=2)
-    markup.add(InlineKeyboardButton(text='🎬 Фильм', callback_data='addtype_movie'),
-               InlineKeyboardButton(text='📺 Сериал', callback_data='addtype_series'))
-    return markup
-
-
-def tmdb_pick_markup(results):
-    markup = InlineKeyboardMarkup(row_width=1)
-    for i, r in enumerate(results):
-        label = f"{r['title']} ({r['year']})" if r.get('year') else r['title']
-        if len(label) > 64:
-            label = label[:61] + '...'
-        markup.add(InlineKeyboardButton(text=f'🔎 {label}', callback_data=f'tmdbpick_{i}'))
-    markup.add(InlineKeyboardButton(text='✍️ Ввести всё вручную', callback_data='tmdbpick_manual'))
-    return markup
-
-
-def stats_menu_markup():
-    markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='📋 Список пользователей', callback_data='stat_users'),
-               InlineKeyboardButton(text='🎬 Топ просмотров (7 дней)', callback_data='stat_top_watched'),
-               InlineKeyboardButton(text='🔍 Топ запросов (7 дней)', callback_data='stat_top_searches'),
-               InlineKeyboardButton(text='👤 История пользователя', callback_data='stat_user_lookup'),
-               InlineKeyboardButton(text='⬅️ Назад', callback_data='stat_back'))
-    return markup
-
-
-def stats_back_markup():
-    markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='stat_menu_back'))
-    return markup
-
-
-def users_page_markup(page: int, has_more: bool):
-    markup = InlineKeyboardMarkup(row_width=2)
-    nav = []
-    if page > 0:
-        nav.append(InlineKeyboardButton(text='⬅️ Назад', callback_data=f'statusers_{page-1}'))
-    if has_more:
-        nav.append(InlineKeyboardButton(text='Вперёд ➡️', callback_data=f'statusers_{page+1}'))
-    if nav:
-        markup.row(*nav)
-    markup.add(InlineKeyboardButton(text='⬅️ В меню статистики', callback_data='stat_menu_back'))
     return markup
 
 
@@ -144,7 +98,6 @@ def edit_movie_menu_markup():
                InlineKeyboardButton(text='📝 Изменить описание', callback_data='editm_desc'),
                InlineKeyboardButton(text='🎬 Изменить трейлер', callback_data='editm_trailer'),
                InlineKeyboardButton(text='🗂 Категории (озвучки/качества)', callback_data='editm_cat'),
-               InlineKeyboardButton(text='📁 Torrent-файлы', callback_data='editm_torrents'),
                InlineKeyboardButton(text='⬅️ Назад', callback_data='editm_back'))
     return markup
 
@@ -163,29 +116,6 @@ def categories_delete_pick_markup(categories):
     for category_id, name in categories:
         markup.add(InlineKeyboardButton(text=name, callback_data=f'catdel_{category_id}'))
     markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='catmenu_back'))
-    return markup
-
-
-def torrents_menu_markup():
-    markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='➕ Добавить torrent-файл', callback_data='trmenu_add'),
-               InlineKeyboardButton(text='📋 Показать torrent-файлы', callback_data='trmenu_list'),
-               InlineKeyboardButton(text='🗑 Удалить torrent-файл', callback_data='trmenu_delete'),
-               InlineKeyboardButton(text='⬅️ Назад', callback_data='trmenu_back'))
-    return markup
-
-
-def torrents_delete_pick_markup(torrents):
-    markup = InlineKeyboardMarkup(row_width=1)
-    for torrent_id, name in torrents:
-        markup.add(InlineKeyboardButton(text=name, callback_data=f'trdel_{torrent_id}'))
-    markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='trmenu_back'))
-    return markup
-
-
-def torrents_finish_markup():
-    markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='✅ Завершить', callback_data='trbuild_finish'))
     return markup
 
 

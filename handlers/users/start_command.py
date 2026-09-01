@@ -2,13 +2,15 @@ from aiogram import types
 from loader import dp,bot
 from aiogram.dispatcher.filters import CommandStart
 from database.users.add_user import add_user
+from database.admin.analytics import log_event
 from keyboards.inline.sub_keyboard import sub_markup
 from keyboards.users.keyboard import find_movie_markup
 from .check_user_sub import check_user_sub
 
 @dp.message_handler(CommandStart())
 async def start_command_handler(message:types.Message):
-    add_user(message.chat.id, username=message.from_user.username)
+    user_id = add_user(message)
+    log_event(user_id, 'start')
     check = await check_user_sub(message)
     if check != False:
         await bot.send_message(message.chat.id, "Нажмите на кнопку ниже, чтобы найти фильм 👇🏻",

@@ -70,16 +70,6 @@ def migrate_movies_schema():
         else:
             raise
 
-    # Тип контента: 'movie' (фильм) или 'series' (сериал)
-    try:
-        cursor.execute('''ALTER TABLE Movies ADD COLUMN content_type TEXT DEFAULT 'movie' ''')
-        print("✅ Колонка content_type создана")
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" in str(e).lower():
-            print("ℹ️ Колонка content_type уже существует")
-        else:
-            raise
-
     database.commit()
     print("\nМиграция выполнена успешно!")
 
@@ -94,7 +84,6 @@ def check_schema():
     has_file = 'movie_file' in columns
     has_file_type = 'movie_file_type' in columns
     has_trailer = 'movie_trailer' in columns
-    has_content_type = 'content_type' in columns
     
     print(f"\nСтатус таблицы Movies:")
     print(f"  poster_image: {has_poster}")
@@ -103,9 +92,8 @@ def check_schema():
     print(f"  movie_file: {has_file}")
     print(f"  movie_file_type: {has_file_type}")
     print(f"  movie_trailer: {has_trailer}")
-    print(f"  content_type: {has_content_type}")
     
-    if not all([has_poster, has_description, has_style, has_file, has_file_type, has_trailer, has_content_type]):
+    if not all([has_poster, has_description, has_style, has_file, has_file_type, has_trailer]):
         migrate_movies_schema()
     else:
         print("\n✅ Все необходимые колонки уже существуют")
