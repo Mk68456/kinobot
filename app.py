@@ -42,6 +42,14 @@ async def on_shutdown(dispatcher):
 
 
 def main():
+    import os
+
+    if os.environ.get("STORAGE_DIAGNOSTICS") == "1":
+        from tools.storage_diagnostics import run
+
+        run()
+        return
+
     from loader import initialize
 
     dispatcher = initialize()
