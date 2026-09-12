@@ -14,6 +14,7 @@ def admin_markup():
     markup.insert(InlineKeyboardButton(text="Добавить код", callback_data="add_cod"))
     markup.add(InlineKeyboardButton(text="👥 Роли пользователей", callback_data="role:home"))
     markup.add(InlineKeyboardButton(text="📨 Задания рассылки", callback_data="broadcast:list"))
+    markup.add(InlineKeyboardButton(text="🎨 Изменить дизайн", callback_data="design:home"))
     return markup
 
 
