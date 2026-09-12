@@ -22,7 +22,11 @@ ADD https://github.com/tianon/gosu/releases/download/1.17/gosu-amd64 /usr/local/
 RUN chmod +x /usr/local/bin/gosu
 
 COPY --chown=bot:bot . .
-RUN chmod +x /app/entrypoint.sh
+# Keep startup outside /app, which hosting platforms may replace with a mount.
+# Invoke via sh so startup does not depend on the script's executable bit.
+COPY entrypoint.sh /usr/local/bin/kinobot-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/kinobot-entrypoint.sh \
+    && chmod 644 /usr/local/bin/kinobot-entrypoint.sh
 VOLUME ["/app/runtime"]
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/kinobot-entrypoint.sh"]
 CMD ["/opt/venv/bin/python", "app.py"]
