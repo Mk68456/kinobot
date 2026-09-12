@@ -1,0 +1,77 @@
+name: kinobot
+
+services:
+  bot-api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.bot-api
+    restart: unless-stopped
+    environment:
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID:?Run setup first}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH:?Run setup first}
+    volumes:
+      - telegram-data:/var/lib/telegram-bot-api
+    healthcheck:
+      test: [CMD, curl, --silent, --output, /dev/null, --max-time, '5', 'http://127.0.0.1:8081/']
+      interval: 10s
+      timeout: 6s
+      retries: 30
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  bot:
+    build: .
+    restart: unless-stopped
+    stop_grace_period: 60s
+    depends_on:
+      bot-api:
+        condition: service_healthy
+    environment:
+      WEB_ENABLED: '1'
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: '8088'
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-http://127.0.0.1:8088}
+      BOT_API_BASE: http://bot-api:8081
+      DATA_DIR: /app/runtime
+      UPLOAD_QUOTA_BYTES: ${UPLOAD_QUOTA_BYTES:-20000000000}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      TMDB_USE_DOH: ${TMDB_USE_DOH:-1}
+    ports:
+      - '127.0.0.1:8088:8088'
+    volumes:
+      - bot-data:/app/runtime
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8088/', timeout=5).close()"]
+      interval: 15s
+      timeout: 6s
+      start_period: 60s
+      retries: 10
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: [https]
+    restart: unless-stopped
+    depends_on:
+      bot:
+        condition: service_healthy
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN:-localhost}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    logging: *logging
+
+volumes:
+  bot-data:
+    name: kinobot-data
+  telegram-data:
+  caddy-data:
+  caddy-config:

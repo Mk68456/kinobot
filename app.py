@@ -1,28 +1,55 @@
+import logging
 from aiogram import executor
-from loader import dp
-from utils.set_bot_commands import set_default_commands
-from database.admin.migrate_movies import check_schema
-from database.admin.migrate_users import check_users_schema
-from database.admin.categories import create_categories_tables
-from database.admin.stats import create_stats_tables
-from database.admin.torrents import create_torrents_table
-from services.tmdb import check_connectivity
-import handlers
+from data.settings import DATABASE_PATH, BACKUP_DIR
+from database.connection import database
+from database.migrations import migrate
 
-
+web_runner = None
 
 
 async def on_startup(dispatcher):
-    check_schema()
-    check_users_schema()
-    create_categories_tables()
-    create_stats_tables()
-    create_torrents_table()
+    global web_runner
+    from utils.set_bot_commands import set_default_commands
+    from services.tmdb import check_connectivity
+    from services.broadcasts import broadcasts
+
+    database.open(DATABASE_PATH)
+    migrate(BACKUP_DIR)
+    from data.settings import WEB_ENABLED
+
+    if WEB_ENABLED:
+        from webpanel.server import start
+
+        web_runner = await start(dispatcher.bot)
     await check_connectivity()
     await set_default_commands(dispatcher)
+    broadcasts.start(dispatcher.bot)
 
 
-if __name__ == '__main__':
-    import logging
+async def on_shutdown(dispatcher):
+    global web_runner
+    from services.broadcasts import broadcasts
+    from services.tmdb import close_session
+
+    if web_runner is not None:
+        await web_runner.cleanup()
+        web_runner = None
+    await broadcasts.stop()
+    await close_session()
+    await dispatcher.storage.close()
+    await dispatcher.storage.wait_closed()
+    database.close()
+
+
+def main():
+    from loader import initialize
+
+    dispatcher = initialize()
+    import handlers  # noqa: F401 -- Register handlers after initialization.
+
+    executor.start_polling(dispatcher, on_startup=on_startup, on_shutdown=on_shutdown)
+
+
+if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    executor.start_polling(dp, on_startup=on_startup)
+    main()
