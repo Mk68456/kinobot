@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KinoTime — загрузка каталога</title>
+  <meta name="description" content="Панель администратора KinoTime: загрузка фильмов и сезонов в Telegram.">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div id="login" class="login-screen">
+    <div class="login-card"><span class="brand-mark">K</span><p class="eyebrow">KINOTIME · ДЛЯ АДМИНИСТРАТОРА</p>
+      <h1>Весь сезон.<br>Одна загрузка.</h1><p>Загружайте файлы, проверяйте порядок серий и добавляйте готовый сезон в каталог бота.</p>
+      <div class="login-step">Для входа отправьте боту <code>/web</code> и откройте полученную ссылку.</div>
+      <p id="login-error" role="status" class="muted">Ссылка действует 10 минут. Доступ есть только у администраторов.</p>
+    </div>
+  </div>
+  <div id="workspace" hidden>
+    <aside class="sidebar"><a class="brand" href="/"> <span class="brand-mark small">K</span> KinoTime</a>
+      <p class="nav-label">УПРАВЛЕНИЕ КАТАЛОГОМ</p>
+      <nav aria-label="Разделы панели">
+        <button data-tab="upload" class="nav-item active"><span>↑</span> Загрузка</button>
+        <button data-tab="inbox" class="nav-item"><span>↙</span> Из Telegram <span id="inbox-count" class="count">0</span></button>
+        <button data-tab="catalog" class="nav-item"><span>▤</span> Каталог</button>
+        <button data-tab="guide" class="nav-item"><span>?</span> Как пользоваться</button>
+      </nav>
+      <div class="sidebar-bottom"><p>Публикация после проверки</p><small>Загруженные файлы сначала сохраняются в вашей библиотеке.</small><button id="logout" class="text-button">Выйти из панели</button></div>
+    </aside>
+    <main>
+      <header class="topbar"><span id="breadcrumb">Библиотека / Загрузка</span><span id="account" class="account"></span></header>
+      <div id="notice" role="status" hidden></div>
+      <section id="tab-upload" class="tab">
+        <div class="page-heading"><div><p class="eyebrow">ПОПОЛНЕНИЕ КАТАЛОГА</p><h1>Подготовить публикацию</h1><p class="muted">Сначала файлы и названия. Затем — публикация в боте.</p></div><button id="new-draft" class="secondary">+ Новый черновик</button></div>
+        <div class="draft-strip"><label for="draft-select">Продолжить черновик</label><select id="draft-select"><option value="">Новая публикация</option></select><span id="save-state" class="muted">Не сохранён</span></div>
+        <div class="editor-grid">
+          <section class="panel metadata"><div class="section-title"><span class="step">01</span><h2>Фильм или сериал</h2></div>
+            <label for="content-type">Тип контента</label><select id="content-type"><option value="series">Сериал · несколько серий</option><option value="movie">Фильм · один файл</option></select>
+            <div id="existing-target" class="target" hidden></div>
+            <label for="title">Название</label><input id="title" maxlength="200" placeholder="Например, Рик и Морти" autocomplete="off">
+            <div id="season-fields"><div class="two-fields"><div><label for="season-number">Номер сезона</label><input id="season-number" type="number" min="1" max="10000" value="1"></div><div><label for="season-name">Название сезона</label><input id="season-name" maxlength="120" placeholder="Сезон 1"></div></div>
+              <div id="season-select-wrap" hidden><label for="season-select">Добавить серии в сезон</label><select id="season-select"><option value="">Создать новый сезон</option></select></div>
+            </div>
+            <details id="extra-fields"><summary>Описание и постер</summary><label for="description">Описание</label><textarea id="description" maxlength="2500" rows="4" placeholder="Описание карточки в Telegram"></textarea><label for="poster-url">Ссылка на постер</label><input id="poster-url" type="url" placeholder="https://…"><p class="field-note">Необязательно. Постер можно добавить позже через бота.</p></details>
+            <div class="metadata-note">Файлы свыше <span class="max-mb">2000</span> МБ отправляйте боту через Telegram Desktop. Они появятся в разделе «Из Telegram».</div>
+          </section>
+          <section class="panel files-panel"><div class="section-title"><span class="step">02</span><h2>Файлы и порядок серий</h2><span id="file-count" class="count">0</span></div>
+            <div id="dropzone" class="dropzone"><span class="upload-symbol">↑</span><h3>Перетащите видео сюда</h3><p>До <span class="max-mb">2000</span> МБ на файл · несколько серий за один раз</p><label class="primary file-picker" for="file-input">Выбрать файлы</label><input id="file-input" type="file" multiple hidden><button id="choose-inbox" class="text-button">Выбрать из Telegram</button></div>
+            <div id="upload-activity" class="activity" hidden><span id="activity-text"></span><button id="pause-upload" class="text-button">Приостановить</button></div>
+            <div class="queue-head"><span>НАЗВАНИЕ В БОТЕ</span><span>ГОТОВНОСТЬ</span></div>
+            <div id="queue" class="queue"><div class="empty">Добавьте файлы — здесь можно будет изменить названия и порядок.</div></div>
+            <div class="publish-bar"><p id="publish-hint">Готовые файлы появятся в боте после публикации.</p><div><button id="save-draft" class="secondary">Сохранить черновик</button><button id="publish" class="primary">Опубликовать в боте</button></div></div>
+          </section>
+        </div>
+      </section>
+      <section id="tab-inbox" class="tab" hidden><div class="page-heading"><div><p class="eyebrow">БИБЛИОТЕКА ФАЙЛОВ</p><h1>Полученные через Telegram</h1><p class="muted">Отправьте боту <code>/webfiles</code>, затем видео или документы. Завершите командой <code>/done</code>.</p></div><button id="refresh-inbox" class="secondary">Обновить</button></div>
+        <div class="panel"><div id="inbox-list"></div><div class="publish-bar"><p>Названия и порядок можно изменить перед публикацией.</p><button id="add-inbox" class="primary">Добавить выбранные в черновик</button></div></div>
+      </section>
+      <section id="tab-catalog" class="tab" hidden><div class="page-heading"><div><p class="eyebrow">КАТАЛОГ БОТА</p><h1>Добавить в существующий сериал</h1><p class="muted">Выберите сериал, чтобы загрузить новый сезон или продолжить существующий.</p></div></div>
+        <form id="catalog-search" class="search"><input id="catalog-query" placeholder="Название фильма или сериала" aria-label="Поиск в каталоге"><button class="secondary">Найти</button></form><div id="catalog-list" class="panel"></div><div class="pager"><button id="catalog-prev" class="secondary">Назад</button><span id="catalog-page"></span><button id="catalog-next" class="secondary">Далее</button></div>
+      </section>
+      <section id="tab-guide" class="tab" hidden><div class="page-heading"><div><p class="eyebrow">ПАМЯТКА АДМИНИСТРАТОРУ</p><h1>От файлов до готового сезона</h1></div></div><div class="guide-grid">
+        <article class="panel"><span class="step">01</span><h2>С компьютера</h2><p>Создайте черновик, укажите сериал и сезон. Выберите файлы: они последовательно загрузятся на сервер, затем в Telegram. Дождитесь статуса «Готов».</p><p>При обрыве соединения выберите те же файлы повторно — панель продолжит незавершённую загрузку. Не закрывайте вкладку, пока идёт передача с компьютера.</p></article>
+        <article class="panel"><span class="step">02</span><h2>Из Telegram · до 4 ГБ</h2><p>В личном чате с этим ботом отправьте <code>/webfiles</code>. Загрузите или перешлите файлы с Premium-аккаунта, затем отправьте <code>/done</code>.</p><p>Откройте «Из Telegram», отметьте нужные файлы и добавьте их в черновик. Повторная загрузка на сервер не нужна.</p></article>
+        <article class="panel"><span class="step">03</span><h2>Проверить и опубликовать</h2><p>Названия в строках — это будущие кнопки серий в боте. Исправьте их и расположите файлы стрелками в нужном порядке. Для фильма добавьте один основной файл.</p><p>Нажмите «Опубликовать в боте». Откройте полученный код в Telegram и проверьте карточку. Черновик после публикации нельзя отправить повторно.</p></article>
+        <article class="panel"><span class="step">04</span><h2>Ошибки и продолжение</h2><p>Если передача в Telegram не удалась, нажмите «Повторить». После перезапуска сервера сначала проверьте чат: файл мог успеть отправиться. Его можно переслать в режиме <code>/webfiles</code>.</p><p>Кнопка удаления незавершённой загрузки освобождает место на сервере. Удаление готового файла из черновика не удаляет опубликованный контент.</p></article>
+      </div></section>
+    </main>
+  </div>
+</body>
+</html>
