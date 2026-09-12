@@ -1,7 +1,7 @@
 from aiogram import types
 from loader import bot, dp
 from services.subscriptions import check_subscription
-from keyboards.users.keyboard import find_movie_markup
+from services.welcome import send_welcome
 
 
 async def check_user_sub(message):
@@ -12,8 +12,6 @@ async def check_user_sub(message):
 async def check_channels(call: types.CallbackQuery):
     if await check_subscription(call.from_user.id):
         await call.answer("Доступ открыт")
-        await bot.send_message(
-            call.message.chat.id, "Выберите фильм или сериал:", reply_markup=find_movie_markup()
-        )
+        await send_welcome(bot, call.message.chat.id)
     else:
         await call.answer("Вы не подписались на все каналы!", show_alert=True)
