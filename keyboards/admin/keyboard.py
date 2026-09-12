@@ -1,82 +1,99 @@
-from aiogram.types import InlineKeyboardButton,InlineKeyboardMarkup,ReplyKeyboardMarkup,KeyboardButton
-from database.admin.select import get_all_channels_info,get_all_channels_title,get_all_movies,get_movie_content_type
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+
 
 def admin_markup():
     markup = InlineKeyboardMarkup(row_width=2)
-    markup.add(InlineKeyboardButton(text='Статистика',callback_data='bot_stat'),
-               InlineKeyboardButton(text='Рассылка', callback_data='send_func'),
-               InlineKeyboardButton(text='Добавить канал', callback_data='add_channel'),
-               InlineKeyboardButton(text='Удалить канал', callback_data='delete_channel'),
-               InlineKeyboardButton(text='Удалить фильм', callback_data='delete_movie'),
-               InlineKeyboardButton(text='✏️ Изменить фильм', callback_data='edit_movie'))
-    markup.insert(InlineKeyboardButton(text='Добавить код', callback_data='add_cod'))
+    markup.add(
+        InlineKeyboardButton(text="Статистика", callback_data="bot_stat"),
+        InlineKeyboardButton(text="Рассылка", callback_data="send_func"),
+        InlineKeyboardButton(text="Добавить канал", callback_data="add_channel"),
+        InlineKeyboardButton(text="Удалить канал", callback_data="delete_channel"),
+        InlineKeyboardButton(text="Удалить фильм", callback_data="delete_movie"),
+        InlineKeyboardButton(text="✏️ Изменить фильм", callback_data="edit_movie"),
+    )
+    markup.insert(InlineKeyboardButton(text="Добавить код", callback_data="add_cod"))
+    markup.add(InlineKeyboardButton(text="👥 Роли пользователей", callback_data="role:home"))
+    markup.add(InlineKeyboardButton(text="📨 Задания рассылки", callback_data="broadcast:list"))
     return markup
 
 
 def admin_return_markup():
     markup = InlineKeyboardMarkup(row_width=True)
-    markup.add(InlineKeyboardButton(text='Назад',callback_data='admin_return'))
+    markup.add(InlineKeyboardButton(text="Назад", callback_data="admin_return"))
     return markup
 
 
-def get_delete_channels():
-    all_info = get_all_channels_title()
+def get_delete_channels(all_info):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     for info in all_info:
-        markup.add(KeyboardButton(text=f'{info[0]}'))
-    markup.add(KeyboardButton('Назад'))
+        markup.add(KeyboardButton(text=f"{info[0]}"))
+    markup.add(KeyboardButton("Назад"))
     return markup
+
+
 def allow_send_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='Да',callback_data='send_yes'),
-               InlineKeyboardButton(text='Нет',callback_data='send_no'))
+    markup.add(
+        InlineKeyboardButton(text="Да", callback_data="send_yes"),
+        InlineKeyboardButton(text="Нет", callback_data="send_no"),
+    )
     return markup
 
 
 def allow_channel_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='Да',callback_data='add_yes'),
-               InlineKeyboardButton(text='Нет',callback_data='add_no'))
+    markup.add(
+        InlineKeyboardButton(text="Да", callback_data="add_yes"),
+        InlineKeyboardButton(text="Нет", callback_data="add_no"),
+    )
     return markup
+
 
 def allow_channel_delete_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='Да',callback_data='del_yes'),
-               InlineKeyboardButton(text='Нет',callback_data='del_no'))
+    markup.add(
+        InlineKeyboardButton(text="Да", callback_data="del_yes"),
+        InlineKeyboardButton(text="Нет", callback_data="del_no"),
+    )
     return markup
 
 
 def content_type_choice_markup():
     markup = InlineKeyboardMarkup(row_width=2)
-    markup.add(InlineKeyboardButton(text='🎬 Фильм', callback_data='addtype_movie'),
-               InlineKeyboardButton(text='📺 Сериал', callback_data='addtype_series'))
+    markup.add(
+        InlineKeyboardButton(text="🎬 Фильм", callback_data="addtype_movie"),
+        InlineKeyboardButton(text="📺 Сериал", callback_data="addtype_series"),
+    )
     return markup
 
 
 def tmdb_pick_markup(results):
     markup = InlineKeyboardMarkup(row_width=1)
     for i, r in enumerate(results):
-        label = f"{r['title']} ({r['year']})" if r.get('year') else r['title']
+        label = f"{r['title']} ({r['year']})" if r.get("year") else r["title"]
         if len(label) > 64:
-            label = label[:61] + '...'
-        markup.add(InlineKeyboardButton(text=f'🔎 {label}', callback_data=f'tmdbpick_{i}'))
-    markup.add(InlineKeyboardButton(text='✍️ Ввести всё вручную', callback_data='tmdbpick_manual'))
+            label = label[:61] + "..."
+        markup.add(InlineKeyboardButton(text=f"🔎 {label}", callback_data=f"tmdbpick_{i}"))
+    markup.add(InlineKeyboardButton(text="✍️ Ввести всё вручную", callback_data="tmdbpick_manual"))
     return markup
 
 
 def stats_menu_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='📋 Список пользователей', callback_data='stat_users'),
-               InlineKeyboardButton(text='🎬 Топ просмотров (7 дней)', callback_data='stat_top_watched'),
-               InlineKeyboardButton(text='🔍 Топ запросов (7 дней)', callback_data='stat_top_searches'),
-               InlineKeyboardButton(text='👤 История пользователя', callback_data='stat_user_lookup'),
-               InlineKeyboardButton(text='⬅️ Назад', callback_data='stat_back'))
+    markup.add(
+        InlineKeyboardButton(text="📋 Список пользователей", callback_data="stat_users"),
+        InlineKeyboardButton(text="🎬 Топ просмотров (7 дней)", callback_data="stat_top_watched"),
+        InlineKeyboardButton(text="🔍 Топ запросов (7 дней)", callback_data="stat_top_searches"),
+        InlineKeyboardButton(text="👤 История пользователя", callback_data="stat_user_lookup"),
+        InlineKeyboardButton(text="✅ Отметки просмотра сериалов", callback_data="watchstats:all:0"),
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="stat_back"),
+    )
     return markup
 
 
 def stats_back_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='stat_menu_back'))
+    markup.add(InlineKeyboardButton(text="⬅️ Назад", callback_data="stat_menu_back"))
     return markup
 
 
@@ -84,145 +101,161 @@ def users_page_markup(page: int, has_more: bool):
     markup = InlineKeyboardMarkup(row_width=2)
     nav = []
     if page > 0:
-        nav.append(InlineKeyboardButton(text='⬅️ Назад', callback_data=f'statusers_{page-1}'))
+        nav.append(InlineKeyboardButton(text="⬅️ Назад", callback_data=f"statusers_{page - 1}"))
     if has_more:
-        nav.append(InlineKeyboardButton(text='Вперёд ➡️', callback_data=f'statusers_{page+1}'))
+        nav.append(InlineKeyboardButton(text="Вперёд ➡️", callback_data=f"statusers_{page + 1}"))
     if nav:
         markup.row(*nav)
-    markup.add(InlineKeyboardButton(text='⬅️ В меню статистики', callback_data='stat_menu_back'))
+    markup.add(InlineKeyboardButton(text="⬅️ В меню статистики", callback_data="stat_menu_back"))
     return markup
 
 
 def skip_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='Пропустить', callback_data='skip_step'))
+    markup.add(InlineKeyboardButton(text="Пропустить", callback_data="skip_step"))
     return markup
 
 
-def get_delete_movies():
-    all_movies = get_all_movies()
+def get_delete_movies(all_movies):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     for movie in all_movies:
         title, numb = movie[0], movie[1]
-        icon = '📺' if get_movie_content_type(numb) == 'series' else '🎬'
-        label = f'{icon} {numb} - {title}'
+        icon = "📺" if movie[2] == "series" else "🎬"
+        label = f"{icon} {numb} - {title}"
         if len(label) > 64:
-            label = label[:61] + '...'
+            label = label[:61] + "..."
         markup.add(KeyboardButton(text=label))
-    markup.add(KeyboardButton('Назад'))
+    markup.add(KeyboardButton("Назад"))
     return markup
 
 
 def allow_movie_delete_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='Да',callback_data='movdel_yes'),
-               InlineKeyboardButton(text='Нет',callback_data='movdel_no'))
+    markup.add(
+        InlineKeyboardButton(text="Да", callback_data="movdel_yes"),
+        InlineKeyboardButton(text="Нет", callback_data="movdel_no"),
+    )
     return markup
 
 
 def file_mode_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='🎬 Один файл (простой фильм)', callback_data='filemode_simple'),
-               InlineKeyboardButton(text='🗂 Несколько категорий (озвучки/качества)', callback_data='filemode_categories'))
+    markup.add(
+        InlineKeyboardButton(text="🎬 Один файл (простой фильм)", callback_data="filemode_simple"),
+        InlineKeyboardButton(
+            text="🗂 Несколько категорий (озвучки/качества)", callback_data="filemode_categories"
+        ),
+    )
     return markup
 
 
 def catbuild_finish_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='Завершить', callback_data='catbuild_finish'))
+    markup.add(InlineKeyboardButton(text="Завершить", callback_data="catbuild_finish"))
     return markup
 
 
 def catbuild_finish_category_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='Завершить категорию', callback_data='catbuild_finish_category'))
+    markup.add(InlineKeyboardButton(text="Завершить категорию", callback_data="catbuild_finish_category"))
     return markup
 
 
-def edit_movie_menu_markup(content_type='movie'):
+def edit_movie_menu_markup(content_type="movie"):
     markup = InlineKeyboardMarkup(row_width=1)
-    if content_type == 'series':
-        markup.add(InlineKeyboardButton(text='📺 Сезоны и серии', callback_data='editm_seasons'),
-                   InlineKeyboardButton(text='🎬 Изменить на фильм', callback_data='editm_type_movie'))
+    if content_type == "series":
+        markup.add(
+            InlineKeyboardButton(text="📺 Сезоны и серии", callback_data="editm_seasons"),
+            InlineKeyboardButton(text="🎬 Изменить на фильм", callback_data="editm_type_movie"),
+        )
     else:
-        markup.add(InlineKeyboardButton(text='🗂 Категории (озвучки/качества)', callback_data='editm_cat'),
-                   InlineKeyboardButton(text='📺 Изменить на сериал', callback_data='editm_type_series'))
-    markup.add(InlineKeyboardButton(text='✏️ Изменить название', callback_data='editm_title'),
-               InlineKeyboardButton(text='📝 Изменить описание', callback_data='editm_desc'),
-               InlineKeyboardButton(text='🎬 Изменить трейлер', callback_data='editm_trailer'),
-               InlineKeyboardButton(text='📁 Torrent-файлы', callback_data='editm_torrents'),
-               InlineKeyboardButton(text='⬅️ Назад', callback_data='editm_back'))
+        markup.add(
+            InlineKeyboardButton(text="🗂 Категории (озвучки/качества)", callback_data="editm_cat"),
+            InlineKeyboardButton(text="📺 Изменить на сериал", callback_data="editm_type_series"),
+        )
+    markup.add(
+        InlineKeyboardButton(text="✏️ Изменить название", callback_data="editm_title"),
+        InlineKeyboardButton(text="📝 Изменить описание", callback_data="editm_desc"),
+        InlineKeyboardButton(text="🎬 Изменить трейлер", callback_data="editm_trailer"),
+        InlineKeyboardButton(text="📁 Torrent-файлы", callback_data="editm_torrents"),
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="editm_back"),
+    )
     return markup
 
 
 def seasons_menu_markup(seasons):
     markup = InlineKeyboardMarkup(row_width=1)
     for season_id, name, season_number in seasons:
-        label = name or (f'Сезон {season_number}' if season_number is not None else 'Сезон')
-        markup.add(InlineKeyboardButton(text=f'📺 {label}', callback_data=f'seasonedit_{season_id}'))
-    markup.add(InlineKeyboardButton(text='➕ Добавить сезон', callback_data='season_add'))
-    markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='seasons_back'))
+        label = name or (f"Сезон {season_number}" if season_number is not None else "Сезон")
+        markup.add(InlineKeyboardButton(text=f"📺 {label}", callback_data=f"seasonedit_{season_id}"))
+    markup.add(InlineKeyboardButton(text="➕ Добавить сезон", callback_data="season_add"))
+    markup.add(InlineKeyboardButton(text="⬅️ Назад", callback_data="seasons_back"))
     return markup
 
 
 def season_edit_markup(season_id, subcategories):
     markup = InlineKeyboardMarkup(row_width=1)
     for sub_id, name, file_id, file_type in subcategories:
-        markup.add(InlineKeyboardButton(text=f'🎬 {name}', callback_data=f'episodeedit_{sub_id}'))
-    markup.add(InlineKeyboardButton(text='➕ Добавить серию', callback_data=f'episode_add_{season_id}'))
-    markup.add(InlineKeyboardButton(text='✏️ Изменить название сезона', callback_data=f'seasonrename_{season_id}'))
-    markup.add(InlineKeyboardButton(text='🗑 Удалить сезон', callback_data=f'seasondelete_{season_id}'))
-    markup.add(InlineKeyboardButton(text='⬅️ Назад к сезонам', callback_data='seasons_back_menu'))
+        markup.add(InlineKeyboardButton(text=f"🎬 {name}", callback_data=f"episodeedit_{sub_id}"))
+    markup.add(InlineKeyboardButton(text="➕ Добавить серию", callback_data=f"episode_add_{season_id}"))
+    markup.add(
+        InlineKeyboardButton(text="✏️ Изменить название сезона", callback_data=f"seasonrename_{season_id}")
+    )
+    markup.add(InlineKeyboardButton(text="🗑 Удалить сезон", callback_data=f"seasondelete_{season_id}"))
+    markup.add(InlineKeyboardButton(text="⬅️ Назад к сезонам", callback_data="seasons_back_menu"))
     return markup
 
 
 def episode_edit_markup(sub_id, season_id):
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='✏️ Изменить название серии', callback_data=f'episodename_{sub_id}'),
-               InlineKeyboardButton(text='📁 Заменить файл серии', callback_data=f'episodefile_{sub_id}'),
-               InlineKeyboardButton(text='🗑 Удалить серию', callback_data=f'episodedelete_{sub_id}'),
-               InlineKeyboardButton(text='⬅️ Назад к сезону', callback_data=f'seasonedit_{season_id}'))
+    markup.add(
+        InlineKeyboardButton(text="✏️ Изменить название серии", callback_data=f"episodename_{sub_id}"),
+        InlineKeyboardButton(text="📁 Заменить файл серии", callback_data=f"episodefile_{sub_id}"),
+        InlineKeyboardButton(text="🗑 Удалить серию", callback_data=f"episodedelete_{sub_id}"),
+        InlineKeyboardButton(text="⬅️ Назад к сезону", callback_data=f"seasonedit_{season_id}"),
+    )
     return markup
 
 
 def categories_menu_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='➕ Добавить категорию', callback_data='catmenu_add'),
-               InlineKeyboardButton(text='📋 Показать категории', callback_data='catmenu_list'),
-               InlineKeyboardButton(text='🗑 Удалить категорию', callback_data='catmenu_delete'),
-               InlineKeyboardButton(text='⬅️ Назад', callback_data='catmenu_back'))
+    markup.add(
+        InlineKeyboardButton(text="➕ Добавить категорию", callback_data="catmenu_add"),
+        InlineKeyboardButton(text="📋 Показать категории", callback_data="catmenu_list"),
+        InlineKeyboardButton(text="🗑 Удалить категорию", callback_data="catmenu_delete"),
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="catmenu_back"),
+    )
     return markup
 
 
 def categories_delete_pick_markup(categories):
     markup = InlineKeyboardMarkup(row_width=1)
     for category_id, name in categories:
-        markup.add(InlineKeyboardButton(text=name, callback_data=f'catdel_{category_id}'))
-    markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='catmenu_back'))
+        markup.add(InlineKeyboardButton(text=name, callback_data=f"catdel_{category_id}"))
+    markup.add(InlineKeyboardButton(text="⬅️ Назад", callback_data="catmenu_back"))
     return markup
 
 
 def torrents_menu_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='➕ Добавить torrent-файл', callback_data='trmenu_add'),
-               InlineKeyboardButton(text='📋 Показать torrent-файлы', callback_data='trmenu_list'),
-               InlineKeyboardButton(text='🗑 Удалить torrent-файл', callback_data='trmenu_delete'),
-               InlineKeyboardButton(text='⬅️ Назад', callback_data='trmenu_back'))
+    markup.add(
+        InlineKeyboardButton(text="➕ Добавить torrent-файл", callback_data="trmenu_add"),
+        InlineKeyboardButton(text="📋 Показать torrent-файлы", callback_data="trmenu_list"),
+        InlineKeyboardButton(text="🗑 Удалить torrent-файл", callback_data="trmenu_delete"),
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="trmenu_back"),
+    )
     return markup
 
 
 def torrents_delete_pick_markup(torrents):
     markup = InlineKeyboardMarkup(row_width=1)
     for torrent_id, name in torrents:
-        markup.add(InlineKeyboardButton(text=name, callback_data=f'trdel_{torrent_id}'))
-    markup.add(InlineKeyboardButton(text='⬅️ Назад', callback_data='trmenu_back'))
+        markup.add(InlineKeyboardButton(text=name, callback_data=f"trdel_{torrent_id}"))
+    markup.add(InlineKeyboardButton(text="⬅️ Назад", callback_data="trmenu_back"))
     return markup
 
 
 def torrents_finish_markup():
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(InlineKeyboardButton(text='✅ Завершить', callback_data='trbuild_finish'))
+    markup.add(InlineKeyboardButton(text="✅ Завершить", callback_data="trbuild_finish"))
     return markup
-
-
-
