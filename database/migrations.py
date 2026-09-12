@@ -103,7 +103,11 @@ def _web_panel():
     database.execute("CREATE INDEX idx_web_drafts_admin ON WebDrafts(admin_id,updated_at)")
 
 
-MIGRATIONS = (_initial_schema, _roles_and_jobs, _watch_progress, _web_panel)
+def _welcome_design():
+    database.execute("CREATE TABLE BotDesign (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+
+
+MIGRATIONS = (_initial_schema, _roles_and_jobs, _watch_progress, _web_panel, _welcome_design)
 
 
 def migrate(backup_dir=None):
