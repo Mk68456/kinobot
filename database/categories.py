@@ -77,7 +77,8 @@ def get_categories_by_movie(movie_number):
 
 def get_subcategories_by_category(category_id):
     cursor.execute(
-        "SELECT id, name, file_id, file_type FROM MovieSubcategories WHERE category_id=?", (category_id,)
+        "SELECT id, name, file_id, file_type FROM MovieSubcategories WHERE category_id=? ORDER BY id",
+        (category_id,),
     )
     return cursor.fetchall()
 
