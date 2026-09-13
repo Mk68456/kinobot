@@ -17,6 +17,62 @@ import loader
 
 
 class HandlerTests(unittest.IsolatedAsyncioTestCase):
+    async def test_episode_file_buttons_navigation_and_personal_mark(self):
+        from database import progress
+
+        series = add_new_movie("Series", content_type="series")
+        season = add_movie_category(series, "Season 1", 1)
+        first = add_movie_subcategory(season, "Episode 1", "video1", "video")
+        last = add_movie_subcategory(season, "Episode 2", "doc2", "document")
+        with patch("services.subscriptions.check_subscription", AsyncMock(return_value=True)):
+            await self.send(123, callback=f"movsub_{first}")
+            markup = str(self.mocks["send_video"].call_args.kwargs["reply_markup"])
+            self.assertIn(f"movsub_{last}", markup)
+            self.assertNotIn("Предыдущая серия", markup)
+            self.assertIn(f"wp:e:{first}:1:m:0", markup)
+            await self.send(123, callback=f"wp:e:{first}:1:m:0")
+            self.assertIn(first, progress.episode_marks(123, season))
+            self.assertNotIn(first, progress.episode_marks(99, season))
+            updated = str(self.mocks["edit_message_reply_markup"].call_args)
+            self.assertIn(f"wp:e:{first}:0:m:0", updated)
+            self.assertIn(f"movsub_{last}", updated)
+            await self.send(123, callback=f"movsub_{last}")
+            markup = str(self.mocks["send_document"].call_args.kwargs["reply_markup"])
+            self.assertIn(f"movsub_{first}", markup)
+            self.assertNotIn("Следующая серия", markup)
+            await self.send(123, callback=f"wpage:{season}:0")
+            self.assertIn(f"movsub_{first}", str(self.mocks["edit_message_reply_markup"].call_args))
+
+    async def test_start_exits_admin_dialogues_without_changing_design(self):
+        from database.design import get_design, DEFAULT_TEXT
+
+        for current in ("DesignEdit:text", "DesignEdit:photo", "WebInbox:collecting", "RoleStates:name"):
+            with self.subTest(state=current):
+                await self.dp.storage.set_state(chat=99, user=99, state=current)
+                self.mocks["send_message"].reset_mock()
+                with patch("handlers.start.check_user_sub", AsyncMock(return_value=True)):
+                    await self.send(99, text="/start")
+                self.mocks["send_message"].assert_awaited_once()
+                self.assertIn("KinoTime", str(self.mocks["send_message"].call_args))
+                self.assertIsNone(await self.dp.storage.get_state(chat=99, user=99))
+                self.assertEqual(get_design()["text"], DEFAULT_TEXT)
+
+    async def test_missing_subscription_channel_does_not_silence_start_or_admin(self):
+        from aiogram.utils.exceptions import ChatNotFound
+
+        with (
+            patch("services.subscriptions.get_all_channels_cod", return_value=[(-100123,)]),
+            patch.object(
+                loader.bot, "get_chat_member", AsyncMock(side_effect=ChatNotFound("Chat not found"))
+            ),
+        ):
+            await self.send(123, text="/start")
+            self.mocks["send_message"].assert_awaited_once()
+            self.mocks["send_message"].reset_mock()
+            await self.send(99, text="/admin")
+            self.mocks["send_message"].assert_awaited_once()
+            self.assertIn("Админ-панель", str(self.mocks["send_message"].call_args))
+
     @classmethod
     def setUpClass(cls):
         cls.dp = loader.initialize("123456:FAKE_TOKEN_FOR_OFFLINE_TESTS")
@@ -54,7 +110,7 @@ class HandlerTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         database.close()
 
-    async def send(self, user_id, text=None, callback=None, document=None):
+    async def send(self, user_id, text=None, callback=None, document=None, photo=None):
         # StateFilter caches the raw state within one Telegram update context.
         StateFilter.ctx_state.set(await self.dp.storage.get_state(chat=user_id, user=user_id))
         message = {
@@ -67,6 +123,9 @@ class HandlerTests(unittest.IsolatedAsyncioTestCase):
         if document:
             message.pop("text")
             message["document"] = {"file_id": document, "file_unique_id": "fake"}
+        if photo:
+            message.pop("text", None)
+            message["photo"] = [{"file_id": photo, "file_unique_id": "photo", "width": 1280, "height": 720}]
         payload = {"update_id": 1}
         if callback is not None:
             payload["callback_query"] = {
@@ -79,6 +138,46 @@ class HandlerTests(unittest.IsolatedAsyncioTestCase):
         else:
             payload["message"] = message
         return await self.dp.process_update(types.Update(**payload))
+
+    async def test_design_photo_and_start_send_one_welcome(self):
+        from database.design import get_design
+
+        await self.send(99, callback="design:photo")
+        await self.send(99, photo="welcome_photo_id")
+        self.assertEqual(get_design()["photo"], "welcome_photo_id")
+        self.mocks["send_photo"].reset_mock()
+        self.mocks["send_message"].reset_mock()
+        with patch("handlers.start.check_user_sub", AsyncMock(return_value=True)):
+            await self.send(123, text="/start")
+        self.mocks["send_photo"].assert_awaited_once()
+        self.mocks["send_message"].assert_not_awaited()
+        self.assertIn("KinoTime", self.mocks["send_photo"].call_args.kwargs["caption"])
+
+    async def test_design_admin_access_and_text_validation(self):
+        from database.design import get_design, DEFAULT_TEXT
+
+        await self.send(123, callback="design:text")
+        self.assertIsNone(await self.dp.current_state(chat=123, user=123).get_state())
+        await self.send(99, callback="design:text")
+        await self.send(99, text="a" * 801)
+        self.assertEqual(get_design()["text"], DEFAULT_TEXT)
+        await self.send(99, text="Мой <текст> 🍿")
+        self.assertEqual(get_design()["text"], "Мой <текст> 🍿")
+        await self.send(99, callback="design:confirm_reset")
+        self.assertEqual(get_design()["text"], DEFAULT_TEXT)
+
+    async def test_welcome_invalid_photo_falls_back_and_subscription_stays_required(self):
+        from database.design import set_design
+        from aiogram.utils.exceptions import BadRequest
+
+        set_design("welcome_photo", "expired")
+        self.mocks["send_photo"].side_effect = BadRequest("Wrong file identifier")
+        with patch("handlers.start.check_user_sub", AsyncMock(return_value=False)):
+            await self.send(123, text="/start")
+        self.mocks["send_message"].assert_awaited_once()
+        args = self.mocks["send_message"].call_args
+        self.assertIn("подпишись", args.args[1])
+        self.assertIn("check", str(args.kwargs["reply_markup"]))
 
     async def test_admin_callbacks_block_regular_user_before_database_changes(self):
         for callback in ("role:create", "role:home", "add_cod", "send_func", "bot_stat", "broadcast:list"):
