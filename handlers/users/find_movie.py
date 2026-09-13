@@ -100,6 +100,44 @@ def _mark_button(kind, item_id, watched, context="c", page=0):
     )
 
 
+def _episode_file_markup(episode_id, user_id):
+    episode = get_subcategory_by_id(episode_id)
+    if episode is None:
+        return None
+    category_id = episode[1]
+    category = get_category_by_id(category_id)
+    info = get_movie_from_numb(category[1]) if category else None
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    if info and info["content_type"] == "series":
+        episodes = get_subcategories_by_category(category_id)
+        ids = [row[0] for row in episodes]
+        index = ids.index(episode_id)
+        navigation = []
+        if index:
+            navigation.append(
+                types.InlineKeyboardButton("⬅️ Предыдущая серия", callback_data=f"movsub_{ids[index - 1]}")
+            )
+        if index + 1 < len(ids):
+            navigation.append(
+                types.InlineKeyboardButton("Следующая серия ➡️", callback_data=f"movsub_{ids[index + 1]}")
+            )
+        if navigation:
+            markup.row(*navigation)
+        watched = episode_id in progress.episode_marks(user_id, category_id)
+        markup.add(
+            types.InlineKeyboardButton(
+                "✅ Просмотрено · снять отметку" if watched else "☑️ Отметить просмотренным",
+                callback_data=f"wp:e:{episode_id}:{int(not watched)}:m:0",
+            )
+        )
+        markup.add(
+            types.InlineKeyboardButton("↩️ Назад к сериям", callback_data=f"wpage:{category_id}:{index // 8}")
+        )
+    else:
+        markup.add(types.InlineKeyboardButton("↩️ Назад", callback_data=f"movcat_{category_id}"))
+    return markup
+
+
 def _categories_markup(code, categories, user_id):
     markup = types.InlineKeyboardMarkup(row_width=2)
     info = get_movie_from_numb(code)
@@ -179,7 +217,8 @@ async def watch_progress_handler(call: types.CallbackQuery):
         len(parts) != 6
         or parts[1] not in ("f", "s", "e")
         or parts[3] not in ("0", "1")
-        or parts[4] not in ("c", "p")
+        or parts[4] not in ("c", "p", "m")
+        or (parts[4] == "m" and parts[1] != "e")
         or not parts[2].isascii()
         or not parts[2].isdigit()
         or not parts[5].isascii()
@@ -196,7 +235,9 @@ async def watch_progress_handler(call: types.CallbackQuery):
     except ValueError as error:
         await call.answer(str(error), show_alert=True)
         return
-    if parts[4] == "p" and category_id is not None:
+    if parts[4] == "m":
+        markup = _episode_file_markup(int(parts[2]), call.from_user.id)
+    elif parts[4] == "p" and category_id is not None:
         markup = _subcategories_markup(
             movie_number,
             category_id,
@@ -350,7 +391,7 @@ async def movie_category_back_handler(call: types.CallbackQuery):
     await call.answer()
 
 
-@dp.callback_query_handler(lambda call: call.data.startswith("movsub_"))
+@dp.callback_query_handler(lambda call: call.data.startswith("movsub_"), state="*")
 async def movie_subcategory_handler(call: types.CallbackQuery):
     subcategory_id = int(call.data.split("_", 1)[1])
     subcategory = get_subcategory_by_id(subcategory_id)
@@ -359,11 +400,12 @@ async def movie_subcategory_handler(call: types.CallbackQuery):
         await call.answer("Файл недоступен", show_alert=True)
         return
     _, _, name, file_id, file_type = subcategory
+    markup = _episode_file_markup(subcategory_id, call.from_user.id)
     await call.answer()
     if file_type == "video":
-        await bot.send_video(chat_id, video=file_id, caption=name)
+        await bot.send_video(chat_id, video=file_id, caption=name, parse_mode="", reply_markup=markup)
     else:
-        await bot.send_document(chat_id, document=file_id, caption=name)
+        await bot.send_document(chat_id, document=file_id, caption=name, parse_mode="", reply_markup=markup)
 
 
 @dp.callback_query_handler(lambda call: call.data.startswith("dlfile_"))
