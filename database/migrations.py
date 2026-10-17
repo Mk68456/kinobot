@@ -107,7 +107,204 @@ def _welcome_design():
     database.execute("CREATE TABLE BotDesign (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
 
 
-MIGRATIONS = (_initial_schema, _roles_and_jobs, _watch_progress, _web_panel, _welcome_design)
+def _local_imports():
+    database.execute("ALTER TABLE WebAssets ADD COLUMN source_path TEXT")
+    database.execute("ALTER TABLE WebAssets ADD COLUMN source_mtime TEXT")
+    database.execute("ALTER TABLE WebDrafts ADD COLUMN import_key TEXT")
+    database.execute("ALTER TABLE WebDrafts ADD COLUMN review_history TEXT NOT NULL DEFAULT '[]'")
+    database.execute("CREATE UNIQUE INDEX idx_import_key ON WebDrafts(admin_id,import_key)")
+    database.execute("""CREATE TABLE DesktopSessions (
+        token_hash TEXT PRIMARY KEY, admin_id INTEGER NOT NULL, expires_at REAL NOT NULL)""")
+
+
+def _publication_package():
+    database.execute('''CREATE TABLE PublicationPackage (
+        draft_id TEXT PRIMARY KEY REFERENCES WebDrafts(id) ON DELETE CASCADE,
+        admin_id INTEGER NOT NULL, review_token TEXT NOT NULL,
+        added_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)''')
+
+
+def _movie_sharing():
+    database.execute("CREATE TABLE MovieShareLinks (token TEXT PRIMARY KEY, movie_number INTEGER UNIQUE NOT NULL)")
+    database.execute("CREATE TABLE MovieShareAccess (user_id INTEGER NOT NULL, movie_number INTEGER NOT NULL, PRIMARY KEY(user_id,movie_number))")
+
+
+def _content_requests():
+    database.execute("""CREATE TABLE ContentRequests (
+        id INTEGER PRIMARY KEY, identity TEXT UNIQUE NOT NULL, title TEXT NOT NULL,
+        content_type TEXT NOT NULL, season INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'new', movie_number INTEGER, notification_job INTEGER)""")
+    database.execute("""CREATE TABLE ContentRequestVotes (
+        request_id INTEGER NOT NULL REFERENCES ContentRequests(id), user_id INTEGER NOT NULL,
+        PRIMARY KEY(request_id,user_id))""")
+
+
+def _ratings():
+    database.execute('ALTER TABLE Movies ADD COLUMN rating_kp REAL')
+    database.execute('ALTER TABLE Movies ADD COLUMN rating_imdb REAL')
+    database.execute('ALTER TABLE Movies ADD COLUMN age_rating TEXT')
+
+
+def _rating_cache():
+    database.execute('CREATE TABLE RatingCache (cache_key TEXT PRIMARY KEY, body TEXT NOT NULL, fetched_at TEXT NOT NULL)')
+    database.execute('ALTER TABLE Movies ADD COLUMN rating_source_id INTEGER')
+    database.execute('ALTER TABLE Movies ADD COLUMN ratings_fetched_at TEXT')
+
+
+def _grouped_files():
+    database.execute('CREATE TABLE GroupedFiles (asset_id TEXT PRIMARY KEY REFERENCES WebAssets(id), draft_id TEXT NOT NULL REFERENCES WebDrafts(id))')
+
+
+def _launcher_remote_control():
+    database.execute('''CREATE TABLE LauncherAgents (
+        admin_id INTEGER PRIMARY KEY, instance_id TEXT NOT NULL, status TEXT NOT NULL,
+        folders TEXT NOT NULL, last_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)''')
+    database.execute('''CREATE TABLE LauncherCommands (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, admin_id INTEGER NOT NULL,
+        action TEXT NOT NULL, payload TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL DEFAULT 'pending',
+        result TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)''')
+    database.execute('CREATE INDEX idx_launcher_commands_admin ON LauncherCommands(admin_id,status,id)')
+
+
+def _request_cards_and_drafts():
+    database.execute('ALTER TABLE ContentRequests ADD COLUMN tmdb_id INTEGER')
+    database.execute('ALTER TABLE ContentRequests ADD COLUMN year TEXT')
+    database.execute("ALTER TABLE ContentRequests ADD COLUMN overview TEXT NOT NULL DEFAULT ''")
+    database.execute("ALTER TABLE ContentRequests ADD COLUMN poster_url TEXT NOT NULL DEFAULT ''")
+    database.execute('ALTER TABLE ContentRequests ADD COLUMN draft_id TEXT REFERENCES WebDrafts(id)')
+    database.execute("ALTER TABLE ContentRequests ADD COLUMN created_at TEXT NOT NULL DEFAULT ''")
+    database.execute("ALTER TABLE ContentRequests ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''")
+    database.execute("UPDATE ContentRequests SET created_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP")
+    database.execute('CREATE UNIQUE INDEX idx_content_request_draft ON ContentRequests(draft_id) WHERE draft_id IS NOT NULL')
+
+
+def _telegram_storage_backup():
+    database.execute('''CREATE TABLE TelegramStorage (
+        admin_id INTEGER PRIMARY KEY, chat_id INTEGER NOT NULL, title TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)),
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)''')
+    database.execute('''CREATE TABLE TelegramStorageFiles (
+        file_id TEXT PRIMARY KEY, file_type TEXT NOT NULL,
+        storage_chat_id INTEGER, storage_message_id INTEGER,
+        status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
+        error TEXT, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)''')
+    database.execute('CREATE INDEX idx_storage_files_status ON TelegramStorageFiles(status,updated_at)')
+
+
+def _catalog_sections():
+    database.execute('''CREATE TABLE CatalogSections (
+        section_key TEXT PRIMARY KEY, title TEXT NOT NULL, emoji TEXT NOT NULL,
+        required_content_type TEXT, enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)),
+        sort_order INTEGER NOT NULL)''')
+    sections = [
+        ('movies', 'Фильмы', '🎬', 'movie', 1, 10),
+        ('series', 'Сериалы', '📺', 'series', 1, 20),
+        ('cartoons', 'Мультфильмы', '🧸', 'movie', 0, 30),
+        ('animated_series', 'Мультсериалы', '🎨', 'series', 0, 40),
+        ('anime', 'Аниме', '⛩', None, 0, 50),
+    ]
+    for section in sections:
+        database.execute('INSERT INTO CatalogSections VALUES (?,?,?,?,?,?)', section)
+    database.execute("ALTER TABLE Movies ADD COLUMN catalog_section TEXT NOT NULL DEFAULT 'movies'")
+    database.execute("UPDATE Movies SET catalog_section=CASE WHEN COALESCE(content_type,'movie')='series' THEN 'series' ELSE 'movies' END")
+    database.execute('CREATE INDEX idx_movies_catalog_section ON Movies(catalog_section,movie_number)')
+
+
+def _episode_qualities():
+    database.execute("""CREATE TABLE EpisodeVariants (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        episode_id INTEGER NOT NULL REFERENCES MovieSubcategories(id) ON DELETE CASCADE,
+        quality TEXT NOT NULL, voice TEXT NOT NULL DEFAULT '',
+        file_id TEXT NOT NULL, file_type TEXT NOT NULL,
+        UNIQUE(episode_id,quality,voice))""")
+
+
+def _referral_contests():
+    database.execute("""CREATE TABLE Contests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, body TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'draft', revision INTEGER NOT NULL DEFAULT 1,
+        created_by INTEGER NOT NULL, created_at REAL NOT NULL,
+        closed_at REAL, draw_result TEXT, delivered_at REAL, delivery_note TEXT)""")
+    database.execute("""CREATE TABLE ContestMembers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        contest_id INTEGER NOT NULL REFERENCES Contests(id), user_id INTEGER NOT NULL,
+        code TEXT NOT NULL UNIQUE, source TEXT NOT NULL, joined_at REAL NOT NULL,
+        UNIQUE(contest_id,user_id))""")
+    database.execute("""CREATE TABLE ContestReferrals (
+        user_id INTEGER PRIMARY KEY, contest_id INTEGER NOT NULL REFERENCES Contests(id),
+        inviter_id INTEGER NOT NULL, registered_at REAL NOT NULL,
+        confirmed_at REAL, movie_number INTEGER, status TEXT NOT NULL DEFAULT 'pending',
+        reason TEXT NOT NULL DEFAULT '')""")
+    database.execute('CREATE INDEX idx_contest_referrals ON ContestReferrals(contest_id,inviter_id,status)')
+    database.execute("""CREATE TABLE ContestSnapshot (
+        contest_id INTEGER NOT NULL REFERENCES Contests(id), member_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL, username TEXT, referrals INTEGER NOT NULL, tickets INTEGER NOT NULL,
+        PRIMARY KEY(contest_id,user_id))""")
+    database.execute("""CREATE TABLE ContestAudit (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, contest_id INTEGER NOT NULL REFERENCES Contests(id),
+        admin_id INTEGER NOT NULL, action TEXT NOT NULL, detail TEXT NOT NULL, created_at REAL NOT NULL)""")
+    database.execute("""CREATE TABLE ContestClaims (
+        contest_id INTEGER PRIMARY KEY REFERENCES Contests(id), user_id INTEGER NOT NULL, claimed_at REAL NOT NULL)""")
+
+
+MIGRATIONS = (_initial_schema, _roles_and_jobs, _watch_progress, _web_panel, _welcome_design, _local_imports,
+              _publication_package, _movie_sharing, _content_requests, _ratings, _rating_cache, _grouped_files,
+              _launcher_remote_control, _request_cards_and_drafts)
+MIGRATIONS += (_telegram_storage_backup,)
+MIGRATIONS += (_catalog_sections, _episode_qualities,)
+MIGRATIONS += (_referral_contests,)
+
+
+def _multiple_launchers():
+    database.execute("ALTER TABLE WebDrafts ADD COLUMN launcher_instance TEXT NOT NULL DEFAULT ''")
+    database.execute('''UPDATE WebDrafts SET launcher_instance=COALESCE(
+        (SELECT instance_id FROM LauncherAgents WHERE admin_id=WebDrafts.admin_id),'')
+        WHERE import_key IS NOT NULL''')
+    database.execute('''CREATE TABLE LauncherAgents_new (
+        admin_id INTEGER NOT NULL, instance_id TEXT NOT NULL, name TEXT NOT NULL,
+        protocol INTEGER NOT NULL DEFAULT 2, status TEXT NOT NULL, folders TEXT NOT NULL,
+        last_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(admin_id,instance_id))''')
+    database.execute('''INSERT INTO LauncherAgents_new(admin_id,instance_id,name,status,folders,last_seen)
+        SELECT admin_id,instance_id,'Компьютер (старая версия)',status,folders,last_seen FROM LauncherAgents''')
+    database.execute("ALTER TABLE LauncherCommands ADD COLUMN instance_id TEXT NOT NULL DEFAULT ''")
+    database.execute('''UPDATE LauncherCommands SET instance_id=COALESCE(
+        (SELECT instance_id FROM LauncherAgents WHERE admin_id=LauncherCommands.admin_id),'')''')
+    database.execute("UPDATE LauncherCommands SET status='failed',result='Команда прервана обновлением панели.' WHERE status='claimed'")
+    database.execute('DROP TABLE LauncherAgents')
+    database.execute('ALTER TABLE LauncherAgents_new RENAME TO LauncherAgents')
+    database.execute('CREATE INDEX idx_launcher_command_device ON LauncherCommands(admin_id,instance_id,status,id)')
+    database.execute("ALTER TABLE DesktopSessions ADD COLUMN instance_id TEXT NOT NULL DEFAULT ''")
+    database.execute("ALTER TABLE WebAssets ADD COLUMN content_sha256 TEXT NOT NULL DEFAULT ''")
+    database.execute('ALTER TABLE WebAssets ADD COLUMN reused_asset_id TEXT')
+    database.execute('CREATE INDEX idx_asset_digest ON WebAssets(admin_id,content_sha256,status)')
+    database.execute('''CREATE TABLE LauncherTransfers (
+        content_key TEXT PRIMARY KEY, admin_id INTEGER NOT NULL,
+        asset_id TEXT NOT NULL REFERENCES WebAssets(id) ON DELETE CASCADE,
+        instance_id TEXT NOT NULL, status TEXT NOT NULL, expires_at REAL NOT NULL,
+        updated_at REAL NOT NULL)''')
+
+
+MIGRATIONS += (_multiple_launchers,)
+
+
+def _age_preferences():
+    from database.age_access import create_table
+    create_table()
+
+
+MIGRATIONS += (_age_preferences,)
+
+
+def _stream_projects():
+    database.execute('''CREATE TABLE StreamProjects (
+        draft_id TEXT PRIMARY KEY REFERENCES WebDrafts(id), admin_id INTEGER NOT NULL,
+        instance_id TEXT NOT NULL, root TEXT NOT NULL, expected INTEGER NOT NULL,
+        completed INTEGER NOT NULL DEFAULT 0, manifest TEXT NOT NULL,
+        UNIQUE(admin_id,instance_id,root))''')
+
+
+MIGRATIONS += (_stream_projects,)
 
 
 def migrate(backup_dir=None):

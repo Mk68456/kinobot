@@ -26,11 +26,20 @@ class AccessMiddleware(BaseMiddleware):
         if (
             isinstance(event, types.CallbackQuery)
             and handler.__module__ == "handlers.users.find_movie"
-            and handler.__name__ not in ("find_movie_button_handler", "find_series_button_handler")
+            and handler.__name__
+            not in ("find_movie_button_handler", "find_series_button_handler", "catalog_home_handler", "general_search_handler")
         ):
+            from services.age_access import callback_allowed, settings_markup
+            if not callback_allowed(event.from_user.id, event.data or ''):
+                await event.answer('Недоступно при текущих возрастных настройках.', show_alert=True)
+                await message.answer('Изменить ограничения можно в возрастных настройках.',
+                                     reply_markup=settings_markup())
+                raise CancelHandler()
             from services.subscriptions import check_subscription
 
-            if not await check_subscription(event.from_user.id):
+            from services.movie_sharing import permits
+
+            if not permits(event.from_user.id, event.data or "") and not await check_subscription(event.from_user.id):
                 await event.answer("Для доступа подпишитесь на все каналы.", show_alert=True)
                 raise CancelHandler()
 

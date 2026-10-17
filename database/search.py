@@ -27,6 +27,9 @@ def get_movie_from_numb(numb: int):
     info = dict(zip(columns, row))
     return {
         "movie_title": info.get("movie_title"),
+        "rating_kp": info.get("rating_kp"),
+        "rating_imdb": info.get("rating_imdb"),
+        "age_rating": info.get("age_rating"),
         "poster_image": info.get("poster_image") or None,
         "card_description": info.get("card_description") or None,
         "card_style": info.get("card_style") or "simple",
@@ -34,6 +37,8 @@ def get_movie_from_numb(numb: int):
         "movie_file_type": info.get("movie_file_type") or None,
         "movie_trailer": info.get("movie_trailer") or None,
         "content_type": info.get("content_type") or "movie",
+        "catalog_section": info.get("catalog_section") or (
+            "series" if info.get("content_type") == "series" else "movies"),
     }
 
 
@@ -49,7 +54,7 @@ def _word_matches(keyword, title_words, threshold=0.75):
     return False
 
 
-def get_movies_by_title(query: str, content_type=None):
+def get_movies_by_title(query: str, content_type=None, catalog_section=None, user_id=None):
     """Ищет фильмы по ключевым словам в названии (без учёта регистра,
     с прощением небольших опечаток). Запрос разбивается на отдельные
     слова, и фильм подходит, если КАЖДОЕ слово из запроса встречается
@@ -60,13 +65,22 @@ def get_movies_by_title(query: str, content_type=None):
     Возвращает список (movie_title, movie_number)."""
     cursor.execute("PRAGMA table_info(Movies)")
     columns = {row[1] for row in cursor.fetchall()}
+    filters, params = [], []
+    if user_id is not None:
+        from database.age_access import sql_filter
+        clause, values = sql_filter(user_id)
+        filters.append(clause)
+        params.extend(values)
     if content_type and "content_type" in columns:
-        cursor.execute(
-            "SELECT movie_title, movie_number FROM Movies WHERE COALESCE(content_type,'movie')=?",
-            (content_type,),
-        )
-    else:
-        cursor.execute("SELECT movie_title, movie_number FROM Movies")
+        filters.append("COALESCE(content_type,'movie')=?")
+        params.append(content_type)
+    if catalog_section and "catalog_section" in columns:
+        filters.append("catalog_section=?")
+        params.append(catalog_section)
+    sql = "SELECT movie_title, movie_number FROM Movies"
+    if filters:
+        sql += " WHERE " + " AND ".join(filters)
+    cursor.execute(sql, params)
     all_movies = cursor.fetchall()
 
     keywords = _split_words(query)

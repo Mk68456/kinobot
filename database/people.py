@@ -24,6 +24,7 @@ def add_user(user_id: int, username: str = None):
 
     cursor.execute("UPDATE Users SET is_active=1 WHERE id=?", (user_id,))
     database.commit()
+    return user_ is None
 
 
 def get_all_bot_users():

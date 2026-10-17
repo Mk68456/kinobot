@@ -19,12 +19,23 @@ def get_all_movies(content_type=None):
     return cursor.execute(sql + " ORDER BY movie_number", params).fetchall()
 
 
-def get_movies_page(page=0, content_type=None, per_page=5):
+def get_movies_page(page=0, content_type=None, per_page=5, catalog_section=None, user_id=None):
     sql = "SELECT movie_title,movie_number FROM Movies"
     params = []
+    filters = []
+    if user_id is not None:
+        from database.age_access import sql_filter
+        clause, values = sql_filter(user_id)
+        filters.append(clause)
+        params.extend(values)
     if content_type:
-        sql += " WHERE COALESCE(content_type,'movie')=?"
+        filters.append("COALESCE(content_type,'movie')=?")
         params.append(content_type)
+    if catalog_section:
+        filters.append("catalog_section=?")
+        params.append(catalog_section)
+    if filters:
+        sql += " WHERE " + " AND ".join(filters)
     sql += " ORDER BY movie_number LIMIT ? OFFSET ?"
     params.extend([per_page + 1, max(0, page) * per_page])
     rows = cursor.execute(sql, params).fetchall()

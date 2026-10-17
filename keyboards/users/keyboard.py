@@ -4,15 +4,23 @@ MOVIES_PER_PAGE = 5
 
 
 def find_movie_markup():
+    from database.catalog_sections import enabled_sections
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(
-        InlineKeyboardButton(text="🎬 Фильмы", callback_data="find_movie_movie"),
-        InlineKeyboardButton(text="📺 Сериалы", callback_data="find_movie_series"),
-    )
+    markup.add(InlineKeyboardButton(text="🔎 Общий поиск", callback_data="catalog:all"))
+    for section in enabled_sections():
+        markup.add(InlineKeyboardButton(
+            text=f"{section['emoji']} {section['title']}",
+            callback_data=f"catalog_section:{section['key']}"))
+    markup.add(InlineKeyboardButton(text="🎬 Предложить фильм или сериал", callback_data="request:new"))
+    markup.add(InlineKeyboardButton(text="👨‍👩‍👧 Возрастные настройки", callback_data="age:settings"))
+    from database.contests import current
+    if current():
+        markup.add(InlineKeyboardButton(text="🎁 Конкурс", callback_data="contest:view"))
     return markup
 
 
-def get_movies_pick_markup(page_movies, page=0, content_type=None, has_more=False, watched=None):
+def get_movies_pick_markup(page_movies, page=0, content_type=None, has_more=False, watched=None,
+                           catalog_section=None):
     markup = InlineKeyboardMarkup(row_width=1)
     for movie in page_movies:
         title, numb = movie[0], movie[1]
@@ -24,17 +32,19 @@ def get_movies_pick_markup(page_movies, page=0, content_type=None, has_more=Fals
 
     nav_row = []
     ct = content_type or "all"
+    section = catalog_section or "all"
     if page > 0:
         nav_row.append(
-            InlineKeyboardButton(text="⬅️ Предыдущая страница", callback_data=f"moviepage_{ct}_{page - 1}")
+            InlineKeyboardButton(text="⬅️ Предыдущая страница", callback_data=f"catalog_page:{section}:{ct}:{page - 1}")
         )
     if has_more:
         nav_row.append(
-            InlineKeyboardButton(text="Следующая страница ➡️", callback_data=f"moviepage_{ct}_{page + 1}")
+            InlineKeyboardButton(text="Следующая страница ➡️", callback_data=f"catalog_page:{section}:{ct}:{page + 1}")
         )
     if nav_row:
         markup.row(*nav_row)
-    return markup if (page_movies or nav_row) else None
+    markup.add(InlineKeyboardButton(text="↩️ Назад в главное меню", callback_data="catalog:home"))
+    return markup
 
 
 def torrents_pick_markup(code, torrents):

@@ -11,6 +11,7 @@ def add_new_movie(
     movie_file_type: str = None,
     movie_trailer: str = None,
     content_type: str = "movie",
+    catalog_section: str = None,
 ):
     """Добавляет новый фильм. Заполняет только те колонки карточки/файла,
     которые реально существуют в таблице Movies (на случай если миграция ещё не выполнена).
@@ -19,7 +20,7 @@ def add_new_movie(
         database.execute("UPDATE MovieSequence SET value=value+1 WHERE id=1")
         movie_number = database.execute("SELECT value FROM MovieSequence WHERE id=1").fetchone()[0]
         database.execute(
-            "INSERT INTO Movies (movie_title,movie_number,poster_image,card_description,card_style,movie_file,movie_file_type,movie_trailer,content_type) VALUES (?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO Movies (movie_title,movie_number,poster_image,card_description,card_style,movie_file,movie_file_type,movie_trailer,content_type,catalog_section) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (
                 title,
                 movie_number,
@@ -30,6 +31,7 @@ def add_new_movie(
                 movie_file_type or "",
                 movie_trailer or "",
                 content_type,
+                catalog_section or ('series' if content_type == 'series' else 'movies'),
             ),
         )
         return movie_number

@@ -158,6 +158,43 @@ async def get_overview(tmdb_id, content_type: str = "movie"):
     return None
 
 
+async def details(tmdb_id, content_type: str = "movie"):
+    """Return a complete public card for a user request."""
+    if not TMDB_API_KEY or content_type not in ("movie", "series"):
+        return None
+    try:
+        tmdb_id = int(tmdb_id)
+    except (TypeError, ValueError):
+        return None
+    if tmdb_id <= 0:
+        return None
+    endpoint = "tv" if content_type == "series" else "movie"
+    for language in ("ru-RU", "en-US"):
+        try:
+            async with _new_session() as session:
+                item = await _get_json(
+                    session, f"{_BASE_URL}/{endpoint}/{tmdb_id}",
+                    {"api_key": TMDB_API_KEY, "language": language},
+                )
+        except Exception:
+            logger.exception("Ошибка получения карточки TMDB id=%s", tmdb_id)
+            return None
+        title = item.get("title") or item.get("name")
+        if title:
+            date = item.get("release_date") or item.get("first_air_date") or ""
+            poster = item.get("poster_path")
+            result = {
+                "tmdb_id": tmdb_id,
+                "title": title,
+                "year": date.split("-")[0] if date else None,
+                "overview": (item.get("overview") or "").strip() or None,
+                "poster_url": f"{_IMAGE_BASE}{poster}" if poster else None,
+            }
+            if result["overview"] or language == "en-US":
+                return result
+    return None
+
+
 async def check_connectivity():
     """Проверка при старте бота: доступен ли TMDB вообще с этого сервера.
     Не должна ничего ломать - только пишет понятный результат в лог, чтобы

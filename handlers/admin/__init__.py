@@ -3,3 +3,6 @@ from . import movie_create, movie_categories, movie_edit, series_edit, torrents_
 from . import stats_handlers, channels_func
 
 from . import watch_stats
+from . import design
+
+from . import content_requests
