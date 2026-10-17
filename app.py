@@ -21,20 +21,26 @@ async def on_startup(dispatcher):
         from webpanel.server import start
 
         web_runner = await start(dispatcher.bot)
+    from services import movie_sharing
+    movie_sharing.bot_username = (await dispatcher.bot.get_me()).username
     await check_connectivity()
     await set_default_commands(dispatcher)
     broadcasts.start(dispatcher.bot)
+    from services.storage_backup import backup
+    backup.start(dispatcher.bot)
 
 
 async def on_shutdown(dispatcher):
     global web_runner
     from services.broadcasts import broadcasts
     from services.tmdb import close_session
+    from services.storage_backup import backup
 
     if web_runner is not None:
         await web_runner.cleanup()
         web_runner = None
     await broadcasts.stop()
+    await backup.stop()
     await close_session()
     await dispatcher.storage.close()
     await dispatcher.storage.wait_closed()
@@ -55,7 +61,12 @@ def main():
     dispatcher = initialize()
     import handlers  # noqa: F401 -- Register handlers after initialization.
 
-    executor.start_polling(dispatcher, on_startup=on_startup, on_shutdown=on_shutdown)
+    # Reset any previously persisted Telegram update filter. The default set
+    # includes messages and callback queries used by the inline keyboards.
+    executor.start_polling(
+        dispatcher, on_startup=on_startup, on_shutdown=on_shutdown,
+        allowed_updates=[],
+    )
 
 
 if __name__ == "__main__":

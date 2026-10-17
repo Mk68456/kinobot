@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "routes": 85,
+  "http_checks": 4,
+  "sqlite_check": "ok",
+  "before": {
+    "Movies": 13,
+    "Users": 10,
+    "WebDrafts": 11
+  },
+  "after": {
+    "Movies": 13,
+    "Users": 10,
+    "WebDrafts": 57
+  },
+  "storage_first_import": {
+    "video_messages": 1333,
+    "assets_added": 1333,
+    "drafts_created": 46,
+    "channel_id": -1004356278011
+  },
+  "storage_repeated_import": {
+    "video_messages": 1333,
+    "assets_added": 0,
+    "drafts_created": 0,
+    "channel_id": -1004356278011
+  },
+  "storage_copy_verified_with_mock": true,
+  "live_telegram_test": false,
+  "docker_image_build_tested": false
+}

@@ -5,7 +5,7 @@
   <title>KinoTime — загрузка каталога</title>
   <meta name="description" content="Панель администратора KinoTime: загрузка фильмов и сезонов в Telegram.">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>
+  <link rel="stylesheet" href="/static/style.css?v=series-fill-20261014"><script src="/static/app.js?v=series-fill-fixed-20261014" defer></script><script src="/static/contests.js?v=contests-1" defer></script>
 </head>
 <body>
   <div id="login" class="login-screen">
@@ -20,8 +20,13 @@
       <p class="nav-label">УПРАВЛЕНИЕ КАТАЛОГОМ</p>
       <nav aria-label="Разделы панели">
         <button data-tab="upload" class="nav-item active"><span>↑</span> Загрузка</button>
+        <button data-tab="batch" class="nav-item"><span>✓</span> Проверка и пакет</button>
         <button data-tab="inbox" class="nav-item"><span>↙</span> Из Telegram <span id="inbox-count" class="count">0</span></button>
         <button data-tab="catalog" class="nav-item"><span>▤</span> Каталог</button>
+        <button data-tab="requests" class="nav-item"><span>✦</span> Запросы пользователей</button>
+        <button data-tab="remote" class="nav-item"><span>◉</span> Лаунчер</button>
+        <button data-tab="storage" class="nav-item"><span>▣</span> Резервирование</button>
+        <button data-tab="contests" class="nav-item"><span>🎁</span> Конкурсы</button>
         <button data-tab="guide" class="nav-item"><span>?</span> Как пользоваться</button>
       </nav>
       <div class="sidebar-bottom"><p>Публикация после проверки</p><small>Загруженные файлы сначала сохраняются в вашей библиотеке.</small><button id="logout" class="text-button">Выйти из панели</button></div>
@@ -32,39 +37,104 @@
       <section id="tab-upload" class="tab">
         <div class="page-heading"><div><p class="eyebrow">ПОПОЛНЕНИЕ КАТАЛОГА</p><h1>Подготовить публикацию</h1><p class="muted">Сначала файлы и названия. Затем — публикация в боте.</p></div><button id="new-draft" class="secondary">+ Новый черновик</button></div>
         <div class="draft-strip"><label for="draft-select">Продолжить черновик</label><select id="draft-select"><option value="">Новая публикация</option></select><span id="save-state" class="muted">Не сохранён</span></div>
-        <div class="editor-grid">
+        <div class="panel import-help"><h2>Импорт через Telegram Desktop</h2><p>На компьютере с фильмами запустите лаунчер KinoTime. Получите код командой <code>/desktop</code>, выберите режим «Несколько фильмов» и нажмите «1. Подготовить карточки». В разделе «Проверка и пакет» откройте каждый фильм, настройте его описание и постер и сохраните черновик. Затем запустите шаг 2 в лаунчере: видео отправит Telegram Desktop. После получения файлов можно подтвердить фильмы и опубликовать пакет.</p></div><div class="editor-grid">
           <section class="panel metadata"><div class="section-title"><span class="step">01</span><h2>Фильм или сериал</h2></div>
-            <label for="content-type">Тип контента</label><select id="content-type"><option value="series">Сериал · несколько серий</option><option value="movie">Фильм · один файл</option></select>
+            <label for="catalog-section">Раздел каталога</label><select id="catalog-section"></select>
+            <label for="content-type">Формат</label><select id="content-type"><option value="series">Сезоны и серии</option><option value="movie">Полнометражный</option></select>
             <div id="existing-target" class="target" hidden></div>
             <label for="title">Название</label><input id="title" maxlength="200" placeholder="Например, Рик и Морти" autocomplete="off">
-            <div id="season-fields"><div class="two-fields"><div><label for="season-number">Номер сезона</label><input id="season-number" type="number" min="1" max="10000" value="1"></div><div><label for="season-name">Название сезона</label><input id="season-name" maxlength="120" placeholder="Сезон 1"></div></div>
+            <div id="season-fields"><div class="two-fields"><div><label for="season-number">Номер сезона</label><input id="season-number" type="number" min="1" max="10000" value="1"></div><div><label for="season-name">Название сезона</label><input id="season-name" placeholder="Сезон 1"></div></div>
               <div id="season-select-wrap" hidden><label for="season-select">Добавить серии в сезон</label><select id="season-select"><option value="">Создать новый сезон</option></select></div>
             </div>
             <details id="extra-fields"><summary>Описание и постер</summary><label for="description">Описание</label><textarea id="description" maxlength="2500" rows="4" placeholder="Описание карточки в Telegram"></textarea><label for="poster-url">Ссылка на постер</label><input id="poster-url" type="url" placeholder="https://…"><p class="field-note">Необязательно. Постер можно добавить позже через бота.</p></details>
-            <div class="metadata-note">Файлы свыше <span class="max-mb">2000</span> МБ отправляйте боту через Telegram Desktop. Они появятся в разделе «Из Telegram».</div>
+            <button id="find-card" class="secondary">Подобрать описание и постер</button><div id="card-candidates"></div><div class="metadata-note">Файлы свыше <span class="max-mb">2000</span> МБ отправляйте боту через Telegram Desktop. Они появятся в разделе «Из Telegram».</div>
           </section>
-          <section class="panel files-panel"><div class="section-title"><span class="step">02</span><h2>Файлы и порядок серий</h2><span id="file-count" class="count">0</span></div>
+          <section class="panel files-panel"><div class="section-title"><span class="step">02</span><h2 id="files-heading">Файлы и порядок серий</h2><span id="file-count" class="count">0</span></div>
             <div id="dropzone" class="dropzone"><span class="upload-symbol">↑</span><h3>Перетащите видео сюда</h3><p>До <span class="max-mb">2000</span> МБ на файл · несколько серий за один раз</p><label class="primary file-picker" for="file-input">Выбрать файлы</label><input id="file-input" type="file" multiple hidden><button id="choose-inbox" class="text-button">Выбрать из Telegram</button></div>
             <div id="upload-activity" class="activity" hidden><span id="activity-text"></span><button id="pause-upload" class="text-button">Приостановить</button></div>
-            <div class="queue-head"><span>НАЗВАНИЕ В БОТЕ</span><span>ГОТОВНОСТЬ</span></div>
+            <div id="series-fill-tools" class="batch-toolbar" hidden><button type="button" id="series-fill" class="secondary">Заполнить серии по файлам</button><span>Одно название для всех качеств и озвучек серии</span></div><div class="queue-head"><span>НАЗВАНИЕ В БОТЕ</span><span>ГОТОВНОСТЬ</span></div>
             <div id="queue" class="queue"><div class="empty">Добавьте файлы — здесь можно будет изменить названия и порядок.</div></div>
-            <div class="publish-bar"><p id="publish-hint">Готовые файлы появятся в боте после публикации.</p><div><button id="save-draft" class="secondary">Сохранить черновик</button><button id="publish" class="primary">Опубликовать в боте</button></div></div>
+            <fieldset id="rating-fields"><legend>Рейтинги и возраст</legend><input type="hidden" id="rating-source"><p id="rating-source-info"></p><button type="button" id="ratings-auto" class="secondary">Заполнить из ПоискКино</button><button type="button" id="ratings-refresh" class="secondary">Обновить из API</button><label>КиноПоиск (0–10)<input id="rating-kp" inputmode="decimal" placeholder="Не указан"></label><label>IMDb (0–10)<input id="rating-imdb" inputmode="decimal" placeholder="Не указан"></label><label>Возраст<select id="age-rating"><option value="">Не указан</option><option>0+</option><option>6+</option><option>12+</option><option>16+</option><option>18+</option></select></label><p class="muted">Можно заполнить из API или вручную. Автозаполнение сохраняет уже введённые значения.</p></fieldset><div class="publish-bar"><button id="show-series-conflict" class="secondary" type="button" hidden>Перейти к конфликтующим файлам</button><p id="publish-hint" role="status" aria-live="polite">Готовые файлы появятся в боте после публикации.</p><div><button id="save-draft" class="secondary">Сохранить черновик</button><button id="add-package" class="secondary">Проверено — добавить в пакет</button><button id="publish" class="primary" aria-describedby="publish-hint">Одобрить и опубликовать</button></div><p id="draft-feedback" class="action-feedback" role="status" aria-live="polite" hidden></p></div>
           </section>
         </div>
+      <section id="review-actions" class="panel review-panel" hidden><h2>Решение по черновику</h2><p id="review-status" class="review-status" role="status"></p><p class="field-note">Для возврата на доработку обязательно укажите, что исправить. При отклонении комментарий необязателен.</p><label for="review-comment">Комментарий для доработки</label><textarea id="review-comment" maxlength="2000" rows="3"></textarea><button id="revise-draft" class="secondary">На доработку</button> <button id="reject-draft" class="secondary">Отклонить</button> <button id="resubmit-draft" class="secondary">Вернуть на проверку</button><p id="review-feedback" class="action-feedback" role="status" aria-live="polite" hidden></p><pre id="review-history"></pre></section>
+      <section id="promo-panel" class="panel review-panel" hidden><h2>Рекламный пост для канала фильма</h2><p>Пост содержит ссылку на этот фильм. Отправьте его в канал после проверки.</p><button id="load-promo" class="secondary">Подготовить пост</button><textarea id="promo-text" rows="7" aria-label="Рекламный пост"></textarea><button id="copy-promo" class="secondary">Скопировать</button></section>
+      </section>
+      <section id="tab-batch" class="tab" hidden>
+        <div class="page-heading"><div><p class="eyebrow">ПОСЛЕ АВТОМАТИЧЕСКОЙ ЗАГРУЗКИ</p><h1>Проверка и пакет</h1><p class="muted">Откройте каждый фильм, настройте оформление и добавьте проверенную карточку в пакет. Пакет сохраняется между посещениями панели.</p></div><button id="batch-refresh" class="secondary">Обновить</button></div>
+        <div class="panel batch-card"><h2>Пакет к публикации</h2><p>Изменение карточки снимает её с пакета до повторной проверки. До 100 фильмов.</p><div id="package-list"></div></div><div class="panel batch-toolbar"><button hidden id="batch-select" class="secondary">Выбрать готовые на странице</button><button hidden id="batch-clear" class="secondary">Снять выбор</button><button id="batch-reject-all" class="secondary">Отклонить всё</button><button id="batch-publish" class="primary" disabled>Опубликовать пакет (0)</button></div>
+        <p id="batch-feedback" role="status" aria-live="polite"></p><div class="panel"><button id="group-files" class="secondary">Объединить отмеченные файлы в одну карточку (<span id="group-count">0</span>)</button><p>Это одна карточка с общим оформлением. Пакет публикации выше сохраняет фильмы отдельными карточками.</p></div><div id="batch-list" class="batch-list"></div>
+        <div class="pager"><button id="batch-prev" class="secondary">Назад</button><span id="batch-page"></span><button id="batch-next" class="secondary">Далее</button></div>
       </section>
       <section id="tab-inbox" class="tab" hidden><div class="page-heading"><div><p class="eyebrow">БИБЛИОТЕКА ФАЙЛОВ</p><h1>Полученные через Telegram</h1><p class="muted">Отправьте боту <code>/webfiles</code>, затем видео или документы. Завершите командой <code>/done</code>.</p></div><button id="refresh-inbox" class="secondary">Обновить</button></div>
         <div class="panel"><div id="inbox-list"></div><div class="publish-bar"><p>Названия и порядок можно изменить перед публикацией.</p><button id="add-inbox" class="primary">Добавить выбранные в черновик</button></div></div>
       </section>
-      <section id="tab-catalog" class="tab" hidden><div class="page-heading"><div><p class="eyebrow">КАТАЛОГ БОТА</p><h1>Добавить в существующий сериал</h1><p class="muted">Выберите сериал, чтобы загрузить новый сезон или продолжить существующий.</p></div></div>
-        <form id="catalog-search" class="search"><input id="catalog-query" placeholder="Название фильма или сериала" aria-label="Поиск в каталоге"><button class="secondary">Найти</button></form><div id="catalog-list" class="panel"></div><div class="pager"><button id="catalog-prev" class="secondary">Назад</button><span id="catalog-page"></span><button id="catalog-next" class="secondary">Далее</button></div>
+      <section id="tab-catalog" class="tab" hidden><div class="page-heading"><div><p class="eyebrow">КАТАЛОГ БОТА</p><h1>Каталог: файлы, рейтинги и ID</h1><p class="muted">Выберите сериал, чтобы загрузить новый сезон или продолжить существующий.</p></div></div>
+        <section class="panel catalog-section-settings"><h2>Разделы в меню бота</h2><p class="muted">Отключённый раздел скрывается от пользователей. Карточки и файлы сохраняются.</p><div id="catalog-sections"></div></section><form id="catalog-search" class="search"><input id="catalog-query" placeholder="Название произведения" aria-label="Поиск в каталоге"><button class="secondary">Найти</button><label><input type="checkbox" id="catalog-unrated"> Без возрастной маркировки</label></form><div id="catalog-list" class="panel"></div><div class="pager"><button id="catalog-prev" class="secondary">Назад</button><span id="catalog-page"></span><button id="catalog-next" class="secondary">Далее</button></div>
       </section>
+      <section id="tab-requests" class="tab" hidden><div class="page-heading"><div><p class="eyebrow">ЧТО ИЩУТ ПОЛЬЗОВАТЕЛИ</p><h1>Запросы на добавление</h1><p class="muted">Одинаковые запросы объединяются. Чем больше желающих, тем выше заявка в очереди.</p></div><button id="requests-refresh" class="secondary">Обновить</button></div><div id="requests-list" class="request-grid"></div><div class="pager"><button id="requests-prev" class="secondary">Назад</button><span id="requests-page"></span><button id="requests-next" class="secondary">Далее</button></div></section>
+      <section id="tab-remote" class="tab" hidden>
+        <div class="page-heading"><div><p class="eyebrow">УПРАВЛЕНИЕ С ТЕЛЕФОНА</p><h1>Подготовка на компьютере</h1><p class="muted">Оставьте компьютер включённым без перехода в сон и запустите лаунчер с кодом /desktop. Подготовка MP4 работает в фоне.</p></div><button id="remote-refresh" class="secondary">Обновить</button></div>
+        <div class="panel launcher-panel remote-connection"><label>Компьютер<select id="remote-device"></select></label><p class="muted">Для каждого компьютера нужен отдельный код /desktop. Папки и команды относятся к выбранному компьютеру.</p><div id="remote-status" role="status" aria-live="polite">Ожидаю подключение лаунчера…</div><p id="remote-update-hint" class="field-note" hidden></p></div>
+        <div class="remote-layout">
+          <div class="panel launcher-panel remote-settings"><div class="section-title"><span class="step">01</span><h2>Новый проект</h2></div>
+            <label id="remote-folder-label">Недавние папки<select id="remote-folder"></select></label>
+            <div id="remote-path-controls" hidden><label>Папка с исходными видео на компьютере<input id="remote-folder-path" placeholder="D:\Сериалы\Новый проект" autocomplete="off" spellcheck="false"></label><div class="remote-folder-actions"><button id="remote-browse" class="secondary">Папки компьютера</button><button id="remote-open-path" class="secondary">Открыть этот путь</button></div><p id="remote-browse-hint" class="field-note"></p></div>
+            <div id="remote-browser" hidden><div class="remote-folder-actions"><button id="remote-browse-roots" class="secondary">Диски</button><button id="remote-browse-up" class="secondary">↑ На уровень выше</button></div><p id="remote-browser-path" class="remote-path"></p><p id="remote-browser-status" role="status"></p><div id="remote-browser-entries"></div><button id="remote-browse-next" class="secondary" hidden>Ещё папки</button><button id="remote-browse-select" class="primary" disabled>Выбрать эту папку</button><button id="remote-browse-close" class="text-button">Закрыть</button></div>
+            <div id="remote-render-settings" class="remote-settings-grid" hidden><label>Содержимое папки<select id="remote-mode"><option value="single">Один проект / сериал</option><option value="batch">Несколько фильмов (файлы в этой папке)</option></select></label><label>Раздел каталога<select id="remote-section"></select></label><p class="field-note remote-mode-help">Один проект: видео из папки и подпапок в одну карточку. Несколько фильмов: каждый файл этой папки — отдельная карточка.</p><label>Оборудование<select id="remote-hardware"><option value="auto">Автоматически</option><option value="nvidia">NVIDIA NVENC</option><option value="intel">Intel Quick Sync</option><option value="amd">AMD AMF</option><option value="cpu">Процессор</option></select></label><label>Нагрузка<select id="remote-load"><option value="eco">Экономная</option><option value="balanced">Сбалансированная</option><option value="performance">Максимальная скорость</option></select></label></div>
+            <fieldset id="remote-qualities"><legend>Качества MP4</legend><label><input type="checkbox" value="source"> Исходное</label><label><input type="checkbox" value="1080p" checked> 1080p</label><label><input type="checkbox" value="720p" checked> 720p</label><label><input type="checkbox" value="480p"> 480p</label><label><input type="checkbox" value="360p"> 360p</label><p class="muted">Каждая выбранная озвучка в лаунчере создаёт отдельный MP4 для каждого качества. Качество выше исходного пропускается.</p></fieldset>
+            <div id="remote-start-summary" class="remote-start-summary"></div><div class="remote-folder-actions"><button id="remote-switch" class="secondary">Выбрать папку</button><button id="remote-prepare" class="primary">Подготовить MP4</button></div><p id="remote-feedback" class="remote-feedback" role="status" aria-live="polite"></p>
+          </div>
+          <div><div class="panel launcher-panel"><div class="section-title"><span class="step">02</span><h2>Текущая задача</h2></div><div id="remote-job">Задача ещё не запускалась.</div><button id="remote-stop" class="secondary">Остановить подготовку</button></div><div class="panel launcher-panel"><h2>Передача в Telegram</h2><p class="muted">Запускайте отдельно после подготовки MP4 и настройки карточек в панели. Telegram Desktop должен быть открыт, компьютер — разблокирован.</p><button id="remote-send" class="secondary">Отправить настроенные файлы</button><p id="remote-send-hint" class="field-note"></p></div></div>
+        </div><div class="panel launcher-panel"><h2>Последние команды выбранного компьютера</h2><div id="remote-history"></div></div>
+      </section>
+      <section id="tab-storage" class="tab" hidden><div class="page-heading"><div><p class="eyebrow">ЗАЩИТА КАТАЛОГА</p><h1>Резервирование в Telegram</h1><p class="muted">Файлы копируются в закрытый канал и сохраняются там независимо от бота.</p></div><button id="storage-refresh" class="secondary">Обновить</button></div><div class="panel storage-summary"><div id="storage-config" class="empty">Проверяю подключение…</div><div class="storage-counts"><div><strong id="storage-ready">0</strong><span>защищено</span></div><div><strong id="storage-pending">0</strong><span>в очереди</span></div><div><strong id="storage-errors">0</strong><span>ошибок</span></div><div><strong id="storage-total">0</strong><span>всего</span></div></div><div class="batch-toolbar"><button id="storage-check" class="secondary">Проверить канал</button><button id="storage-scan" class="primary">Найти файлы каталога</button><button id="storage-retry" class="secondary">Повторить ошибки</button><button id="storage-toggle" class="secondary">Приостановить</button></div><p id="storage-feedback" role="status"></p></div><div class="panel storage-guide"><h2>Первое подключение</h2><ol><li>Создайте закрытый канал KinoTime Storage.</li><li>Добавьте бота администратором с правом публикации.</li><li>Отправьте боту <code>/storage</code> и перешлите сообщение из канала.</li></ol><h2>Последние операции</h2><div id="storage-recent" class="storage-recent"></div></div></section>
       <section id="tab-guide" class="tab" hidden><div class="page-heading"><div><p class="eyebrow">ПАМЯТКА АДМИНИСТРАТОРУ</p><h1>От файлов до готового сезона</h1></div></div><div class="guide-grid">
         <article class="panel"><span class="step">01</span><h2>С компьютера</h2><p>Создайте черновик, укажите сериал и сезон. Выберите файлы: они последовательно загрузятся на сервер, затем в Telegram. Дождитесь статуса «Готов».</p><p>При обрыве соединения выберите те же файлы повторно — панель продолжит незавершённую загрузку. Не закрывайте вкладку, пока идёт передача с компьютера.</p></article>
         <article class="panel"><span class="step">02</span><h2>Из Telegram · до 4 ГБ</h2><p>В личном чате с этим ботом отправьте <code>/webfiles</code>. Загрузите или перешлите файлы с Premium-аккаунта, затем отправьте <code>/done</code>.</p><p>Откройте «Из Telegram», отметьте нужные файлы и добавьте их в черновик. Повторная загрузка на сервер не нужна.</p></article>
         <article class="panel"><span class="step">03</span><h2>Проверить и опубликовать</h2><p>Названия в строках — это будущие кнопки серий в боте. Исправьте их и расположите файлы стрелками в нужном порядке. Для фильма добавьте один основной файл.</p><p>Нажмите «Опубликовать в боте». Откройте полученный код в Telegram и проверьте карточку. Черновик после публикации нельзя отправить повторно.</p></article>
         <article class="panel"><span class="step">04</span><h2>Ошибки и продолжение</h2><p>Если передача в Telegram не удалась, нажмите «Повторить». После перезапуска сервера сначала проверьте чат: файл мог успеть отправиться. Его можно переслать в режиме <code>/webfiles</code>.</p><p>Кнопка удаления незавершённой загрузки освобождает место на сервере. Удаление готового файла из черновика не удаляет опубликованный контент.</p></article>
       </div></section>
+      <section id="tab-contests" class="tab" hidden>
+        <div class="page-heading"><div><p class="eyebrow">ПРИГЛАШАЙ ДРУЗЕЙ В KINOTIME</p><h1>Реферальный конкурс</h1><p class="muted">Новый пользователь открывает карточку — пригласивший получает билет. Канал новостей добровольный.</p></div><button id="contest-new" class="secondary">+ Новый конкурс</button></div>
+        <div class="contest-toolbar"><label>Конкурс<select id="contest-select"></select></label><button id="contest-refresh" class="secondary">Обновить</button></div>
+        <p id="contest-feedback" class="action-feedback" role="status" hidden></p>
+        <div class="contest-layout">
+          <form id="contest-form" class="panel contest-editor">
+            <h2>Условия и приз</h2><p class="muted">После запуска условия фиксируются. Подарок передаёт организатор через Telegram.</p>
+            <fieldset id="contest-fields">
+              <label>Название<input id="contest-title" maxlength="100" required placeholder="KinoTime × THE SOPRANOS NEWS"></label>
+              <label>Приз<input id="contest-gift-name" maxlength="150" required placeholder="Название и номер коллекционного подарка"></label>
+              <label>Ссылка на подарок<input id="contest-gift-url" type="url" maxlength="250" placeholder="https://t.me/nft/…"></label>
+              <label>Изображение приза · необязательно<input id="contest-photo-url" type="url" maxlength="1000" placeholder="Прямая HTTPS-ссылка на изображение"></label>
+              <label>Описание<textarea id="contest-description" maxlength="500" rows="3" placeholder="Короткое описание розыгрыша"></textarea></label>
+              <label>Окончание · время на этом компьютере<input id="contest-ends" type="datetime-local" required></label>
+              <label>Максимум билетов на участника<input id="contest-cap" type="number" min="1" max="1000" value="20" required></label>
+              <label>Канал новостей · необязательно<input id="contest-channel" type="url" maxlength="250" value="https://t.me/GramSoprano"></label>
+              <label>Контакт организатора для выдачи приза<input id="contest-organizer" type="url" maxlength="250" placeholder="https://t.me/ваш_username"></label>
+            </fieldset>
+            <button id="contest-save" class="primary" type="submit">Сохранить черновик</button>
+          </form>
+          <div><div class="panel contest-summary">
+            <h2 id="contest-status">Новый конкурс</h2><p id="contest-deadline" class="muted"></p>
+            <div id="contest-counts" class="storage-counts"></div>
+            <div class="contest-toolbar"><button id="contest-launch" class="primary" hidden>Запустить конкурс</button><button id="contest-close" class="secondary" hidden>Зафиксировать участников</button><button id="contest-draw" class="primary" hidden>Выбрать победителя</button><button id="contest-cancel" class="secondary" hidden>Отменить конкурс</button></div>
+            <p id="contest-winner"></p><button id="contest-delivered" class="secondary" hidden>Отметить передачу приза</button>
+            <p class="muted">Повторное нажатие возвращает сохранённый результат. Для нового розыгрыша создайте отдельный конкурс.</p>
+          </div><div class="panel contest-summary"><h2>Пост для канала</h2><p class="muted">Скопируйте и опубликуйте вручную. Общая ссылка учитывает приход из канала, личные ссылки — приглашения.</p>
+            <textarea id="contest-post" rows="8" readonly aria-label="Текст анонса"></textarea><div class="contest-toolbar"><button id="contest-copy-post" class="secondary">Скопировать анонс</button><button id="contest-copy-result" class="secondary" hidden>Скопировать итоги</button></div>
+            <p id="contest-link" class="muted"></p>
+          </div></div>
+        </div>
+        <div id="contest-lists" class="panel contest-summary" hidden>
+          <div class="contest-toolbar"><label>Список<select id="contest-list-kind"><option value="members">Участники</option><option value="referrals">Приглашения и проверка</option><option value="audit">Журнал действий</option></select></label><a id="contest-export" class="secondary" href="#">Скачать участников CSV</a></div>
+          <div id="contest-list" class="contest-table-wrap"></div><div class="pager"><button id="contest-prev" class="secondary">Назад</button><span id="contest-page"></span><button id="contest-next" class="secondary">Далее</button></div>
+        </div>
+      </section>
     </main>
   </div>
-</body>
+  <dialog id="batch-confirm" aria-labelledby="batch-confirm-title">
+    <form method="dialog"><h2 id="batch-confirm-title">Подтверждение публикации</h2><p>В каталог бота попадут только перечисленные карточки:</p><ul id="batch-confirm-list"></ul><div class="batch-toolbar"><button class="secondary" value="cancel">Отмена</button><button class="primary" value="publish">Подтвердить публикацию</button></div></form>
+  </dialog>
+<datalist id="series-quality-options"><option value="2160p"><option value="1080p"><option value="720p"><option value="480p"><option value="360p"><option value="Исходное"></datalist></body>
 </html>

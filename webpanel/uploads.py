@@ -151,6 +151,8 @@ class Uploads:
                 "UPDATE WebAssets SET status='ready',file_id=?,error=NULL,source_chat_id=?,source_message_id=? WHERE id=?",
                 (media.file_id, message.chat.id, message.message_id, file["id"]),
             )
+        from services.storage_backup import backup
+        backup.notify()
         await asyncio.to_thread(path.unlink, missing_ok=True)
 
     def start(self):

@@ -1,0 +1,522 @@
+{
+  "release": "server-2026-10-16",
+  "core_source_files_equal": 101,
+  "files": {
+    ".dockerignore": {
+      "bytes": 132,
+      "sha256": "55f3a4fd7632f30e43fc92b258f8fcbdee8fab767cb5f8905c49c5f159dd0f98"
+    },
+    ".env.example": {
+      "bytes": 491,
+      "sha256": "0f9b3f4d87bfb5a0f9c2505ddc396d107e757e2a7f4de4267e54e8ff860f082a"
+    },
+    "app.py": {
+      "bytes": 2133,
+      "sha256": "1df58f5e7ec01201df29466c362385b4b6a04c0387ceedcb50a569af63ec4f7e"
+    },
+    "assets/kinotime-avatar.png": {
+      "bytes": 632995,
+      "sha256": "d7e279ccff7bf6ee3e39c5725053d65489520baf08fe81870b3d7c576f3e18d8"
+    },
+    "assets/telegram-stars-banner.png": {
+      "bytes": 1755105,
+      "sha256": "9e984204170d2b479cdb0b79245fc79cf073ad52ea17aff1e63b7c6f486ee8d6"
+    },
+    "compose.yaml": {
+      "bytes": 2115,
+      "sha256": "17aed07d4c8ab27c6337d8325dd2d124b1afbe71f10cf1aab9c4728db67baf33"
+    },
+    "data/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/config.py": {
+      "bytes": 738,
+      "sha256": "987af8c540fcce7ff0b8f78084b3c21bb254589c31b4daab2259a333f862807a"
+    },
+    "data/settings.py": {
+      "bytes": 1095,
+      "sha256": "64f9483f03a0d3677a55893cb0bed1a61679799ce9ab8b73001ccc7029e2c475"
+    },
+    "database/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "database/admin/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "database/admin/migrate_movies.py": {
+      "bytes": 5338,
+      "sha256": "b10720facf8e5061cf8e71dbce927aad718a1902527fb80066f500f389bdd397"
+    },
+    "database/admin/migrate_users.py": {
+      "bytes": 1001,
+      "sha256": "0854555bc91f0f85e72de2f2bb325e6640c0256bcc8e4c85fd931d0e0d0c73f8"
+    },
+    "database/age_access.py": {
+      "bytes": 5612,
+      "sha256": "4f8c02388b29a0166a35e41d0d608cff7208b8a663c2e9418823340475448832"
+    },
+    "database/broadcasts.py": {
+      "bytes": 1823,
+      "sha256": "271f8314316790ec6afe61a0e407ae7f140a69acffe3406de8b072830c4097d1"
+    },
+    "database/catalog_sections.py": {
+      "bytes": 1477,
+      "sha256": "aef281634879f8507f58ac490f3fbdcd1463c6b9b394b4a7ab4ba9e259577ae5"
+    },
+    "database/categories.py": {
+      "bytes": 6947,
+      "sha256": "cafc88de1e04b54a81d403f49e88bd5ce3c7a70a5816495fe27e23303446810a"
+    },
+    "database/channels.py": {
+      "bytes": 1329,
+      "sha256": "0b22ee7c959b3899576967949389afddee5a6f4bd217d93f85bfb6cfed9eebc3"
+    },
+    "database/connection.py": {
+      "bytes": 2094,
+      "sha256": "b1ab3c7e5eb757d521cf54fcd43669f14798005dbf22400c6da9413d2a3844b0"
+    },
+    "database/content_requests.py": {
+      "bytes": 6831,
+      "sha256": "a6d5f983e66c788c07d52e520c489426dcb193e649023914de051d23590759d8"
+    },
+    "database/contests.py": {
+      "bytes": 20606,
+      "sha256": "b69d3dde4b350c209ec2c984ccae27dc65be0b09557dd097ed60117f05e00a70"
+    },
+    "database/design.py": {
+      "bytes": 1718,
+      "sha256": "40efb09598b6931cc5039bba9b9e044710961bf8f5cd1a9f0ffa88b4d6d21834"
+    },
+    "database/episode_variants.py": {
+      "bytes": 4004,
+      "sha256": "823240b44278c363a54fe22fbf4b151cad2c1e17ec961b8a52b228cc44d8b108"
+    },
+    "database/migrations.py": {
+      "bytes": 18001,
+      "sha256": "96512275250886c689d3d2bb8929146dd368e439f7bc806ec1dfb83ef51dc66e"
+    },
+    "database/movie_queries.py": {
+      "bytes": 2025,
+      "sha256": "95811cdc1751f473cd856fa555d69c4561e3524b4637351b52b9929a0718c47c"
+    },
+    "database/movies.py": {
+      "bytes": 2672,
+      "sha256": "bd5ff2a0c0e3df312463357560d9f4bc78f87f4e390a86f4a49e659cd5ed4cc8"
+    },
+    "database/people.py": {
+      "bytes": 1301,
+      "sha256": "e8151ea869023575e45d340b7c69c40a4afd1723406685e0ce8e605e57dc9c39"
+    },
+    "database/progress.py": {
+      "bytes": 6582,
+      "sha256": "e746c44add5349f0203cf193a35c9788b160b9111ac2c63f63d2928d4ed3f88d"
+    },
+    "database/roles.py": {
+      "bytes": 2527,
+      "sha256": "a47d5668eda7178e72bbdc256fd608569434de298ea28c32b2575d244ccf29cc"
+    },
+    "database/search.py": {
+      "bytes": 4910,
+      "sha256": "2fecdc522626265ec28b74390fa95d32d81b8bccaccdce7886a9c07bdfb536c9"
+    },
+    "database/stats.py": {
+      "bytes": 5334,
+      "sha256": "04f34dd21ddab74f701bcc591806d75687b414ed6725b245f9db1dae5af71ea8"
+    },
+    "database/torrents.py": {
+      "bytes": 1048,
+      "sha256": "c460b109d77b609929c6c7c196f9fcf76361725ec4e5a099e9af2efc08f903ca"
+    },
+    "database/users/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "deploy/Caddyfile": {
+      "bytes": 45,
+      "sha256": "5c1a4a78d5d66253f5c767def07a71d113ed8f0ff25f593137762a400df672d5"
+    },
+    "deploy/Dockerfile.bot-api": {
+      "bytes": 1204,
+      "sha256": "b8c3afc4ea21b8cf7c91f4b0eda34314cc93884609b5adecefbd1890b1361224"
+    },
+    "Dockerfile": {
+      "bytes": 1496,
+      "sha256": "7791cf77fadbfb62985a5f21a797c5b8f3f9c506e8766f035de5849698275f79"
+    },
+    "entrypoint.sh": {
+      "bytes": 484,
+      "sha256": "88c7e8a9afe95c2668314d58cce9b4ae949f569cf90cf97bdf731c29f10a01fb"
+    },
+    "handlers/__init__.py": {
+      "bytes": 60,
+      "sha256": "8e7c337f1a677d98c0f993f3fa6c45b5d34d60c6f0da440c53b748204b335965"
+    },
+    "handlers/admin/__init__.py": {
+      "bytes": 295,
+      "sha256": "6a73c5641a8c5c4a1be13c51e259115248291f60c8c99f6a58e3206bf728bf7f"
+    },
+    "handlers/admin/admin_command.py": {
+      "bytes": 354,
+      "sha256": "fa484de3cfd2c621d3373cfc0daa5a2cc2b4330e4bba68dca6100c64927c0bc9"
+    },
+    "handlers/admin/broadcasts.py": {
+      "bytes": 3953,
+      "sha256": "ffa8ee7183f932636360ece739b82a2959324d195b73c99858bbc5ea2e71d051"
+    },
+    "handlers/admin/channels_func.py": {
+      "bytes": 5137,
+      "sha256": "47645a37a98c2cae0b9a347f8f5f49fc691aab0099c54330b479bf45736407b0"
+    },
+    "handlers/admin/content_requests.py": {
+      "bytes": 7081,
+      "sha256": "e8992ba61bd001fe96a0b43f650d41625b8f1b9f17e0dbeea72c4aeb4e7e6942"
+    },
+    "handlers/admin/design.py": {
+      "bytes": 4411,
+      "sha256": "a6f81b43e7d63ea1e8183f189a6a2a55e28e614266a5aaae741ad9067be87fce"
+    },
+    "handlers/admin/menu.py": {
+      "bytes": 4214,
+      "sha256": "5c9e9da06590d6ae6c2c599687129dca77a3292bd11c82d4481433b9abb0a44d"
+    },
+    "handlers/admin/movie_categories.py": {
+      "bytes": 6551,
+      "sha256": "e8976831fc0eb34eb2694e2d2a4f6e2f8d98a778ee08242d118b2ec37267c240"
+    },
+    "handlers/admin/movie_create.py": {
+      "bytes": 12517,
+      "sha256": "d7508fb66078b3424a13548ed5b86bbab4abe3bda0f830a6acbc1829aa7ae631"
+    },
+    "handlers/admin/movie_delete.py": {
+      "bytes": 2835,
+      "sha256": "b6dc647a38fd66bfcbdfa8715a4460a0978746683b2b5cb3729572b7f5985a9b"
+    },
+    "handlers/admin/movie_edit.py": {
+      "bytes": 11135,
+      "sha256": "0852ff817dd43be40e6cf662528e02da2ba76723a9edc0662130bf65dade5968"
+    },
+    "handlers/admin/roles.py": {
+      "bytes": 6951,
+      "sha256": "2818154978303cb576e11b02f6e9ba5aa7a7b668a9d5e488b31bf68ba76aa740"
+    },
+    "handlers/admin/series_edit.py": {
+      "bytes": 15032,
+      "sha256": "90a66c8be044b16b08a50dbeb33d997cd38559f4f0771bc15a719a4c4023099f"
+    },
+    "handlers/admin/stats_handlers.py": {
+      "bytes": 6761,
+      "sha256": "1c66220cce23d10c070d92803592540675e310d837f40f08b711b2eb5fbf153b"
+    },
+    "handlers/admin/torrents_edit.py": {
+      "bytes": 6359,
+      "sha256": "d8dbd750ac30ffeb3b25a09118d131df337c0b624867c075112928515b38f836"
+    },
+    "handlers/admin/watch_stats.py": {
+      "bytes": 4411,
+      "sha256": "5ce1b32697d7dfd3d89a8a4288bb55a6b932d28c42e9e4d0f88b0763628f3fff"
+    },
+    "handlers/admin/web_panel.py": {
+      "bytes": 6672,
+      "sha256": "92de28ee9187e902bb35917feab1302f50b6c5e4dd341733b75e69d7a09e4db4"
+    },
+    "handlers/start.py": {
+      "bytes": 3037,
+      "sha256": "50ffb82e878f41dc7a411506302cefda7b77f28cabb033f5078cccf5c4592827"
+    },
+    "handlers/users/__init__.py": {
+      "bytes": 171,
+      "sha256": "30fc4032cac7b830a3ddd577146118bc746999e19a8cef462039190c397dbaaf"
+    },
+    "handlers/users/age_settings.py": {
+      "bytes": 7153,
+      "sha256": "b062300441b1f52a7d0c6f3d7dd546b2befc600228f290d6860c36e00bbff76a"
+    },
+    "handlers/users/check_user_sub.py": {
+      "bytes": 1010,
+      "sha256": "57f4a714cb9098cbbf2d455989751f30dbe7296742a157ff852b3a10b8fd17d7"
+    },
+    "handlers/users/content_requests.py": {
+      "bytes": 10719,
+      "sha256": "574ed51c3c806acb2a4efbd1fc36c3b1b8945282b16a29dd52ae4989f16634ae"
+    },
+    "handlers/users/contests.py": {
+      "bytes": 5093,
+      "sha256": "5639a3484183cd9337f40406886512dda278424df2c61f3ffd54be4ec5981f3a"
+    },
+    "handlers/users/find_movie.py": {
+      "bytes": 50315,
+      "sha256": "193bc7ea287da2d52b991e8554a8444eb1aff84be5f7a908807758be04dd10cb"
+    },
+    "handlers/users/inline_share.py": {
+      "bytes": 2805,
+      "sha256": "82ae4758efcc2b87b609f64672df7be53117411cd5cf90bc32a304f54c2118dd"
+    },
+    "handlers/users/start_command.py": {
+      "bytes": 143,
+      "sha256": "2af0fb52b1096b037cd732029f5cd2d986b338770a4ab9cb93f5bb213867a617"
+    },
+    "keyboards/__init__.py": {
+      "bytes": 64,
+      "sha256": "649d2f24272fcdac3f6af1a8dc45e82bcd2d84d4e86881808cb292cbe9072b22"
+    },
+    "keyboards/admin/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "keyboards/admin/keyboard.py": {
+      "bytes": 11850,
+      "sha256": "0565979cbdee603f915f9cf0cbcc257276ad685828f5b1f9cf208f67ab4d570e"
+    },
+    "keyboards/admin/roles.py": {
+      "bytes": 1560,
+      "sha256": "5676ff862e026bfa9b9decdcfa9bf9efc7078b6167014212374bf5c9a06b777d"
+    },
+    "keyboards/inline/__init__.py": {
+      "bytes": 2,
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6"
+    },
+    "keyboards/inline/sub_keyboard.py": {
+      "bytes": 433,
+      "sha256": "386b2532499585a16cad72a3389f3e509e2cca46eca0c671a84ed296914a1d5b"
+    },
+    "keyboards/users/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "keyboards/users/keyboard.py": {
+      "bytes": 2574,
+      "sha256": "726c8fb01105b257fa3c1a8938784ae234acf64f5d3b0aff5f5bad57fd901cbb"
+    },
+    "loader.py": {
+      "bytes": 735,
+      "sha256": "30c06720e1a27a3d72cf425ca68bbf2ef012a43b2f43edf087969f64525626d7"
+    },
+    "pyproject.toml": {
+      "bytes": 387,
+      "sha256": "656304189b43b7efd1f9ce06a516d48afa8b294fb60791792f289d38aa3ac1c8"
+    },
+    "README.md": {
+      "bytes": 5502,
+      "sha256": "b4c2003a41c6319e1ac5a3bd9ad135ca59cf4bd57bfb3702d290be5222c146c8"
+    },
+    "RELEASE-NOTES.md": {
+      "bytes": 3730,
+      "sha256": "cded82043803259b152eec1593cbc7cbaa45c49e427b5f9634386fa7388cafcc"
+    },
+    "requirements.txt": {
+      "bytes": 800,
+      "sha256": "6c18779b6e0ad8766b3461ad834c0f53159ce0852450712fec791bdf0df6dd8e"
+    },
+    "services/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "services/access.py": {
+      "bytes": 2626,
+      "sha256": "7383cb1dd88e944034f9953d7d1e8f7d12eadb985916e9fc46280c70661f06f9"
+    },
+    "services/age_access.py": {
+      "bytes": 2668,
+      "sha256": "6d2a5ece9610824a16f08814ed3c02f727fed732ca57730a4b888235c896b483"
+    },
+    "services/broadcasts.py": {
+      "bytes": 4497,
+      "sha256": "4d321a4a1f9d9519d725da80b1e433ae4559ec19f272e826972c397938602a98"
+    },
+    "services/catalog.py": {
+      "bytes": 1785,
+      "sha256": "37fdf72bf2f3ad60a0703fe92ebab6dbfadbe0f9bd207704dedf282e1b5b3176"
+    },
+    "services/contests.py": {
+      "bytes": 7296,
+      "sha256": "65d860c4f787369df62b90e93c310e4ac50282c1404ea2c1ae3d0925baf82032"
+    },
+    "services/episode_cards.py": {
+      "bytes": 4709,
+      "sha256": "ff09b559646ab7afee9a581325674bf04be1987ff093c6ee0b99b370dad1a019"
+    },
+    "services/movie_sharing.py": {
+      "bytes": 3081,
+      "sha256": "b1b5cdbcd1f2ad0eefc4da1d9faa590b9b20a901b88bd51afbeb604cb0b8b95d"
+    },
+    "services/poiskkino.py": {
+      "bytes": 5181,
+      "sha256": "d6d5332ffb02117bc15fc3182ef0b61f587d8eb066b669a7c5776c143e9f0db1"
+    },
+    "services/ratings.py": {
+      "bytes": 1423,
+      "sha256": "5f72f3adad537f0b04483473e64998ccb9336ead3ecb35d4c39d655de6db7671"
+    },
+    "services/storage_backup.py": {
+      "bytes": 8586,
+      "sha256": "7ed507b057e7b367209f11cadd54591f99784572d0048e95dc22aaf8651edf29"
+    },
+    "services/storage_recovery.py": {
+      "bytes": 5939,
+      "sha256": "4bc3dfc0e986f9f9b16bee871047ef70f6dd36836dcb7da20591aa0e39e14ff1"
+    },
+    "services/subscriptions.py": {
+      "bytes": 1036,
+      "sha256": "e0be312d6f17796bcc55e9c183a55021388f0d2be4f1a57fcc8bf337982afef5"
+    },
+    "services/tmdb.py": {
+      "bytes": 10399,
+      "sha256": "d2eb9f277f771c77f3f12eac51df352e9220de0ad9960f17b2a0a0c4049c70d6"
+    },
+    "services/trailers.py": {
+      "bytes": 2859,
+      "sha256": "1c7bb2c2462b10b59850284e00b7985b855dc20b077184fcc2a0a58a90a7797d"
+    },
+    "services/welcome.py": {
+      "bytes": 1947,
+      "sha256": "6838b3faa062f72bc22e31974aefc4cb2df581c164a7819d6daae504444340f6"
+    },
+    "setup.sh": {
+      "bytes": 344,
+      "sha256": "c9d450d224bb51eed5bac8d6bfc0a55928d105d4df1235f2ee4084d7f0239446"
+    },
+    "states/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "states/admin_states.py": {
+      "bytes": 1193,
+      "sha256": "f061b1bac9e2d9eac5838ad88e2d338480ea910bbf4fea6bab312dc18919ac9d"
+    },
+    "states/user_states.py": {
+      "bytes": 123,
+      "sha256": "9ccdd2499aa95c281dd78f9ea3db6ebbbd6662aeaac1118bd2fd512163125a47"
+    },
+    "tools/backup_database.py": {
+      "bytes": 927,
+      "sha256": "72d7c50ea30b21492f540eefd5ba3608319b7c729be98c1aa0d77d80130793f9"
+    },
+    "tools/deploy_storage.py": {
+      "bytes": 1973,
+      "sha256": "01df75bfce63133f145e58470bd3d1cd298c9db6d7cbc497fbbd63c9ce6b6da4"
+    },
+    "tools/logout_cloud.py": {
+      "bytes": 1073,
+      "sha256": "a72c4e5819722a97b6e2397d4bc563a0dc882e0dfba18b7450ea4b38c841afb7"
+    },
+    "tools/prepare_storage.py": {
+      "bytes": 1005,
+      "sha256": "d4959907908f5f98ecc926d2cd15d2b1f819b254753e680462786b32ebc6a2c7"
+    },
+    "tools/restore_storage.py": {
+      "bytes": 1918,
+      "sha256": "a50979f94b9f964c18b692f421aad085bc0b10127a3c355df42e8af2a80ad7f8"
+    },
+    "tools/setup_deploy.py": {
+      "bytes": 8177,
+      "sha256": "92eae965f98e00130eeab4f81bf3ad96ae564e78fe9b8b8d8fe4492f9bb506fb"
+    },
+    "tools/storage_diagnostics.py": {
+      "bytes": 1303,
+      "sha256": "681631966de5ab4e9f18cc1093ba36f486841d8cba401181fbf68791dc1afc99"
+    },
+    "utils/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "utils/set_bot_commands.py": {
+      "bytes": 289,
+      "sha256": "3ec9ec28309efb456415612966f773b83e9ce255df79404cc4401608010aeb2d"
+    },
+    "uv.lock": {
+      "bytes": 55851,
+      "sha256": "06de62415cef6adb79ccd6dadc593ac03e012e9e951fba36b0ca2d6f8bc44e49"
+    },
+    "verification/checks.txt": {
+      "bytes": 1342,
+      "sha256": "f22b506c95d910bf82c50f90a98d9bb37fbd02e90f0e098db23a49219261af39"
+    },
+    "verification/source-audit.json": {
+      "bytes": 4234,
+      "sha256": "b4be805a595506e30a61d5b7c94e4ac95244fdc8da1de593e1d6e47486b1e7d2"
+    },
+    "verification/startup-and-storage.json": {
+      "bytes": 656,
+      "sha256": "71f0b447a3a725b62999f20dc425f754a3a1983ae2a9e7da3395a4d704466668"
+    },
+    "webpanel/__init__.py": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "webpanel/auth.py": {
+      "bytes": 1957,
+      "sha256": "442e8e5550c08a8593a35e19b30cd562ba2269dc3179500f9b263a3631487f20"
+    },
+    "webpanel/catalog_merge.py": {
+      "bytes": 9331,
+      "sha256": "19738d8de992a11ef1ad4f6bdb29f78b6b830106ee0aaa1a0a55395f0b7f5cbb"
+    },
+    "webpanel/contests.py": {
+      "bytes": 2779,
+      "sha256": "6927c406999f90eb6539571952329cc5a900b0dfa8b487e72005f336013ef9a5"
+    },
+    "webpanel/episode_merge.py": {
+      "bytes": 11275,
+      "sha256": "f79e1ccda64bd2671fb97af4099fa5cc2ec5e75cab4de13ffc929265f4d80c54"
+    },
+    "webpanel/imports.py": {
+      "bytes": 17902,
+      "sha256": "667e0d7ed29cdd5606c44e444426d248a37a0570d0b837ba7bc5d5840fcb7678"
+    },
+    "webpanel/launcher_control.py": {
+      "bytes": 14034,
+      "sha256": "1ddd50c5c6c93b00a0e148fb69707a7273d69d617bf0895e865d078136771bd5"
+    },
+    "webpanel/launcher_transfers.py": {
+      "bytes": 5780,
+      "sha256": "d07658402c12f33b8b32a58d3698fbbb74164d5fdbadf27e1d1e8942b10eb8d4"
+    },
+    "webpanel/repository.py": {
+      "bytes": 44797,
+      "sha256": "f64e7a90668283c4ae5e7fad1f563cd3ad0f3f6091f2e8e73002f765ca2e4937"
+    },
+    "webpanel/series_validation.py": {
+      "bytes": 3061,
+      "sha256": "db70bdb6a9c249a7b93c0c86723e8d2b2ebf03049736a5349aa2767468416632"
+    },
+    "webpanel/server.py": {
+      "bytes": 32414,
+      "sha256": "539858f328727dffb0f6f6dc845fdd1a2bfb63dc68a6f63a7a3a627cccef8927"
+    },
+    "webpanel/static/app.js": {
+      "bytes": 119501,
+      "sha256": "39e89daab55862977ff2df2bef1ac18a78464f0f7c2128d8620b4dbc88a0fc37"
+    },
+    "webpanel/static/contests.js": {
+      "bytes": 12596,
+      "sha256": "3437c9f6b3f6fb75eebcf7a0f683f355b878c29832ddaef9b5242a0f50c4d71a"
+    },
+    "webpanel/static/favicon.svg": {
+      "bytes": 223,
+      "sha256": "77dcf042c0f6e4be7ee31f52a4a492b02c7b7cecc5af8e1376e3537b7bbfc355"
+    },
+    "webpanel/static/index.html": {
+      "bytes": 32771,
+      "sha256": "cbec12b8bb7b8ad20bce19cfda55ce718e0c6fd20c8dae540c01949d7a6e763f"
+    },
+    "webpanel/static/series-fill.js": {
+      "bytes": 4359,
+      "sha256": "d2715352a2ce5904f04dd786979b812715945dbc3324e251d0931d8abfe8a31d"
+    },
+    "webpanel/static/style.css": {
+      "bytes": 22464,
+      "sha256": "a35dcee385449d8da0cdbeaecea034cd2714fc77f5238917030c86672c3c6388"
+    },
+    "webpanel/streaming.py": {
+      "bytes": 4944,
+      "sha256": "64aa055e96572c71676dd88d77635522c8c005ef8e7f7327ab098084701ab8f6"
+    },
+    "webpanel/uploads.py": {
+      "bytes": 10744,
+      "sha256": "3c5e32d9121726bffed7e9c602f729327ebdfd743980dd064d4c30020bcfb041"
+    }
+  }
+}

@@ -22,6 +22,7 @@ ADD https://github.com/tianon/gosu/releases/download/1.17/gosu-amd64 /usr/local/
 RUN chmod +x /usr/local/bin/gosu
 
 COPY --chown=bot:bot . .
+RUN /opt/venv/bin/python -c "from data.settings import DATABASE_PATH, BACKUP_DIR, UPLOAD_DIR; import services.storage_recovery"
 # Keep startup outside /app, which hosting platforms may replace with a mount.
 # Invoke via sh so startup does not depend on the script's executable bit.
 COPY entrypoint.sh /usr/local/bin/kinobot-entrypoint.sh
