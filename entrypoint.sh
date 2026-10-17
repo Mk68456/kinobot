@@ -5,7 +5,7 @@ if [ "$(id -u)" = "0" ] && { [ "${2:-}" = "app.py" ] || [ "${2:-}" = "/app/app.p
     # Honor DATABASE_PATH as well as DATA_DIR. Bothost may keep the DB in /app.
     # Do not hide permission failures or recursively change source ownership.
     /opt/venv/bin/python /app/tools/prepare_storage.py
-    exec gosu bot "$@"
+    exec /opt/venv/bin/python /usr/local/bin/kinobot-run-as-bot.py "$@"
 fi
 
 # Already running as a non-root user (e.g. platform forces a fixed uid) -

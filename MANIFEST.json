@@ -1,6 +1,5 @@
 {
-  "release": "server-2026-10-16",
-  "core_source_files_equal": 101,
+  "release": "server-2026-10-17-catalog-fix",
   "files": {
     ".dockerignore": {
       "bytes": 132,
@@ -143,12 +142,12 @@
       "sha256": "b8c3afc4ea21b8cf7c91f4b0eda34314cc93884609b5adecefbd1890b1361224"
     },
     "Dockerfile": {
-      "bytes": 1496,
-      "sha256": "7791cf77fadbfb62985a5f21a797c5b8f3f9c506e8766f035de5849698275f79"
+      "bytes": 1293,
+      "sha256": "782fd601fb8220aaa16e9085691a35faa3cfcb94d0543f65d4eea492a78b9ea1"
     },
     "entrypoint.sh": {
-      "bytes": 484,
-      "sha256": "88c7e8a9afe95c2668314d58cce9b4ae949f569cf90cf97bdf731c29f10a01fb"
+      "bytes": 533,
+      "sha256": "0c04e6f91c638eae7d03dfd643cd4fa01500d02341e3f231e9fcfbc32f7bed22"
     },
     "handlers/__init__.py": {
       "bytes": 60,
@@ -247,8 +246,8 @@
       "sha256": "5639a3484183cd9337f40406886512dda278424df2c61f3ffd54be4ec5981f3a"
     },
     "handlers/users/find_movie.py": {
-      "bytes": 50315,
-      "sha256": "193bc7ea287da2d52b991e8554a8444eb1aff84be5f7a908807758be04dd10cb"
+      "bytes": 50929,
+      "sha256": "1d127404d94e438710440df65f0f987de951150be175e3f94e3b7d8e76377070"
     },
     "handlers/users/inline_share.py": {
       "bytes": 2805,
@@ -300,11 +299,11 @@
     },
     "README.md": {
       "bytes": 5502,
-      "sha256": "b4c2003a41c6319e1ac5a3bd9ad135ca59cf4bd57bfb3702d290be5222c146c8"
+      "sha256": "e157eec52e4f201e9d628c8225892c698d3dbcdcaafc223d31530361c50226c0"
     },
     "RELEASE-NOTES.md": {
-      "bytes": 3730,
-      "sha256": "cded82043803259b152eec1593cbc7cbaa45c49e427b5f9634386fa7388cafcc"
+      "bytes": 5522,
+      "sha256": "10dca16c266ed9a8830ba3ac3c40d9be015dde85a24c32cba4b33fb2939ffda4"
     },
     "requirements.txt": {
       "bytes": 800,
@@ -517,6 +516,26 @@
     "webpanel/uploads.py": {
       "bytes": 10744,
       "sha256": "3c5e32d9121726bffed7e9c602f729327ebdfd743980dd064d4c30020bcfb041"
+    },
+    "tools/run_as_bot.py": {
+      "bytes": 882,
+      "sha256": "a64e7aad8142cdfbf2050ff5fb7038d17ac34702dd2d79bef7a75bc12f9ff259"
+    },
+    "BUILD-FIX-2026-10-17.txt": {
+      "bytes": 1731,
+      "sha256": "79f4a0c3f32ea4b1922bc972744b615092388c5e13b7567967416f2b96e7aa0e"
+    },
+    "verification/build-fix-20261017.json": {
+      "bytes": 270,
+      "sha256": "d6b1d0f599fd334869b3f4273b5d540bbeee53d96f3fef0f2b4e8648d21261c1"
+    },
+    "CATALOG-FIX.txt": {
+      "bytes": 927,
+      "sha256": "a2b368a851b1a753a9a19b96137615aa4d3582866f8598aa3cad193fe54f4f6b"
+    },
+    "verification/catalog-fix.json": {
+      "bytes": 100,
+      "sha256": "2123b7c31294b5e69a00f1d451c559ac6792e0305805364850ad2cca72aac1a5"
     }
   }
 }

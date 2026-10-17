@@ -15,11 +15,8 @@ RUN /opt/venv/bin/python -c "import aiogram; assert aiogram.__version__ == '2.25
 
 RUN useradd --uid 10001 --create-home bot && mkdir -p /app/runtime && chown bot:bot /app/runtime
 
-# Static gosu binary: lets the entrypoint start as root (to fix volume
-# permissions) and then drop privileges to the "bot" user before exec'ing
-# the app, without pulling in a full sudo/su stack.
-ADD https://github.com/tianon/gosu/releases/download/1.17/gosu-amd64 /usr/local/bin/gosu
-RUN chmod +x /usr/local/bin/gosu
+# Use the Python runtime already in the image to drop privileges.
+COPY tools/run_as_bot.py /usr/local/bin/kinobot-run-as-bot.py
 
 COPY --chown=bot:bot . .
 RUN /opt/venv/bin/python -c "from data.settings import DATABASE_PATH, BACKUP_DIR, UPLOAD_DIR; import services.storage_recovery"
