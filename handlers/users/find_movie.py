@@ -1,5 +1,6 @@
 from database.channels import get_all_channels_links
 import logging
+from html import escape
 from contextlib import asynccontextmanager
 from aiogram import types
 from aiogram.utils.exceptions import MessageNotModified
@@ -80,12 +81,24 @@ async def _open_catalog(chat_id: int, content_type: str, state: FSMContext, cata
     label = section['title'] if section else _TYPE_LABELS_PLURAL.get(content_type, "🔎 Общий поиск")
     await bot.send_message(
         chat_id,
-        f"<strong>{label}</strong>\n\n"
+        f"<strong>{escape(label)}</strong>\n\n"
         "Введите название (можно несколько ключевых слов в любом порядке) "
         "или код, либо выберите из списка:",
         reply_markup=_catalog_markup(0, content_type, chat_id, catalog_section),
     )
-    await Users_.find_movie.set()
+    await state.set_state(Users_.find_movie.state)
+
+
+async def _navigate_catalog(call, state, content_type, catalog_section=None):
+    try:
+        await _open_catalog(call.message.chat.id, content_type, state, catalog_section)
+    except Exception:
+        logger.exception('CATALOG open failed user=%s section=%s type=%s',
+                         call.from_user.id, catalog_section, content_type)
+        await call.answer('Не удалось открыть каталог. Меню сохранено; попробуйте ещё раз.', show_alert=True)
+        return False
+    await _remove_navigation_message(call.message)
+    return True
 
 
 @dp.callback_query_handler(text="catalog:all", state="*")
@@ -95,36 +108,31 @@ async def general_search_handler(call: types.CallbackQuery, state: FSMContext):
         return
     await call.answer()
     await state.finish()
-    await _open_catalog(call.message.chat.id, None, state)
-    await _remove_navigation_message(call.message)
+    await _navigate_catalog(call, state, None)
 
 
-@dp.callback_query_handler(lambda call: call.data == "find_movie_movie")
+@dp.callback_query_handler(lambda call: call.data == "find_movie_movie", state='*')
 async def find_movie_button_handler(call: types.CallbackQuery, state: FSMContext):
     from database.catalog_sections import get_section
     if not get_section('movies')['enabled']:
         await call.answer('Раздел «Фильмы» сейчас отключён.', show_alert=True)
         return
-    chat_id = call.message.chat.id
     check = await check_subscription(call.from_user.id)
     if check != False:
-        await call.message.delete()
-        await _open_catalog(chat_id, "movie", state, 'movies')
+        await _navigate_catalog(call, state, "movie", 'movies')
     else:
         await call.answer("Вы не подписались на каналы !", show_alert=True)
 
 
-@dp.callback_query_handler(lambda call: call.data == "find_movie_series")
+@dp.callback_query_handler(lambda call: call.data == "find_movie_series", state='*')
 async def find_series_button_handler(call: types.CallbackQuery, state: FSMContext):
     from database.catalog_sections import get_section
     if not get_section('series')['enabled']:
         await call.answer('Раздел «Сериалы» сейчас отключён.', show_alert=True)
         return
-    chat_id = call.message.chat.id
     check = await check_subscription(call.from_user.id)
     if check != False:
-        await call.message.delete()
-        await _open_catalog(chat_id, "series", state, 'series')
+        await _navigate_catalog(call, state, "series", 'series')
     else:
         await call.answer("Вы не подписались на каналы !", show_alert=True)
 
@@ -140,7 +148,6 @@ async def catalog_section_handler(call: types.CallbackQuery, state: FSMContext):
     if not await check_subscription(call.from_user.id):
         await call.answer('Вы не подписались на каналы !', show_alert=True)
         return
-    await call.message.delete()
     if section['required_content_type'] is None:
         markup = types.InlineKeyboardMarkup(row_width=1).add(
             types.InlineKeyboardButton('🎬 Полнометражные', callback_data=f'catalog_format:{key}:movie'),
@@ -148,8 +155,9 @@ async def catalog_section_handler(call: types.CallbackQuery, state: FSMContext):
             types.InlineKeyboardButton('↩️ Назад', callback_data='catalog:home'))
         await bot.send_message(call.message.chat.id, f"<strong>{section['title']}</strong>\n\nВыберите формат:",
                                reply_markup=markup)
+        await _remove_navigation_message(call.message)
         return
-    await _open_catalog(call.message.chat.id, section['required_content_type'], state, key)
+    await _navigate_catalog(call, state, section['required_content_type'], key)
 
 
 @dp.callback_query_handler(lambda call: call.data.startswith('catalog_format:'), state='*')
@@ -161,8 +169,10 @@ async def catalog_format_handler(call: types.CallbackQuery, state: FSMContext):
             or content_type not in ('movie', 'series'):
         await call.answer('Раздел недоступен.', show_alert=True)
         return
-    await call.message.delete()
-    await _open_catalog(call.message.chat.id, content_type, state, key)
+    if not await check_subscription(call.from_user.id):
+        await call.answer('Вы не подписались на каналы !', show_alert=True)
+        return
+    await _navigate_catalog(call, state, content_type, key)
 
 
 @dp.callback_query_handler(lambda call: call.data.startswith("moviepage_"), state=Users_.find_movie)
