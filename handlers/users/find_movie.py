@@ -79,12 +79,18 @@ async def _open_catalog(chat_id: int, content_type: str, state: FSMContext, cata
     section = get_section(catalog_section) if catalog_section else None
     await state.update_data(content_type=content_type, catalog_section=catalog_section)
     label = section['title'] if section else _TYPE_LABELS_PLURAL.get(content_type, "🔎 Общий поиск")
+    markup = _catalog_markup(0, content_type, chat_id, catalog_section)
+    has_cards = any(button.callback_data.startswith('moviepick_')
+                    for row in markup.inline_keyboard for button in row)
+    hint = ''
+    if not has_cards:
+        hint = '\n\nВ этом разделе пока нет доступных вам карточек.'
     await bot.send_message(
         chat_id,
         f"<strong>{escape(label)}</strong>\n\n"
         "Введите название (можно несколько ключевых слов в любом порядке) "
-        "или код, либо выберите из списка:",
-        reply_markup=_catalog_markup(0, content_type, chat_id, catalog_section),
+        "или код, либо выберите из списка:" + hint,
+        reply_markup=markup,
     )
     await state.set_state(Users_.find_movie.state)
 
@@ -479,6 +485,16 @@ def _subcategories_markup(movie_number, category_id, subcategories, user_id, pag
 
 
 def _build_pick_markup(code, movie_info, user_id):
+    from database.age_access import allowed
+    if not allowed(user_id, movie_info):
+        from services.age_access import settings_markup
+        from services.movie_sharing import share_token
+        markup = settings_markup()
+        markup.add(types.InlineKeyboardButton('📤 Поделиться карточкой',
+                   switch_inline_query='share_' + share_token(code)))
+        markup.add(types.InlineKeyboardButton('↩️ Назад к списку', callback_data=f'movcatback_{code}'))
+        markup.add(types.InlineKeyboardButton('🏠 Главное меню', callback_data='catalog:home'))
+        return markup
     categories = get_categories_by_movie(code)
     if categories:
         pick_markup = _categories_markup(code, categories, user_id)
@@ -500,6 +516,9 @@ def _build_pick_markup(code, movie_info, user_id):
         pick_markup.add(
             types.InlineKeyboardButton(text="📁 Torrent-файлы", callback_data=f"movtorrents_{code}")
         )
+    pick_markup.add(types.InlineKeyboardButton(
+        "📩 Запросить серии / сезон / озвучку" if movie_info.get('content_type') == 'series'
+        else "📩 Запросить другую озвучку", callback_data=f"request:catalog:{code}"))
     from services.movie_sharing import share_token
     pick_markup.add(types.InlineKeyboardButton(
         '📤 Поделиться сериалом' if movie_info.get('content_type') == 'series' else '📤 Поделиться фильмом',
@@ -661,10 +680,7 @@ async def _send_movie_card(
     extra_buttons=None
 ):
     from database.age_access import allowed
-    if not allowed(user_id if user_id is not None else chat_id, movie_info):
-        from services.age_access import deny
-        await deny(bot, chat_id)
-        return
+    can_receive = allowed(user_id if user_id is not None else chat_id, movie_info)
     categories = get_categories_by_movie(code)
     content_type = movie_info.get("content_type", "movie")
     if categories:
@@ -678,6 +694,10 @@ async def _send_movie_card(
     )
     if markup_override is not None:
         caption_hint = "\n\nВыберите серию:" if content_type == "series" else "\n\nВыберите файл:"
+    if not can_receive:
+        caption_hint = ('\n\n🔒 Получение материалов недоступно при текущих возрастных настройках. '
+                        'Произведения выше выбранного возраста и без маркировки требуют изменения настроек.')
+        pick_markup = _build_pick_markup(code, movie_info, user_id or chat_id)
     for button in extra_buttons or []:
         pick_markup.add(button)
 
@@ -727,13 +747,13 @@ async def _send_movie_card(
             )
             return
 
-    if user_id is not None:
+    if user_id is not None and can_receive:
         from database.contests import confirm_card
         confirm_card(user_id, code)
 
     # Вместе с карточкой фильма отправляем видео-трейлер (если он загружен),
     # чтобы пользователь мог посмотреть его перед выбором озвучки/скачиванием
-    if movie_info.get("movie_trailer") and not navigation:
+    if movie_info.get("movie_trailer") and not navigation and allowed(user_id or chat_id, movie_info):
         try:
             await bot.send_video(chat_id, video=movie_info["movie_trailer"], caption="🎬 Трейлер")
         except Exception:
@@ -743,7 +763,7 @@ async def _send_movie_card(
                 code,
             )
 
-    if user_id is not None and not navigation:
+    if user_id is not None and not navigation and can_receive:
         log_watch(user_id, code, movie_info.get("movie_title"))
 
 
@@ -1032,7 +1052,7 @@ async def find_movie_handler(message: types.Message, state: FSMContext):
     if len(matches) == 0:
         await state.finish()
         from handlers.users.content_requests import send_missing_cards
-        await bot.send_message(chat_id, f"<strong>В каталоге пока нет «{query}».</strong> Проверяю базу произведений…")
+        await bot.send_message(chat_id, f"<strong>В каталоге пока нет «{escape(query)}».</strong> Проверяю базу произведений…")
         if not await send_missing_cards(message, query[:200], content_type):
             await state.update_data(missing_query=query[:200],missing_kind=content_type)
             request_markup=find_movie_markup()

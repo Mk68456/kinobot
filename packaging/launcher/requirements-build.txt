@@ -1,0 +1,5 @@
+PyInstaller==6.20.0
+pywinauto==0.6.9
+pywin32==311
+comtypes==1.4.17
+Pillow==11.3.0

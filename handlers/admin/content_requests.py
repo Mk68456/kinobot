@@ -24,7 +24,7 @@ async def list_requests(call, state):
     buttons = [
         (
             f"{count} 👤 · {'📺' if kind == 'series' else '🎬'} {title}"
-            + (f" · сезон {season}" if season else "")
+            + requests.target_label(requests.get(id))
             + " · "
             + requests.STATUSES[status],
             f"requests:show:{id}",
@@ -66,9 +66,10 @@ async def show_request(call, state):
     await call.message.answer(
         request["title"]
         + (" · сериал" if request["content_type"] == "series" else " · фильм")
-        + (f" · сезон {request['season']}" if request["season"] else "")
+        + requests.target_label(request)
         + "\n"
-        + requests.STATUSES[request["status"]],
+        + requests.STATUSES[request["status"]] + "\n" + request.get("verification", "")
+        + "\n" + requests.voice_evidence_label(request),
         parse_mode="",
         reply_markup=admin_markup(rows),
     )
@@ -115,19 +116,13 @@ async def completion_code(message, state):
     if not info or not request or info["content_type"] != request["content_type"]:
         await message.answer("Код не найден или тип произведения не совпадает.")
         return
-    if request["season"]:
-        from database.connection import database
-
-        if not database.execute(
-            "SELECT 1 FROM MovieCategories WHERE movie_number=? AND season_number=?",
-            (number, request["season"]),
-        ).fetchone():
-            await message.answer("Запрошенный сезон ещё не найден в каталоге.")
-            return
+    if not requests.target_available(request, number, manual=True):
+        await message.answer("Запрошенные серии или озвучка ещё не найдены в каталоге.")
+        return
     await state.update_data(request_movie_number=number)
     await state.set_state("AdminRequest:confirm")
     await message.answer(
-        f"Заявка: {request['title']}\nДобавлено: {info['movie_title']} · код {number}\nУведомить поддержавших?",
+        f"Заявка: {request['title']}{requests.target_label(request)}\n{request.get('verification', '')}\nДобавлено: {info['movie_title']} · код {number}\nУведомить поддержавших?",
         parse_mode="",
         reply_markup=admin_markup([("Подтвердить и уведомить", "requests:notify")]),
     )
@@ -143,6 +138,9 @@ async def notify_request(call, state):
         await call.message.answer("Уведомление уже поставлено в очередь.")
         return
     number = data["request_movie_number"]
+    if not requests.target_available(request, number, manual=True):
+        await call.message.answer("Запрошенные серии или озвучка ещё не найдены в каталоге.")
+        return
     username = (await bot.get_me()).username
     keyboard = types.InlineKeyboardMarkup().add(
         types.InlineKeyboardButton("Открыть в боте", url=f"https://t.me/{username}?start=movie_{number}")
@@ -151,7 +149,7 @@ async def notify_request(call, state):
         call.message.chat.id,
         "По вашей заявке добавлено: "
         + request["title"]
-        + (f" · сезон {request['season']}" if request["season"] else ""),
+        + requests.target_label(request),
         parse_mode="",
         reply_markup=keyboard,
     )

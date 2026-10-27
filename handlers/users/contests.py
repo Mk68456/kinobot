@@ -62,12 +62,10 @@ async def contest_callback(call: types.CallbackQuery, state):
         await send_page(bot, call.message.chat.id, user_id, contest_id)
     elif action == 'catalog' and raw_value is not None:
         page = int(raw_value)
-        from database.age_access import sql_filter
-        age_clause, values = sql_filter(user_id, 'm.age_rating')
-        rows = list(database.execute(f'''
+        rows = list(database.execute('''
             SELECT m.movie_title,m.movie_number FROM Movies m JOIN CatalogSections s
-            ON s.section_key=m.catalog_section WHERE s.enabled=1 AND {age_clause}
-            ORDER BY m.movie_number LIMIT 9 OFFSET ?''', (*values, page * 8)))
+            ON s.section_key=m.catalog_section WHERE s.enabled=1
+            ORDER BY m.movie_number LIMIT 9 OFFSET ?''', (page * 8,)))
         markup = types.InlineKeyboardMarkup(row_width=1)
         for title, number in rows[:8]:
             markup.add(types.InlineKeyboardButton(title[:60], callback_data=f'contest:card:{contest_id}:{number}'))

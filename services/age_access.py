@@ -14,8 +14,8 @@ def settings_markup():
 
 async def deny(bot, chat_id):
     await bot.send_message(chat_id,
-        'Это произведение недоступно при текущих возрастных настройках. '
-        'Материалы без маркировки также скрыты в безопасном режиме.',
+        'Получение материалов недоступно при текущих возрастных настройках. '
+        'Материалы выше выбранного возраста и без маркировки заблокированы. Карточки доступны всем.',
         parse_mode='', reply_markup=settings_markup())
 
 
@@ -51,4 +51,6 @@ def callback_movies(data):
 
 
 def callback_allowed(user_id, data):
+    if re.fullmatch(r'(?:moviepick|filecard|sharefilm|torrback|movcatback)_([0-9]{1,18})', data):
+        return True
     return all(age_access.allowed(user_id, get_movie_from_numb(number)) for number in callback_movies(data))

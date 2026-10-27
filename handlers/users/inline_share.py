@@ -42,8 +42,7 @@ async def inline_share(query: types.InlineQuery):
         return
     row=database.execute('SELECT movie_number FROM MovieShareLinks WHERE token=?',(match[1],)).fetchone()
     info=get_movie_from_numb(row[0]) if row else None
-    from database.age_access import allowed
-    if not info or not allowed(query.from_user.id, info):
+    if not info:
         await query.answer([],cache_time=0,is_personal=True)
         return
     if not movie_sharing.bot_username:

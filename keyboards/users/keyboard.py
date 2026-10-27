@@ -43,6 +43,8 @@ def get_movies_pick_markup(page_movies, page=0, content_type=None, has_more=Fals
         )
     if nav_row:
         markup.row(*nav_row)
+    if not page_movies:
+        markup.add(InlineKeyboardButton(text="👨‍👩‍👧 Возрастные настройки", callback_data="age:settings"))
     markup.add(InlineKeyboardButton(text="↩️ Назад в главное меню", callback_data="catalog:home"))
     return markup
 

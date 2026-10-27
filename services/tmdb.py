@@ -1,6 +1,7 @@
 import os
 import socket
 import logging
+import re
 from contextlib import asynccontextmanager
 
 import aiohttp
@@ -216,3 +217,37 @@ async def check_connectivity():
             "тоже заблокирован на этом хостинге. Пока это не исправлено, поиск карточек "
             "будет автоматически откатываться на ручной ввод."
         )
+
+
+async def series_structure(tmdb_id, season=None):
+    """None means unavailable, never an empty list of existing seasons."""
+    if not TMDB_API_KEY or not tmdb_id:
+        return None
+    path = f"tv/{int(tmdb_id)}"
+    if season is not None:
+        path += f"/season/{int(season)}"
+    try:
+        async with _new_session() as session:
+            return await _get_json(session, f"{_BASE_URL}/{path}",
+                                   {"api_key": TMDB_API_KEY, "language": "ru-RU"})
+    except Exception:
+        logger.exception("Не удалось проверить структуру сериала TMDB %s", tmdb_id)
+        return None
+
+
+async def external_imdb_id(tmdb_id, content_type):
+    """Resolve IDs in the correct TMDB namespace; never match voices by title."""
+    if not TMDB_API_KEY or content_type not in ("movie", "series"):
+        return None
+    if type(tmdb_id) is not int or tmdb_id <= 0:
+        return None
+    endpoint = "tv" if content_type == "series" else "movie"
+    try:
+        async with _new_session() as session:
+            item = await _get_json(session, f"{_BASE_URL}/{endpoint}/{tmdb_id}/external_ids",
+                                   {"api_key": TMDB_API_KEY})
+        imdb_id = item.get("imdb_id")
+        return imdb_id if isinstance(imdb_id, str) and re.fullmatch(r"tt\d{5,12}", imdb_id) else None
+    except Exception:
+        logger.warning("IMDb mapping unavailable for TMDB %s/%s", endpoint, tmdb_id)
+        return None

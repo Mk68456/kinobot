@@ -1,8 +1,11 @@
 import re
+import secrets
+import json
 from html import escape
 from aiogram import types
 from loader import dp
-from services.tmdb import search, details
+from services.tmdb import search, details, series_structure
+from services.request_voices import lookup as lookup_voices
 from services.subscriptions import check_subscription
 from services.welcome import send_welcome
 from database import content_requests as requests
@@ -35,7 +38,7 @@ async def candidates(message, state, title):
     if match:
         results = [r for r in results if str(r.get("year")) == match[2]]
     choices = [
-        {"title": r["title"] + (f" ({r['year']})" if r.get("year") else ""), "tmdb_id": r["tmdb_id"]}
+        {**r, "title": r["title"] + (f" ({r['year']})" if r.get("year") else "")}
         for r in results
     ]
     choices.append({"title": title, "tmdb_id": None})
@@ -63,7 +66,7 @@ async def send_missing_cards(message, title, kind):
     for candidate in results:
         label = candidate["title"] + (f" ({candidate['year']})" if candidate.get("year") else "")
         current = requests.find(label, kind, 0, candidate.get("tmdb_id"))
-        button = "✅ Запрос уже отправлен" if current else "📩 Отправить запрос на добавление"
+        button = "✅ Запрос уже отправлен" if current else "📩 Запросить добавление / озвучку"
         keyboard = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton(
             button, callback_data=f"request:quick:{kind}:{candidate['tmdb_id']}"
         ))
@@ -92,20 +95,13 @@ async def quick_request(call, state):
         await call.message.answer("Не удалось обновить данные произведения. Попробуйте ещё раз позже.")
         return
     title = card["title"] + (f" ({card['year']})" if card.get("year") else "")
-    result = requests.vote(call.from_user.id, title, kind, tmdb_id=tmdb_id,
-                           year=card.get("year"), overview=card.get("overview"),
-                           poster_url=card.get("poster_url"))
     await state.finish()
-    if result["status"] == "added":
-        info = get_movie_from_numb(result["movie_number"])
-        if info:
-            await _send_movie_card(call.message.chat.id, result["movie_number"], info,
-                                   user_id=call.from_user.id)
-            return
-    await call.message.answer(
-        "Запрос принят. Мы уже видим его в очереди и сообщим вам, когда произведение появится в боте. "
-        "Обычно подготовка занимает от нескольких часов до суток."
-    )
+    await state.update_data(request_kind=kind, request_selected={**card, "title": title},
+                            request_season=0, request_episode=0, request_voice="")
+    if kind == "series":
+        await ask_season(call.message, state)
+    else:
+        await ask_voice(call.message, state)
 
 
 @dp.callback_query_handler(lambda c: c.data in ("request:new", "request:search"), state="*")
@@ -163,20 +159,22 @@ async def confirmation(message, state):
     for title, number in matches:
         if title.casefold() != selected["title"].casefold():
             continue
-        if season:
-            from database.connection import database
-
-            if not database.execute(
-                "SELECT 1 FROM MovieCategories WHERE movie_number=? AND season_number=?", (number, season)
-            ).fetchone():
-                continue
+        target = {**data, "content_type": kind, "season": season,
+                  "episode": data.get("request_episode", 0), "voice": data.get("request_voice", ""),
+                  "expected_episodes": data.get("request_expected", "")}
+        if not requests.target_available(target, number):
+            continue
         await state.finish()
         await message.answer("Уже есть в каталоге:")
         await _send_movie_card(message.chat.id, number, get_movie_from_numb(number), user_id=message.chat.id)
         return
-    existing = requests.find(selected["title"], kind, season, selected["tmdb_id"])
+    existing = requests.find(selected["title"], kind, season, selected["tmdb_id"],
+                             data.get("request_episode", 0), data.get("request_voice", ""))
     await state.set_state("Request:confirm")
-    text = selected["title"] + (f" · сезон {season}" if season else "")
+    text = selected["title"] + requests.target_label(target_data(data))
+    text += "\n" + data.get("request_verification", "")
+    text += "\n" + requests.voice_evidence_label({"voice_evidence": json.dumps(
+        data.get("request_voice_evidence", []), ensure_ascii=False)})
     if existing:
         text += " — " + requests.STATUSES[existing["status"]]
     await message.answer(
@@ -201,14 +199,12 @@ async def pick(call, state):
         selected = data["request_choices"][index]
     except (ValueError, IndexError, KeyError):
         return
-    await state.update_data(request_selected=selected, request_season=0)
+    await state.update_data(request_selected=selected, request_season=0, request_episode=0,
+                            request_voice="", request_expected="", request_verification="")
     if data["request_kind"] == "series":
-        await state.set_state("Request:season")
-        await call.message.answer(
-            "Введите номер нужного сезона или 0, если нужен сериал целиком.", reply_markup=markup([])
-        )
+        await ask_season(call.message, state)
     else:
-        await confirmation(call.message, state)
+        await ask_voice(call.message, state)
 
 
 @dp.message_handler(state="Request:season", content_types=types.ContentTypes.TEXT)
@@ -218,8 +214,12 @@ async def season_input(message, state):
     if not message.text.isascii() or not message.text.isdigit() or not 0 <= int(message.text) <= 999:
         await message.answer("Введите номер от 1 до 999 или 0 для всего сериала.")
         return
-    await state.update_data(request_season=int(message.text))
-    await confirmation(message, state)
+    await state.update_data(request_season=int(message.text), request_episode=0, request_expected="")
+    if int(message.text):
+        await state.set_state("Request:episode")
+        await message.answer("Введите номер серии или 0 для всего сезона.", reply_markup=markup([]))
+    else:
+        await ask_voice(message, state)
 
 
 @dp.callback_query_handler(text="request:confirm", state="Request:confirm")
@@ -229,12 +229,19 @@ async def submit(call, state):
         return
     data = await state.get_data()
     selected = data["request_selected"]
+    if not await verify_target(call.message, state):
+        return
+    data = await state.get_data()
     result = requests.vote(
         call.from_user.id,
         selected["title"],
         data["request_kind"],
         data.get("request_season", 0),
         selected["tmdb_id"],
+        year=selected.get("year"), overview=selected.get("overview"), poster_url=selected.get("poster_url"),
+        episode=data.get("request_episode", 0), voice=data.get("request_voice", ""),
+        verification=data.get("request_verification", ""), expected_episodes=data.get("request_expected", ""),
+        voice_evidence=data.get("request_voice_evidence", []),
     )
     await state.finish()
     text = (
@@ -245,3 +252,204 @@ async def submit(call, state):
     elif result["status"] == "rejected":
         text = "Ваш голос учтён. Сейчас заявка отклонена администратором."
     await call.message.answer(text, reply_markup=markup([]))
+
+
+def target_data(data):
+    return {"season": data.get("request_season", 0), "episode": data.get("request_episode", 0),
+            "voice": data.get("request_voice", "")}
+
+
+async def ask_season(message, state):
+    await state.set_state("Request:season")
+    await message.answer("Введите номер сезона или 0 для всего сериала (вышедшие сезоны).",
+                         reply_markup=markup([]))
+
+
+async def ask_voice(message, state):
+    data = await state.get_data()
+    token = secrets.token_hex(4)
+    await state.update_data(request_voice="", request_voice_evidence=[], request_voice_choices=[],
+                            request_voice_token=token)
+    await state.set_state("Request:voice")
+    result = await lookup_voices(data['request_selected'].get('tmdb_id'), data['request_kind'])
+    # Do not replace a newer dialog when an external request finishes late.
+    current = await state.get_data()
+    if await state.get_state() != "Request:voice" or current.get('request_voice_token') != token:
+        return
+    await state.update_data(request_voice_choices=result['voices'])
+    if result['voices']:
+        await voice_options(message, state)
+        return
+    note = ("Источник озвучек сейчас недоступен. " if result['status'] == 'unavailable' else
+            "Для этого произведения список озвучек не получен. ")
+    await message.answer(note + "Напишите студию (до 80 символов) или выберите любую озвучку.",
+                         reply_markup=markup([("Любая озвучка", "request:voice:any")]))
+
+
+async def voice_options(message, state, offset=0):
+    data = await state.get_data()
+    choices, token = data.get('request_voice_choices', []), data['request_voice_token']
+    rows = [(c['name'], f"request:voice:pick:{token}:{i}")
+            for i, c in enumerate(choices) if offset <= i < offset + 10]
+    if offset:
+        rows.append(("⬅️ Назад", f"request:voices:{token}:{max(0, offset-10)}"))
+    if offset + 10 < len(choices):
+        rows.append(("Ещё озвучки ➡️", f"request:voices:{token}:{offset+10}"))
+    rows.extend([("✏️ Указать другую", "request:voice:manual"), ("Любая озвучка", "request:voice:any")])
+    await message.answer("Выберите озвучку или напишите название студии.\n"
+                         "Эти озвучки найдены у произведения через Kinobox. "
+                         "Наличие нужной серии или полного сезона в выбранной озвучке требует отдельной проверки.",
+                         reply_markup=markup(rows))
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("request:voices:"), state="Request:voice")
+async def voice_page(call, state):
+    await call.answer()
+    if not await allowed(call, state):
+        return
+    data = await state.get_data()
+    parts = call.data.split(':')
+    if len(parts) != 4 or parts[2] != data.get('request_voice_token') or not parts[3].isdigit():
+        return
+    offset = int(parts[3])
+    if offset % 10 or not 0 <= offset < len(data.get('request_voice_choices', [])):
+        return
+    await voice_options(call.message, state, offset)
+
+
+@dp.callback_query_handler(text="request:voice:manual", state="Request:voice")
+async def manual_voice(call, state):
+    await call.answer()
+    if not await allowed(call, state):
+        return
+    await call.message.answer("Напишите название студии (до 80 символов) или — для любой озвучки.",
+                              reply_markup=markup([("Любая озвучка", "request:voice:any")]))
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("request:voice:pick:"), state="Request:voice")
+async def pick_voice(call, state):
+    await call.answer()
+    if not await allowed(call, state):
+        return
+    data = await state.get_data()
+    parts = call.data.split(':')
+    if len(parts) != 5 or parts[3] != data.get('request_voice_token') or not parts[4].isdigit():
+        return
+    index = int(parts[4])
+    if not 0 <= index < len(data.get('request_voice_choices', [])):
+        return
+    selected = data['request_voice_choices'][index]
+    await state.update_data(request_voice=selected['name'], request_voice_evidence=selected['evidence'])
+    if await verify_target(call.message, state):
+        await confirmation(call.message, state)
+
+
+@dp.message_handler(state="Request:episode", content_types=types.ContentTypes.TEXT)
+async def episode_input(message, state):
+    if not await allowed(message, state):
+        return
+    value = message.text.strip()
+    if not value.isascii() or not value.isdigit() or not 0 <= int(value) <= 9999:
+        await message.answer("Введите номер серии от 1 до 9999 или 0 для всего сезона.")
+        return
+    await state.update_data(request_episode=int(value))
+    if await verify_target(message, state):
+        await ask_voice(message, state)
+
+
+async def verify_target(message, state):
+    from datetime import datetime, timedelta, timezone
+    data = await state.get_data()
+    if data['request_kind'] != 'series':
+        return True
+    target = target_data(data)
+    structure = await series_structure(data['request_selected']['tmdb_id'])
+    note = "Данные о выпуске недоступны: требуется ручная проверка администратором."
+    expected = ""
+    if structure is not None:
+        note = {"Ended": "Сериал завершён.", "Canceled": "Сериал отменён."}.get(
+            structure.get('status'), "Статус сериала: продолжается или уточняется.")
+        season = target['season']
+        if season and not any(s.get('season_number') == season for s in structure.get('seasons', [])):
+            await message.answer(note + " Такой сезон не найден в TMDB. Введите другой номер сезона.")
+            await state.set_state("Request:season")
+            return False
+        if not season:
+            parts = []
+            today = datetime.now(timezone(timedelta(hours=3))).date().isoformat()
+            for summary in structure.get('seasons', []):
+                sn = summary.get('season_number', 0)
+                if not sn or not summary.get('air_date') or summary['air_date'] > today:
+                    continue
+                info = await series_structure(data['request_selected']['tmdb_id'], sn)
+                if info is None:
+                    note += " Состав сезонов недоступен: требуется ручная проверка."
+                    parts = []
+                    break
+                parts.extend(f"{sn}:{e['episode_number']}" for e in info.get('episodes', [])
+                             if e.get('air_date') and e['air_date'] <= today)
+            expected = ','.join(parts)
+            if not expected:
+                note += " Нет подтверждённого списка вышедших серий: ручная проверка."
+        if season:
+            info = await series_structure(data['request_selected']['tmdb_id'], season)
+            if info is None:
+                note += " Состав сезона недоступен: требуется ручная проверка."
+            else:
+                episodes = info.get('episodes') or []
+                if target['episode']:
+                    episodes = [e for e in episodes if e.get('episode_number') == target['episode']]
+                today = datetime.now(timezone(timedelta(hours=3))).date().isoformat()
+                if not episodes or any(not e.get('air_date') or e['air_date'] > today for e in episodes):
+                    await message.answer("Серия или полный сезон ещё не вышли, дата неизвестна либо номер не найден. "
+                                         "Введите номер уже вышедшей серии или 0 для полностью вышедшего сезона.")
+                    await state.set_state("Request:episode")
+                    return False
+                expected = ','.join(str(e['episode_number']) for e in episodes)
+                note += " Запрошенные серии вышли по данным TMDB."
+    await state.update_data(request_verification=note, request_expected=expected)
+    return True
+
+
+@dp.callback_query_handler(text="request:voice:any", state="Request:voice")
+async def any_voice(call, state):
+    await call.answer()
+    if not await allowed(call, state):
+        return
+    await state.update_data(request_voice="", request_voice_evidence=[])
+    if await verify_target(call.message, state):
+        await confirmation(call.message, state)
+
+
+@dp.message_handler(state="Request:voice", content_types=types.ContentTypes.TEXT)
+async def voice_input(message, state):
+    if not await allowed(message, state):
+        return
+    value = ' '.join(message.text.split())
+    if not 1 <= len(value) <= 80:
+        await message.answer("Название студии должно содержать от 1 до 80 символов.")
+        return
+    await state.update_data(request_voice="" if value in ('-', '—') else value, request_voice_evidence=[])
+    if await verify_target(message, state):
+        await confirmation(message, state)
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("request:catalog:"), state="*")
+async def catalog_request(call, state):
+    await call.answer()
+    if not await allowed(call, state):
+        return
+    from database.age_access import allowed as age_allowed
+    try:
+        number = int(call.data.rsplit(':', 1)[-1])
+    except ValueError:
+        return
+    info = get_movie_from_numb(number)
+    if not info or not age_allowed(call.from_user.id, info):
+        return
+    await state.finish()
+    await state.update_data(request_kind=info['content_type'], request_selected={
+        'title': info['movie_title'], 'tmdb_id': None}, request_season=0, request_episode=0,
+        request_voice="", request_expected="", request_verification="")
+    # Resolve metadata through the same user-confirmed search used by new requests.
+    await candidates(call.message, state, info['movie_title'])

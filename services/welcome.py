@@ -14,7 +14,7 @@ async def send_welcome(bot, chat_id, subscribed=True):
     text = design["text"] + ("" if subscribed else SUBSCRIPTION_NOTE)
     notify = not age_access.preferences(chat_id)['notified']
     if notify:
-        text += '\n\n👨‍👩‍👧 Добавлены возрастные настройки. По умолчанию контент 18+ и материалы без маркировки скрыты. Настройки доступны в меню или по команде /age.'
+        text += '\n\n👨‍👩‍👧 Добавлены возрастные настройки. По умолчанию получение материалов 18+ и без маркировки заблокировано. Все карточки видны в каталоге. Настройки доступны в меню или по команде /age.'
     markup = find_movie_markup() if subscribed else sub_markup(get_all_channels_links())
     if not subscribed:
         from database.contests import current
