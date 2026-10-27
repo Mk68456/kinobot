@@ -66,18 +66,22 @@ def create(admin_id, manifest, instance_id='', *, allow_append=False):
     series_fields = {}
     if content_type == 'series':
         movie_number, season_number = manifest.get('movie_number'), manifest.get('season_number')
-        if (type(movie_number) is not int or not 0 < movie_number < 2**53
-                or type(season_number) is not int or not 0 < season_number < 2**53):
-            raise ValueError('Выберите существующий сериал и положительный номер сезона.')
-        movie = database.execute('SELECT movie_title,content_type FROM Movies WHERE movie_number=?',
-                                 (movie_number,)).fetchone()
-        if not movie or movie[1] != 'series':
-            raise ValueError('Выбранный сериал недоступен.')
+        new_series = manifest.get('new_series') is True and movie_number is None
+        if not new_series:
+            if (type(movie_number) is not int or not 0 < movie_number < 2**53
+                    or type(season_number) is not int or not 0 < season_number < 2**53):
+                raise ValueError('Выберите существующий сериал и положительный номер сезона.')
+            movie = database.execute('SELECT movie_title,content_type FROM Movies WHERE movie_number=?',
+                                     (movie_number,)).fetchone()
+            if not movie or movie[1] != 'series':
+                raise ValueError('Выбранный сериал недоступен.')
+            title = movie[0]
+        elif season_number is not None and (type(season_number) is not int or not 1 <= season_number <= 999):
+            raise ValueError('Укажите корректный номер сезона нового сериала.')
         if manifest.get('selection') is not None:
             raise ValueError('Для сезона выберите папку с сериями, а не отдельный фильм.')
-        title = movie[0]
         series_fields = {'movie_number': movie_number, 'season_number': season_number,
-                         'season_name': f'Сезон {season_number}'}
+                         'season_name': f'Сезон {season_number}' if season_number else ''}
     if not title or len(title) > 200 or not root or len(root) > 2000:
         raise ValueError('Проверьте название фильма и путь к папке.')
     if not isinstance(entries, list) or not 1 <= len(entries) <= repository.MAX_IMPORT_FILES:
@@ -101,19 +105,25 @@ def create(admin_id, manifest, instance_id='', *, allow_append=False):
         if len(quality) > 30:
             raise ValueError('Слишком длинное название качества.')
         voice = ''
+        entry_season = None
         if content_type == 'series':
+            entry_season = entry.get('season_number') or season_number
+            if new_series and (type(entry_season) is not int or not 1 <= entry_season <= 999):
+                raise ValueError('Для нового сериала укажите сезон каждого файла.')
             voice = str(entry.get('voice') or '').strip()
             if len(quality)>30 or len(voice)>80:
                 raise ValueError('Слишком длинное название качества или озвучки.')
             category = ''
             name = str(entry.get('name', rel.stem)).strip()
-            if not name or any(e['name'].casefold() == name.casefold() and (not quality or (e['quality'],e['voice']) == (quality,voice)) for e in normalized):
+            if not name or any(e['name'].casefold() == name.casefold() and e.get('season_number') == entry_season
+                               and (not quality or (e['quality'],e['voice']) == (quality,voice)) for e in normalized):
                 raise ValueError('Укажите название серии и разные качества или озвучки для её вариантов.')
         digest = entry.get('content_sha256', '')
         if not isinstance(digest, str) or (digest and not re.fullmatch(r'[a-f0-9]{64}', digest)):
             raise ValueError('Некорректная контрольная сумма файла.')
         normalized.append({'path': path, 'size': size, 'mtime': str(entry.get('mtime', ''))[:30], 'digest': digest,
-                           'quality':quality, 'voice':voice, 'category': category, 'name': name, 'filename': rel.name})
+                           'quality':quality, 'voice':voice, 'category': category, 'name': name, 'filename': rel.name,
+                           **({'season_number': entry_season} if content_type == 'series' else {})})
     selection = manifest.get('selection')
     if selection is not None and (not isinstance(selection, str) or len(normalized) != 1
                                    or selection != normalized[0]['path']):
@@ -214,7 +224,8 @@ def _register_entries(admin_id, root, normalized):
             (asset_id, admin_id, entry['filename'], entry['size'],
              root.rstrip('/\\') + '/' + entry['path'], entry['mtime'], entry['digest']))
         items.append({'quality': entry['quality'], 'voice': entry['voice'], 'asset_id': asset_id,
-                      'name': entry['name'], 'category': entry['category'], 'relative_path': entry['path']})
+                      'name': entry['name'], 'category': entry['category'], 'relative_path': entry['path'],
+                      **({'season_number': entry['season_number']} if entry.get('season_number') else {})})
     return items
 
 

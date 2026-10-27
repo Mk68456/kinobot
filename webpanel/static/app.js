@@ -119,7 +119,7 @@ async function openDraft(draft){
 }
 function syncMode(){const readOnly=state.published||['rejected','grouped'].includes(state.drafts.find(d=>d.id===state.id)?.status);const section=state.sections.find(s=>s.key===$('catalog-section').value);if(section?.required_content_type&&!state.movie)$('content-type').value=section.required_content_type;const series=$('content-type').value==='series';$('season-fields').hidden=!series;$('content-type').disabled=Boolean(state.movie)||readOnly||Boolean(section?.required_content_type);$('catalog-section').disabled=Boolean(state.movie)||readOnly;$('title').disabled=Boolean(state.movie)||readOnly;$('rating-fields').disabled=Boolean(state.movie)||readOnly;$('extra-fields').hidden=Boolean(state.movie);$('existing-target').hidden=!state.movie;$('existing-target').textContent=state.movie?`Каталог · код ${state.movie.id} · ${state.movie.title}`:'';$('season-select-wrap').hidden=!state.movie||!series;const existing=Boolean($('season-select').value);$('season-name').disabled=existing||readOnly;$('season-number').disabled=existing||readOnly;$('save-draft').disabled=readOnly||state.busy||state.pendingAction||['rejected','grouped'].includes(state.drafts.find(d=>d.id===state.id)?.status);$('file-input').disabled=readOnly||state.busy||state.pendingAction;for(const id of ['description','poster-url'])$(id).disabled=readOnly;updatePublish();}
 function asset(id){return state.assets.find(a=>a.id===id);}
-function statusHtml(file){if(!file)return '<span class="state error">Файл недоступен</span>';const percent=file.size?Math.round(file.received/file.size*100):0;return `<span class="state ${file.status==='ready'?'ready':file.status==='error'?'error':''}">${esc(statusNames[file.status]||file.status)}${file.status==='uploading'?` · ${percent}%`:''}</span>${file.status==='uploading'?`<progress value="${file.received}" max="${file.size}" aria-label="Передано ${percent}%"></progress>`:''}${file.error?`<p class="file-meta error">${esc(file.error)}</p>`:''}`;}
+function statusHtml(file){if(!file)return '<span class="state error">Файл недоступен</span>';const percent=file.size?Math.round(file.received/file.size*100):0;return `<span class="state ${file.status==='ready'?'ready':file.status==='error'?'error':''}">${esc(statusNames[file.status]||file.status)}${file.status==='uploading'?` · ${percent}%`:''}</span>${file.status==='uploading'?`<progress value="${file.received}" max="${file.size}" aria-label="Передано ${percent}%"></progress>`:''}${file.error?`<p class="file-meta error">${esc(file.error)}</p>`:''}${file.status==='ready'?`<button type="button" class="secondary" data-preview-asset="${esc(file.id)}" title="Посмотреть файл и открыть сообщение в хранилище">▶ Просмотр</button>`:''}`;}
 function inferSeriesQuality(item){
   if((item.quality||'').trim())return item.quality;
   const known=value=>/^(?:source|2160p|1080p|720p|480p|360p)$/i.test((value||'').trim());
@@ -128,6 +128,111 @@ function inferSeriesQuality(item){
   const directories=(item.relative_path||'').split(/[\\/]/).slice(0,-1);
   const quality=directories.find(known)||(known(item.category)?item.category:'');
   return quality.trim().toLowerCase();
+}
+function queueItemIssues(item){
+  const issues=[];
+  if(!(item.name||'').trim())issues.push({field:'name',text:'Не заполнено название'});
+  if($('content-type').value==='series'&&!$('season-select').value&&!$('season-name').value.trim()&&!$('season-number').value&&!item.season_number)issues.push({field:'item-season',text:'Не указан сезон'});
+  if(state.movie&&$('content-type').value==='movie'&&!(item.category||'').trim())issues.push({field:'category',text:'Не заполнена категория'});
+  const file=asset(item.asset_id);
+  if(!file||file.status==='cancelled')issues.push({field:'status',text:'Файл недоступен'});
+  else if(file.status!=='ready')issues.push({field:'status',text:statusNames[file.status]||'Файл ещё не готов'});
+  return issues;
+}
+function jumpToQueueIssue(id,field){
+  Object.assign(queueView,{season:'',quality:'',query:'',problems:false});renderQueue();
+  const row=[...$('queue').querySelectorAll('.queue-row')].find(row=>row.dataset.id===id);
+  if(row){row.scrollIntoView({behavior:'smooth',block:'center'});(row.querySelector(`[data-${field}]`)||row.querySelector('[data-name]'))?.focus({preventScroll:true});}
+}
+function displayQueueIssues(){
+  const problems=state.published?[]:state.items.map((item,index)=>({item,index,issues:queueItemIssues(item)})).filter(row=>row.issues.length);
+  const byId=new Map(problems.map(row=>[row.item.asset_id,row.issues]));
+  for(const row of $('queue').querySelectorAll('.queue-row')){
+    const issues=byId.get(row.dataset.id)||[];
+    row.classList.toggle('queue-incomplete',issues.length>0);
+    for(const input of row.querySelectorAll('[data-queue-invalid]')){input.removeAttribute('data-queue-invalid');if(!row.classList.contains('variant-conflict'))input.removeAttribute('aria-invalid');}
+    let note=row.querySelector('.queue-issue-note');
+    if(!note){note=document.createElement('p');note.className='queue-issue-note error';row.children[1].append(note);}
+    note.hidden=!issues.length;note.textContent=issues.map(i=>i.text).join(' · ');
+    for(const issue of issues){const input=row.querySelector(`[data-${issue.field}]`);if(input){input.setAttribute('aria-invalid','true');input.setAttribute('data-queue-invalid','');}}
+  }
+  let panel=$('queue-issues');
+  if(!panel){panel=document.createElement('div');panel.id='queue-issues';panel.className='queue-issues';$('publish-hint').after(panel);}
+  panel.hidden=!problems.length;
+  panel.innerHTML=problems.length?`<strong>Нужно проверить строк: ${problems.length} из ${state.items.length}</strong><div class="batch-toolbar"><button type="button" class="secondary" data-issue-first>Перейти к первой</button><button type="button" class="secondary" data-issue-filter>Показать только проблемные</button>${problems.some(row=>row.issues.some(i=>i.field==='item-season'))?'<button type="button" class="secondary" data-issue-season>Указать общий сезон</button>':''}</div><details><summary>Все строки с замечаниями (${problems.length})</summary><div class="queue-issues-list">${problems.map(row=>`<button type="button" class="text-button" data-issue-id="${esc(row.item.asset_id)}" data-issue-field="${row.issues[0].field}">Строка ${row.index+1} · ${esc(row.item.name||queueFileName(row.item))} — ${esc(row.issues.map(i=>i.text).join('; '))}</button>`).join('')}</div></details>`:'';
+  panel.onclick=event=>{
+    const target=event.target.closest('button');if(!target)return;
+    if(target.hasAttribute('data-issue-first')){const first=problems[0];jumpToQueueIssue(first.item.asset_id,first.issues[0].field);}
+    else if(target.hasAttribute('data-issue-filter')){Object.assign(queueView,{season:'',quality:'',query:'',problems:true});renderQueue();$('queue-tools').scrollIntoView({behavior:'smooth',block:'start'});}
+    else if(target.hasAttribute('data-issue-season')){$('season-number').scrollIntoView({behavior:'smooth',block:'center'});$('season-number').focus({preventScroll:true});}
+    else if(target.dataset.issueId)jumpToQueueIssue(target.dataset.issueId,target.dataset.issueField);
+  };
+}
+const queueView={draft:undefined,season:'',quality:'',query:'',problems:false};
+const queueCollator=new Intl.Collator('ru',{numeric:true,sensitivity:'base'});
+function queueFileName(item){return item.relative_path||asset(item.asset_id)?.filename||item.name||'';}
+function queueSeason(item){
+  return Number(item.season_number)||Number($('season-number').value)||seriesFileIdentity({...item,relative_path:queueFileName(item)})?.season||0;
+}
+function queueEpisode(item){
+  const name=(item.name||'').trim();
+  const identity=seriesFileIdentity({...item,relative_path:queueFileName(item)});
+  const match=name.match(/^(?:серия|эпизод|episode)\s*(\d+)/i)||name.match(/^(\d+)(?:\s|[.\-:]|$)/);
+  return match?Number(match[1]):identity?.episode??Number.MAX_SAFE_INTEGER;
+}
+function queueQuality(item){return (item.quality||inferSeriesQuality(item)||'').trim().toLowerCase();}
+function queueQualityRank(item){const value=queueQuality(item);return /^(source|исход)/i.test(value)?100000:Number(value.match(/\d+/)?.[0])||0;}
+function queueCompare(a,b,mode){
+  const text=(x,y)=>queueCollator.compare(x||'',y||'');
+  const episode=()=>(queueSeason(a)||Number.MAX_SAFE_INTEGER)-(queueSeason(b)||Number.MAX_SAFE_INTEGER)||queueEpisode(a)-queueEpisode(b);
+  if(mode==='storage-oldest'||mode==='storage-newest'){
+    const first=asset(a.asset_id),second=asset(b.asset_id);
+    const knownFirst=Boolean(first?.storage_chat_id&&first?.storage_message_id),knownSecond=Boolean(second?.storage_chat_id&&second?.storage_message_id);
+    if(knownFirst!==knownSecond)return knownFirst?-1:1;
+    if(!knownFirst)return 0;
+    return text(String(first.storage_chat_id),String(second.storage_chat_id))||(mode==='storage-newest'?-1:1)*(first.storage_message_id-second.storage_message_id);
+  }
+  if(mode==='filename')return text(queueFileName(a),queueFileName(b));
+  if(mode==='name')return text(a.name,b.name)||episode()||queueQualityRank(b)-queueQualityRank(a)||text(a.voice,b.voice);
+  if(mode==='quality')return queueQualityRank(b)-queueQualityRank(a)||episode()||text(a.voice,b.voice);
+  return episode()||queueQualityRank(b)-queueQualityRank(a)||text(a.voice,b.voice)||text(a.name,b.name);
+}
+function queueFilterActive(){return Boolean(queueView.season||queueView.quality||queueView.query.trim()||queueView.problems);}
+function visibleQueueItems(){
+  const query=queueView.query.trim().toLocaleLowerCase('ru');
+  return state.items.map((item,index)=>({item,index})).filter(({item})=>
+    (!queueView.problems||queueItemIssues(item).length>0)&&
+    (!queueView.season||String(queueSeason(item))===queueView.season)&&
+    (!queueView.quality||queueQuality(item)===queueView.quality)&&
+    (!query||[item.name,queueFileName(item),item.voice].join(' ').toLocaleLowerCase('ru').includes(query)));
+}
+function queueTools(readOnly){
+  if(queueView.draft!==state.id){Object.assign(queueView,{draft:state.id,season:'',quality:'',query:'',problems:false});}
+  let tools=$('queue-tools');
+  if(!tools){
+    tools=document.createElement('div');tools.id='queue-tools';tools.className='queue-tools';
+    tools.innerHTML='<div class="queue-tools-row"><label>Порядок<select id="queue-sort"><option value="episode">Сезон → серия → качество → озвучка</option><option value="quality">Качество: от высокого → сезон → серия</option><option value="name">Название в боте: А–Я, 1–10</option><option value="filename">Имя файла: А–Я, 1–10</option><option value="storage-oldest">Выгрузка в Storage: старые → новые</option><option value="storage-newest">Выгрузка в Storage: новые → старые</option></select></label><button type="button" class="secondary" id="queue-sort-apply">Отсортировать всю карточку</button></div><div class="queue-tools-row"><label>Сезон<select id="queue-filter-season"></select></label><label>Качество<select id="queue-filter-quality"></select></label><label class="queue-search">Поиск в карточке<input id="queue-filter-query" placeholder="Название, файл или озвучка"></label><button type="button" class="secondary" id="queue-filter-reset">Сбросить фильтры</button></div><p class="muted" id="queue-filter-info" role="status"></p>';
+    $('queue').before(tools);
+    $('queue-sort-apply').onclick=()=>{
+      const readonly=state.published||['rejected','grouped'].includes(state.drafts.find(d=>d.id===state.id)?.status);
+      if(readonly||state.pendingAction||state.busy)return;
+      state.items.sort((a,b)=>queueCompare(a,b,$('queue-sort').value));dirty();renderQueue();
+      notice($('queue-sort').value.startsWith('storage-')?'Порядок восстановлен по сообщениям каждого Storage-канала. Файлы без ссылки оставлены в конце. Сохраните черновик.':'Порядок изменён для всей карточки. Сохраните черновик.');
+    };
+    for(const [id,key] of [['queue-filter-season','season'],['queue-filter-quality','quality']])$(id).onchange=()=>{queueView[key]=$(id).value;renderQueue();};
+    $('queue-filter-query').oninput=()=>{queueView.query=$('queue-filter-query').value;renderQueue();};
+    $('queue-filter-reset').onclick=()=>{Object.assign(queueView,{season:'',quality:'',query:'',problems:false});renderQueue();};
+  }
+  const seasons=[...new Set(state.items.map(queueSeason))].sort((a,b)=>a-b);
+  const qualities=[...new Set(state.items.map(queueQuality).filter(Boolean))].sort((a,b)=>queueQualityRank({quality:b})-queueQualityRank({quality:a})||queueCollator.compare(a,b));
+  if(queueView.season&&!seasons.some(n=>String(n)===queueView.season))queueView.season='';
+  if(queueView.quality&&!qualities.includes(queueView.quality))queueView.quality='';
+  $('queue-filter-season').innerHTML='<option value="">Все сезоны</option>'+seasons.map(n=>`<option value="${n}">${n?'Сезон '+n:'Сезон не указан'}</option>`).join('');
+  $('queue-filter-quality').innerHTML='<option value="">Все качества</option>'+qualities.map(q=>`<option value="${esc(q)}">${esc(q)}</option>`).join('');
+  $('queue-filter-season').value=queueView.season;$('queue-filter-quality').value=queueView.quality;$('queue-filter-query').value=queueView.query;
+  $('queue-filter-season').parentElement.hidden=$('content-type').value!=='series';
+  $('queue-sort-apply').disabled=readOnly||state.pendingAction||state.busy||state.items.length<2;
+  tools.hidden=!state.items.length;
 }
 function renderQueue(){
   const readOnly=state.published||['rejected','grouped'].includes(state.drafts.find(d=>d.id===state.id)?.status);
@@ -144,11 +249,15 @@ function renderQueue(){
   }
   fillTools.hidden=readOnly||$('content-type').value!=='series'||!state.items.length;
   $('series-fill').onclick=openSeriesFill;
+  queueTools(readOnly);
+  const visible=visibleQueueItems(),filtered=queueFilterActive();
+  $('queue-filter-info').textContent=`Показано ${visible.length} из ${state.items.length} файлов.`+(filtered?' Фильтры не удаляют файлы. Для ручного перемещения сбросьте фильтры.':' Сортировка изменяет порядок после нажатия кнопки.');
   const desktopImport=state.items.some(item=>asset(item.asset_id)?.source==='desktop');
   $('dropzone').hidden=desktopImport;
   $('files-heading').textContent=$('content-type').value==='series'?'Серии: сезон → серия → качество':'Варианты фильма';
   $('file-count').textContent=state.items.length;
-  $('queue').innerHTML=state.items.length?state.items.map((item,index)=>{const file=asset(item.asset_id);return `<div class="queue-row" data-id="${esc(item.asset_id)}"><span class="row-number">${!readOnly?`<span class="drag-handle" draggable="true" data-drag="${esc(item.asset_id)}" title="Перетащите, чтобы изменить порядок" aria-label="Перетащить файл">⠿</span>`:''}${String(index+1).padStart(2,'0')}</span><div><input data-name="${esc(item.asset_id)}" aria-label="Название файла ${index+1} в боте" value="${esc(item.name)}" ${readOnly?'disabled':''}>${$('content-type').value==='movie'?`<label>Категория<input data-category="${esc(item.asset_id)}" value="${esc(item.category||'')}" ${readOnly?'disabled':''}></label>`:''}${$('content-type').value==='series'?`<p class="field-note">Одинаковое название серии и сезон объединяют файлы в варианты качества.</p><label>Качество<input list="series-quality-options" data-quality="${esc(item.asset_id)}" maxlength="30" placeholder="1080p, 720p…" value="${esc(item.quality||'')}" ${readOnly?'disabled':''}></label><label>Озвучка<input data-voice="${esc(item.asset_id)}" maxlength="80" placeholder="Необязательно" value="${esc(item.voice||'')}" ${readOnly?'disabled':''}></label><label>Сезон этого файла<input type="number" min="1" max="999" data-item-season="${esc(item.asset_id)}" value="${item.season_number||''}" placeholder="Общий сезон" ${readOnly?'disabled':''}></label>`:''}<p class="queue-conflict-note error" data-conflict-note="${esc(item.asset_id)}" hidden></p><p class="file-meta">${esc(item.relative_path||file?.filename||'Файл')} · ${bytes(file?.size||0)} · ${['telegram','desktop'].includes(file?.source)?'из Telegram':'с компьютера'}</p></div><div class="file-status"><div data-status="${esc(item.asset_id)}">${statusHtml(file)}</div><div class="row-actions">${file?.status==='error'?`<button data-retry="${esc(item.asset_id)}">Повторить</button>`:''}${!readOnly?`<button data-up="${index}" aria-label="Выше" ${index===0?'disabled':''}>↑</button><button data-down="${index}" aria-label="Ниже" ${index===state.items.length-1?'disabled':''}>↓</button><button data-remove="${index}" aria-label="Убрать из черновика">×</button>`:''}</div>${file&&['uploading','error','queued'].includes(file.status)?`<button class="text-button" data-discard="${esc(file.id)}">Удалить загрузку</button>`:''}</div></div>`;}).join(''):'<div class="empty">Добавьте файлы — здесь можно будет изменить названия и порядок.</div>';
+  $('queue').innerHTML=state.items.length?visible.map(({item,index})=>{const file=asset(item.asset_id);return `<div class="queue-row" data-id="${esc(item.asset_id)}"><span class="row-number">${!readOnly&&!filtered?`<span class="drag-handle" draggable="true" data-drag="${esc(item.asset_id)}" title="Перетащите, чтобы изменить порядок" aria-label="Перетащить файл">⠿</span>`:''}${String(index+1).padStart(2,'0')}</span><div><input data-name="${esc(item.asset_id)}" aria-label="Название файла ${index+1} в боте" value="${esc(item.name)}" ${readOnly?'disabled':''}>${$('content-type').value==='movie'?`<label>Категория<input data-category="${esc(item.asset_id)}" value="${esc(item.category||'')}" ${readOnly?'disabled':''}></label>`:''}${$('content-type').value==='series'?`<p class="field-note">Одинаковое название серии и сезон объединяют файлы в варианты качества.</p><label>Качество<input list="series-quality-options" data-quality="${esc(item.asset_id)}" maxlength="30" placeholder="1080p, 720p…" value="${esc(item.quality||'')}" ${readOnly?'disabled':''}></label><label>Озвучка<input data-voice="${esc(item.asset_id)}" maxlength="80" placeholder="Необязательно" value="${esc(item.voice||'')}" ${readOnly?'disabled':''}></label><label>Сезон этого файла<input type="number" min="1" max="999" data-item-season="${esc(item.asset_id)}" value="${item.season_number||''}" placeholder="Общий сезон" ${readOnly?'disabled':''}></label>`:''}<p class="queue-conflict-note error" data-conflict-note="${esc(item.asset_id)}" hidden></p><p class="file-meta">${esc(item.relative_path||file?.filename||'Файл')} · ${bytes(file?.size||0)} · ${['telegram','desktop'].includes(file?.source)?'из Telegram':'с компьютера'}</p></div><div class="file-status"><div data-status="${esc(item.asset_id)}">${statusHtml(file)}</div><div class="row-actions">${file?.status==='error'?`<button data-retry="${esc(item.asset_id)}">Повторить</button>`:''}${!readOnly?`<button data-up="${index}" aria-label="Выше" ${index===0||filtered?'disabled':''}>↑</button><button data-down="${index}" aria-label="Ниже" ${index===state.items.length-1||filtered?'disabled':''}>↓</button><button data-remove="${index}" aria-label="Убрать из черновика">×</button>`:''}</div>${file&&['uploading','error','queued'].includes(file.status)?`<button class="text-button" data-discard="${esc(file.id)}">Удалить загрузку</button>`:''}</div></div>`;}).join(''):'<div class="empty">Добавьте файлы — здесь можно будет изменить названия и порядок.</div>';
+  if(state.items.length&&!visible.length)$('queue').innerHTML='<div class="empty">Нет файлов по выбранным фильтрам.</div>';
   updatePublish();
 }
 function updateStatuses(){for(const item of state.items){const element=document.querySelector(`[data-status="${item.asset_id}"]`);if(element)element.innerHTML=statusHtml(asset(item.asset_id));}updatePublish();}
@@ -156,6 +265,7 @@ function updatePublish(){
   const current=state.drafts.find(d=>d.id===state.id);
   const files=state.items.map(item=>asset(item.asset_id));
   const conflicts=[...seriesVariantConflicts(),...state.seriesServerConflicts];displaySeriesConflicts(conflicts);
+  displayQueueIssues();
   let reason='';
   if(state.published||current?.status==='published')reason='Фильм уже опубликован. Повторная публикация не требуется.';
   else if(current?.status==='grouped')reason='Файлы перенесены в общую карточку. Откройте её для настройки.';
@@ -174,10 +284,13 @@ function updatePublish(){
   }else if(files.some(file=>file.status!=='ready')){
     reason=`Готово файлов: ${files.filter(file=>file.status==='ready').length} из ${files.length}. Дождитесь завершения передачи в Telegram.`;
   }else if(!$('title').value.trim()&&!state.movie)reason='Укажите название фильма или сериала.';
-  else if(state.movie&&$('content-type').value==='movie'&&state.items.some(item=>!item.category.trim()))reason='Для добавления в опубликованный фильм укажите категорию каждого файла.';
-  else if($('content-type').value==='series'&&!$('season-select').value&&!$('season-name').value.trim()&&!$('season-number').value&&!state.items.every(item=>item.season_number))reason='Укажите название или номер сезона.';
+  else if(state.movie&&$('content-type').value==='movie'&&state.items.some(item=>!(item.category||'').trim()))reason='Для добавления в опубликованный фильм укажите категорию каждого файла.';
+  else if($('content-type').value==='series'&&!$('season-select').value&&!$('season-name').value.trim()&&!$('season-number').value&&!state.items.every(item=>item.season_number)){
+    const missing=state.items.flatMap((item,index)=>item.season_number?[]:[index+1]);
+    reason=`Не указан сезон: строки ${missing.slice(0,12).join(', ')}${missing.length>12?` и ещё ${missing.length-12}`:''}. Заполните сезон в этих строках или задайте общий сезон слева.`;
+  }
   else if(conflicts.length)reason=seriesConflictText(conflicts[0])+' Исправьте поля или уберите повтор из черновика.';
-  else if(state.items.some(item=>!item.name.trim()))reason='Заполните названия всех вариантов или серий.';
+  else if(state.items.some(item=>!(item.name||'').trim())){const missing=state.items.flatMap((item,index)=>(item.name||'').trim()?[]:[index+1]);reason=`Не заполнено название: строки ${missing.slice(0,12).join(', ')}${missing.length>12?` и ещё ${missing.length-12}`:''}.`;}
   $('publish').disabled=Boolean(reason);
   $('add-package').disabled=Boolean(reason)||$('content-type').value!=='movie'||Boolean(state.movie);
   $('publish').textContent=state.movie?'Добавить файлы в карточку':'Одобрить и опубликовать';
@@ -279,8 +392,8 @@ $('pause-upload').onclick=()=>{state.paused=true;state.controller?.abort();};
 for(const name of ['dragenter','dragover'])$('dropzone').addEventListener(name,event=>{event.preventDefault();$('dropzone').classList.add('drag');});
 for(const name of ['dragleave','drop'])$('dropzone').addEventListener(name,event=>{event.preventDefault();$('dropzone').classList.remove('drag');});
 $('dropzone').addEventListener('drop',action(event=>uploadFiles(event.dataTransfer.files)));
-$('queue').oninput=event=>{for(const field of ['quality','voice']){const id=event.target.dataset[field];if(id){state.items.find(i=>i.asset_id===id)[field]=event.target.value;dirty();updatePublish();}}const seasonId=event.target.dataset.itemSeason;if(seasonId){state.items.find(i=>i.asset_id===seasonId).season_number=event.target.value?Number(event.target.value):null;dirty();updatePublish();}const categoryId=event.target.dataset.category;if(categoryId){state.items.find(i=>i.asset_id===categoryId).category=event.target.value;dirty();}const id=event.target.dataset.name;if(id){state.items.find(i=>i.asset_id===id).name=event.target.value;dirty();updatePublish();}};
-$('queue').onclick=action(async event=>{const b=event.target.closest('button');if(!b)return;if(b.dataset.retry){await api(`/api/uploads/${b.dataset.retry}/complete`,{method:'POST'});await refresh();return;}if(b.dataset.discard){if(confirm('Удалить незавершённую загрузку с сервера?')){await api(`/api/uploads/${b.dataset.discard}`,{method:'DELETE'});state.items=state.items.filter(i=>i.asset_id!==b.dataset.discard);dirty();await saveDraft();await refresh();renderQueue();}return;}if(state.published)return;if(b.dataset.remove!==undefined){state.items.splice(Number(b.dataset.remove),1);}else{const up=b.dataset.up!==undefined;const index=Number(up?b.dataset.up:b.dataset.down);const other=index+(up?-1:1);if(other<0||other>=state.items.length)return;[state.items[index],state.items[other]]=[state.items[other],state.items[index]];}dirty();renderQueue();});
+$('queue').oninput=event=>{for(const field of ['quality','voice']){const id=event.target.dataset[field];if(id){state.items.find(i=>i.asset_id===id)[field]=event.target.value;dirty();updatePublish();}}const seasonId=event.target.dataset.itemSeason;if(seasonId){state.items.find(i=>i.asset_id===seasonId).season_number=event.target.value?Number(event.target.value):null;dirty();updatePublish();}const categoryId=event.target.dataset.category;if(categoryId){state.items.find(i=>i.asset_id===categoryId).category=event.target.value;dirty();updatePublish();}const id=event.target.dataset.name;if(id){state.items.find(i=>i.asset_id===id).name=event.target.value;dirty();updatePublish();}};
+$('queue').onclick=action(async event=>{const b=event.target.closest('button');if(!b)return;if(b.dataset.previewAsset){await openFilePreview(b.dataset.previewAsset);return;}if(b.dataset.retry){await api(`/api/uploads/${b.dataset.retry}/complete`,{method:'POST'});await refresh();return;}if(b.dataset.discard){if(confirm('Удалить незавершённую загрузку с сервера?')){await api(`/api/uploads/${b.dataset.discard}`,{method:'DELETE'});state.items=state.items.filter(i=>i.asset_id!==b.dataset.discard);dirty();await saveDraft();await refresh();renderQueue();}return;}if(state.published)return;if(b.dataset.remove!==undefined){state.items.splice(Number(b.dataset.remove),1);}else{const up=b.dataset.up!==undefined;const index=Number(up?b.dataset.up:b.dataset.down);const other=index+(up?-1:1);if(other<0||other>=state.items.length)return;[state.items[index],state.items[other]]=[state.items[other],state.items[index]];}dirty();renderQueue();});
 $('refresh-inbox').onclick=action(refresh);
 $('add-inbox').onclick=action(async()=>{if(state.published)throw new Error('Сначала создайте новый черновик.');const selected=[...document.querySelectorAll('[data-inbox]:checked')].map(e=>asset(e.dataset.inbox)).filter(Boolean);if(!selected.length)throw new Error('Выберите файлы.');const additions=selected.filter(a=>!state.items.some(i=>i.asset_id===a.id));if($('content-type').value==='movie'&&state.items.length+additions.length>1)throw new Error('Для фильма выберите один файл. Для нескольких серий выберите тип «Сериал».');for(const file of additions)state.items.push({asset_id:file.id,name:suggestName(file.filename,state.items.length)});if(!$('title').value&&$('content-type').value==='movie')$('title').value=state.items[0].name;dirty();await saveDraft();renderQueue();showTab('upload');notice('Файлы добавлены. Проверьте названия и порядок.');});
 $('catalog-search').onsubmit=action(async event=>{event.preventDefault();state.catalogPage=0;await loadCatalog();});
@@ -295,9 +408,9 @@ async function loadRequests(){
   const status={new:'Новая',planned:'В работе',rejected:'Отклонена',added:'Добавлено'};
   $('requests-page').textContent=data.total?`${data.offset+1}–${data.offset+data.items.length} из ${data.total}`:'Заявок пока нет';
   $('requests-prev').disabled=!data.offset;$('requests-next').disabled=data.offset+data.limit>=data.total;
-  $('requests-list').innerHTML=data.items.length?data.items.map(r=>`<article class="panel request-card">
+  $('requests-list').innerHTML=data.items.length?data.items.map(r=>`<article class="panel request-card ${r.poster_url?'':'request-card-text'}">
     ${r.poster_url?`<img src="${esc(r.poster_url)}" alt="" loading="lazy">`:''}<div><div class="request-heading"><span class="count">${r.votes} 👤</span><span class="state ${r.status==='added'?'ready':''}">${esc(status[r.status]||r.status)}</span></div>
-    <h2>${esc(r.title)}</h2><p class="muted">${r.content_type==='series'?'Сериал':'Фильм'}${r.season?` · сезон ${r.season}`:''}</p><p>${esc(r.overview||'Описание отсутствует.')}</p>
+    <h2>${esc(r.title)}</h2><p class="muted">${r.content_type==='series'?'Сериал':'Фильм'}${r.season?` · сезон ${r.season}`:''}${r.episode?` · серия ${r.episode}`:''}${r.voice?` · озвучка: ${esc(r.voice)}`:''}</p><p>${esc(r.verification||'')}</p>${r.voice_evidence_note?`<p class="muted">${esc(r.voice_evidence_note)}</p>`:''}<p>${esc(r.overview||'Описание отсутствует.')}</p>
     <div class="request-actions">${r.status!=='added'?`<button class="secondary" data-request-status="planned" data-request-id="${r.id}">В работу</button><button class="secondary" data-request-status="rejected" data-request-id="${r.id}">Отклонить</button><button class="primary" data-request-draft="${r.id}">${r.draft_id?'Открыть черновик':'Создать карточку'}</button>`:`<strong>Код в боте: ${r.movie_number}</strong>`}</div></div></article>`).join(''):'<div class="panel empty">Пользовательские запросы появятся здесь после поиска отсутствующего фильма или сериала.</div>';
 }
 $('requests-refresh').onclick=action(loadRequests);
@@ -323,6 +436,79 @@ function remoteDraft(agent=remoteAgent()){
   return remote.drafts.get(agent.instance_id);
 }
 function remoteRenderCapable(agent=remoteAgent()){return Boolean(agent?.status?.capabilities?.remote_render);}
+const torrentLabels={metadata:'Получение списка файлов',choose_files:'Проверьте выбор файлов',queued:'В очереди',downloading:'Скачивание',downloaded:'Скачано',preparing:'Передача в очередь проектов',prepared:'Готово',project_queued:'В очереди проектов',paused:'Пауза',error:'Ошибка',cancelled:'Отменено'};
+function torrentDraft(){
+  const draft=remoteDraft();if(!draft)return null;
+  return draft.torrent ||= {query:'',seasons:'0',magnet:'',resultId:'',jobId:'',selections:{},qualities:[...draft.qualities]};
+}
+function renderTorrents(){
+  const agent=remoteAgent(),draft=remoteDraft(),form=torrentDraft(),status=agent?.status?.torrents||{},search=status.search||{},jobs=status.jobs||[],results=search.results||[];
+  const enabled=Boolean(agent?.online&&agent.status?.capabilities?.torrent_control),pending=Boolean(draft?.pending),busy=Boolean(status.busy||agent?.status?.operation_busy||pending);
+  $('torrent-hint').textContent=!agent?.status?.capabilities?.torrent_control?'Обновите лаунчер для поиска и скачивания из WEB.':!agent.online?'Компьютер не в сети. Запустите лаунчер.':'Поиск и скачивание выполняются на выбранном компьютере.'+(status.folder?' Папка: '+status.folder:'');
+  for(const [id,key] of [['torrent-query','query'],['torrent-seasons','seasons'],['torrent-magnet','magnet']]){
+    if(document.activeElement!==$(id))$(id).value=form?.[key]||'';
+    $(id).disabled=!enabled;
+  }
+  $('torrent-search').disabled=!enabled||pending||search.state==='searching';
+  $('torrent-search-stop').disabled=!enabled||pending||search.state!=='searching';
+  $('torrent-search-status').textContent=search.message||'Введите название или добавьте magnet-ссылку.';
+  $('torrent-search-status').classList.toggle('error',search.state==='error');
+  if(form&&!results.some(r=>r.id===form.resultId))form.resultId=results[0]?.id||'';
+  $('torrent-results').innerHTML=results.map(r=>`<option value="${esc(r.id)}">${esc(r.title)} · ${esc(r.tracker)}</option>`).join('');
+  $('torrent-results').value=form?.resultId||'';
+  $('torrent-results').disabled=!enabled||!results.length;
+  const result=results.find(r=>r.id===form?.resultId);
+  $('torrent-result-info').innerHTML=result?`<h3>${esc(result.title)}</h3><p>${esc(result.tracker)} · ${esc(result.quality||'Качество не указано')} · ${esc(result.size||'Размер неизвестен')} · Раздают: ${esc(result.seeds??'?')}</p>${result.voice?`<p>Озвучка: ${esc(result.voice)}</p>`:''}${result.year?`<p>Год: ${esc(result.year)}</p>`:''}${result.issues?.length?`<p class="muted">${esc(result.issues.join(' · '))}</p>`:''}`:'';
+  $('torrent-add-result').disabled=!enabled||busy||!result||search.state==='searching';
+  $('torrent-add-magnet').disabled=!enabled||busy;
+  if(form&&!jobs.some(j=>j.id===form.jobId))form.jobId=jobs.at(-1)?.id||'';
+  $('torrent-jobs').innerHTML=jobs.map(j=>`<option value="${esc(j.id)}">${esc(j.title)} · ${esc(torrentLabels[j.status]||j.status)}</option>`).join('');
+  $('torrent-jobs').value=form?.jobId||'';
+  $('torrent-jobs').disabled=!jobs.length;
+  const job=jobs.find(j=>j.id===form?.jobId),files=job?.files||[];
+  let selected=[];
+  if(job&&form){selected=form.selections[job.id]??[...(job.selected||[])];selected=selected.filter(id=>files.some(f=>f.index===id));if(files.length)form.selections[job.id]=selected;}
+  const percent=Math.max(0,Math.min(100,Number(job?.progress)||0));
+  $('torrent-job-info').innerHTML=job?`<h3>${esc(job.title)}</h3><p>${esc(torrentLabels[job.status]||job.status)}${job.status==='downloading'?` · ${percent}%`:''}</p>${job.status==='downloading'?`<progress max="100" value="${percent}" aria-label="Скачано"></progress>`:''}${job.error?`<p class="error">${esc(job.error)}</p>`:''}${job.project_id?'<p>Продолжайте управление в блоке «Очередь проектов» ниже.</p>':''}`:'<p class="muted">Скачиваний пока нет.</p>';
+  $('torrent-operation').textContent=status.message||'';$('torrent-operation').classList.toggle('error',Boolean(status.error));
+  const editable=enabled&&!busy&&job&&!['prepared','project_queued','cancelled'].includes(job.status);
+  const filesEditable=editable&&!job?.selection_locked;
+  $('torrent-files-refresh').disabled=!filesEditable;
+  $('torrent-file-count').textContent=`(${selected.length} / ${files.length})`;
+  $('torrent-files').innerHTML=files.map(f=>`<label><input type="checkbox" data-torrent-file="${f.index}" ${selected.includes(f.index)?'checked':''} ${filesEditable?'':'disabled'}><span>${esc(f.name)}<small>${(Number(f.size)/1073741824).toFixed(2)} ГиБ</small></span></label>`).join('');
+  $('torrent-files-all').disabled=$('torrent-files-none').disabled=!filesEditable;
+  $('torrent-qualities').disabled=!enabled||busy;
+  for(const input of $('torrent-qualities').querySelectorAll('input'))input.checked=Boolean(form?.qualities.includes(input.value));
+  $('torrent-start').disabled=!editable||!selected.length||!form?.qualities.length;
+  $('torrent-pause').disabled=!enabled||pending||!status.busy;
+}
+const projectLabels={queued:'В очереди',running:'Подготовка',pausing:'Останавливается',paused:'Пауза',error:'Ошибка',prepared:'MP4 готовы',registering:'Создание карточек',cards_ready:'Карточки созданы',sending:'Отправка',send_paused:'Отправка приостановлена',complete:'Принято ботом'};
+function renderProjects(){
+  const agent=remoteAgent(),draft=remoteDraft(),status=agent?.status||{},projects=status.projects||[];
+  const supported=Boolean(status.capabilities?.project_control),enabled=Boolean(agent?.online&&supported),pending=Boolean(draft?.pending);
+  $('remote-project-hint').textContent=!supported?'Обновите лаунчер на компьютере для управления проектами.':!agent.online?'Компьютер не в сети. Запустите лаунчер.':'Состояние обновляется автоматически. Можно добавлять проекты во время подготовки других.';
+  if(draft&&!projects.some(p=>p.id===draft.projectId))draft.projectId=projects[0]?.id||'';
+  const project=projects.find(p=>p.id===draft?.projectId);
+  $('project-select').innerHTML=projects.map(p=>`<option value="${esc(p.id)}">${p.priority?'★ ':''}${esc(p.title)} · ${p.ready}/${p.total} · ${esc(projectLabels[p.state]||p.state)}</option>`).join('');
+  $('project-select').value=draft?.projectId||'';
+  $('project-select').disabled=!projects.length;
+  if(document.activeElement!==$('project-parallelism'))$('project-parallelism').value=String(draft?.parallelism||status.project_parallelism||1);
+  for(const [id,key] of [['project-series','seriesNumber'],['project-season','seasonNumber']])if(document.activeElement!==$(id))$(id).value=draft?.[key]||'';
+  $('project-add').disabled=!enabled||pending||status.operation_busy;
+  $('project-source').disabled=!enabled;
+  $('project-pause-all').disabled=!enabled||!projects.length;
+  $('project-set-parallelism').disabled=!enabled||pending||status.busy;
+  $('project-summary').innerHTML=project?`<h3>${esc(project.title)}</h3><p>${esc(projectLabels[project.state]||project.state)} · ${project.ready}/${project.total} MP4 · ${project.priority?'Приоритетный':'Обычный'}</p><p>${esc(project.message||'')}</p><p class="muted">${esc(project.folder)}</p>`:'<p>Очередь проектов пуста.</p>';
+  for(const button of document.querySelectorAll('[data-project-action]')){
+    const action=button.dataset.projectAction;
+    button.disabled=!enabled||!project||(['pause','priority'].includes(action)?false:pending||status.operation_busy);
+    if(project&&['cards','send'].includes(action))button.disabled ||= !['prepared','cards_ready','send_paused'].includes(project.state)||(action==='send'&&project.state==='prepared');
+    if(project&&action==='resume')button.disabled ||= !['paused','error','prepared','cards_ready','send_paused'].includes(project.state);
+  }
+  const box=$('project-details'),opened=new Set([...box.querySelectorAll('details[open]')].map(el=>el.dataset.source));
+  const sources=new Map();for(const variant of project?.variants||[]){if(!sources.has(variant.source))sources.set(variant.source,[]);sources.get(variant.source).push(variant);}
+  box.innerHTML=[...sources].map(([source,variants])=>`<details data-source="${esc(source)}" ${opened.has(source)?'open':''}><summary>${esc(source)} · ${variants.filter(v=>v.state==='done').length}/${variants.length}</summary>${variants.map(v=>`<p><strong>${esc(v.quality)} · ${esc(v.voice)}</strong><br>${esc(v.state==='done'?'Подготовлен':v.state==='running'?v.status||'Обработка':['paused','pausing','error'].includes(project.state)?projectLabels[project.state]:'Ожидает')}${v.detail?` · ${esc(v.detail)}`:''}</p>`).join('')}</details>`).join('')||'<p class="muted">Выберите проект для просмотра файлов.</p>';
+}
 function remoteCanBrowse(agent=remoteAgent()){return Boolean(agent?.online&&agent.status?.capabilities?.folder_browser&&agent.status.remote_browse_enabled);}
 function remoteSameFolder(first,second){const normalize=value=>String(value||'').replaceAll('\\','/').replace(/\/+$/,'').toLowerCase();return Boolean(first&&second&&normalize(first)===normalize(second));}
 function remoteBusy(agent=remoteAgent(),draft=remoteDraft(agent)){return Boolean(agent?.status?.busy||agent?.status?.job?.state==='running'||draft?.pending||draft?.awaitedJob);}
@@ -348,10 +534,11 @@ function remoteBrowser(agent,draft){
   $('remote-browse-roots').disabled=!allowed||pending;
   $('remote-browse-up').disabled=!allowed||pending||!browser||browser.parent===null||browser.parent===undefined;
   $('remote-browse-next').hidden=browser?.next_offset===null||browser?.next_offset===undefined;$('remote-browse-next').disabled=!allowed||pending;
-  $('remote-browse-select').disabled=!allowed||pending||!browser?.folder||remoteBusy(agent,draft);
+  $('remote-browse-select').disabled=!allowed||pending||!browser?.folder||(agent?.status?.capabilities?.project_control?Boolean(draft?.pending):remoteBusy(agent,draft));
 }
 function renderRemote(){
   const agent=remoteAgent(),draft=remoteDraft(agent),status=agent?.status||{},online=Boolean(agent?.online),capable=remoteRenderCapable(agent),busy=remoteBusy(agent,draft);
+  if(draft&&status.busy&&status.capabilities?.project_control){draft.hardware=status.hardware||draft.hardware;draft.load=status.load||draft.load;}
   const message=draft?.awaitedJob?'Ожидаю запуск новой задачи':status.job?.state?status.job.message||status.message:status.message;
   $('remote-status').innerHTML=agent?`<strong>${online?'● Лаунчер подключён':'○ Компьютер не отвечает'}</strong><p>${esc(message||'Ожидает команду')}<br>Папка на компьютере: <span class="remote-path">${esc(status.folder||'не выбрана')}</span><br>Последний ответ: ${esc(agent.last_seen||'—')}</p>`:'<p>Лаунчер ещё не подключался. Запустите его на компьютере и вставьте свежий код /desktop.</p>';
   $('remote-update-hint').hidden=!agent||capable;$('remote-update-hint').textContent='Этот лаунчер поддерживает только заранее разрешённые папки и создание карточек. Обновите его для выбора любой папки и запуска рендера из панели.';
@@ -363,8 +550,9 @@ function renderRemote(){
   $('remote-section').innerHTML=state.sections.filter(section=>['movies','cartoons','anime'].includes(section.key)).map(section=>`<option value="${esc(section.key)}">${esc(section.title)}${section.enabled?'':' · скрыт'}</option>`).join('');
   for(const [id,key] of [['remote-mode','mode'],['remote-hardware','hardware'],['remote-load','load'],['remote-section','catalog_section']])$(id).value=draft?.[key]||'';
   for(const input of document.querySelectorAll('#remote-qualities input'))input.checked=Boolean(draft?.qualities.includes(input.value));
-  for(const id of ['remote-folder','remote-folder-path','remote-mode','remote-hardware','remote-load','remote-section'])$(id).disabled=!online||busy;
-  $('remote-qualities').disabled=!online||busy;
+  for(const id of ['remote-folder','remote-folder-path','remote-mode','remote-hardware','remote-load','remote-section'])$(id).disabled=!online||(busy&&!status.capabilities?.project_control)||Boolean(draft?.pending);
+  $('remote-qualities').disabled=!online||(busy&&!status.capabilities?.project_control)||Boolean(draft?.pending);
+  for(const id of ['remote-hardware','remote-load'])$(id).disabled=!online||busy;
   $('remote-switch').disabled=!online||busy;
   $('remote-prepare').textContent=capable?'Подготовить MP4':'Создать карточки';
   $('remote-prepare').disabled=!online||busy||!draft?.folder.trim()||!draft?.qualities.length;
@@ -374,9 +562,12 @@ function renderRemote(){
   $('remote-send').disabled=!online||busy||(capable&&(!sameFolder||prepared<1));
   $('remote-send-hint').textContent=capable&&(!sameFolder||prepared<1)?'Сначала подготовьте выбранную папку. Передача сама не запускается.':'Передача сама не запускается. Перед отправкой настройте и сохраните карточки в панели.';
   $('remote-start-summary').innerHTML=draft?`<strong>${capable?'Будет подготовлена папка':'Выбрана папка'}:</strong><p class="remote-path">${esc(draft.folder||'Выберите папку с видео')}</p><p>${esc(draft.qualities.map(quality=>quality==='source'?'Исходное':quality).join(' · ')||'Выберите качества')}${capable?` · ${esc($('remote-mode').selectedOptions[0]?.textContent||'')}`:''}</p>${busy?'<p class="muted">На компьютере уже выполняется задача. Новую можно запустить после завершения или остановки.</p>':''}`:'';
+  renderProjects();renderTorrents();
   remoteFeedback(draft,draft?.feedback||'',draft?.feedbackError);remoteJob(agent,draft);remoteBrowser(agent,draft);
   const names={browse_folder:'Список папок',prepare:capable?'Запуск подготовки MP4':'Создать карточки',send:'Передача в Telegram',stop:'Остановка',refresh:'Обновление очереди',switch_folder:'Смена папки'},statuses={pending:'Ожидает компьютер',claimed:'Компьютер получил команду',running:'Компьютер выполняет команду',done:'Команда принята / выполнена',completed:'Команда выполнена',error:'Ошибка',failed:'Ошибка',cancelled:'Отменена',expired:'Истёк срок ожидания'};
   const ownCommands=remote.commands.filter(command=>command.instance_id===agent?.instance_id);
+  Object.assign(names,{project_add:'Добавление проекта',project_pause:'Пауза проекта',project_resume:'Продолжение проекта',project_priority:'Приоритет проекта',project_cards:'Создание карточек проекта',project_send:'Отправка проекта',project_pause_all:'Пауза всех проектов',project_parallelism:'Число обработок'});
+  Object.assign(names,{torrent_search:'Поиск раздач',torrent_search_stop:'Остановка поиска',torrent_add:'Получение файлов раздачи',torrent_start:'Запуск скачивания',torrent_pause:'Пауза скачивания',torrent_files:'Список файлов раздачи'});
   const tasks=ownCommands.filter(command=>command.action!=='browse_folder'||['error','failed'].includes(command.status));
   const commands=(tasks.length?tasks:ownCommands).slice(0,5);
   $('remote-history').innerHTML=commands.length?commands.map(command=>`<p class="${['error','failed'].includes(command.status)?'error':''}"><strong>${esc(names[command.action]||command.action)}</strong> · ${esc(statuses[command.status]||command.status)}${command.created_at?`<br><small>${esc(command.created_at)}</small>`:''}${command.result?`<br><span>${esc(command.result)}</span>`:''}</p>`).join(''):'<p class="muted">Команд для этого компьютера пока не было.</p>';
@@ -442,6 +633,43 @@ function remoteSaveInput(){
   $('remote-start-summary').innerHTML=`<strong>Будет подготовлена папка:</strong><p class="remote-path">${esc(draft.folder||'Выберите папку с видео')}</p><p>${esc(draft.qualities.map(quality=>quality==='source'?'Исходное':quality).join(' · ')||'Выберите качества')} · ${esc($('remote-mode').selectedOptions[0]?.textContent||'')}</p>`;
 }
 $('remote-device').onchange=()=>renderRemote();
+for(const [id,key] of [['torrent-query','query'],['torrent-seasons','seasons'],['torrent-magnet','magnet']])$(id).oninput=()=>{const form=torrentDraft();if(form)form[key]=$(id).value;};
+$('torrent-search').onclick=remoteAction(()=>remoteCommand('torrent_search',{query:torrentDraft().query,seasons:torrentDraft().seasons}));
+$('torrent-search-stop').onclick=remoteAction(()=>remoteCommand('torrent_search_stop'));
+$('torrent-results').onchange=()=>{torrentDraft().resultId=$('torrent-results').value;renderTorrents();};
+$('torrent-add-result').onclick=remoteAction(()=>remoteCommand('torrent_add',{result_id:torrentDraft().resultId,seasons:torrentDraft().seasons}));
+$('torrent-add-magnet').onclick=remoteAction(()=>remoteCommand('torrent_add',{magnet:torrentDraft().magnet.trim(),seasons:torrentDraft().seasons}));
+$('torrent-jobs').onchange=()=>{torrentDraft().jobId=$('torrent-jobs').value;renderTorrents();};
+$('torrent-files-refresh').onclick=remoteAction(()=>remoteCommand('torrent_files',{job_id:torrentDraft().jobId}));
+$('torrent-files').onchange=event=>{if(!event.target.matches('[data-torrent-file]'))return;const form=torrentDraft();form.selections[form.jobId]=[...$('torrent-files').querySelectorAll('input:checked')].map(e=>Number(e.dataset.torrentFile));renderTorrents();};
+$('torrent-files-all').onclick=()=>{const form=torrentDraft(),job=remoteAgent().status.torrents.jobs.find(j=>j.id===form.jobId);form.selections[form.jobId]=job.files.map(f=>f.index);renderTorrents();};
+$('torrent-files-none').onclick=()=>{const form=torrentDraft();form.selections[form.jobId]=[];renderTorrents();};
+$('torrent-qualities').onchange=()=>{torrentDraft().qualities=[...$('torrent-qualities').querySelectorAll('input:checked')].map(e=>e.value);renderTorrents();};
+$('torrent-start').onclick=remoteAction(()=>{const form=torrentDraft();return remoteCommand('torrent_start',{job_id:form.jobId,file_ids:form.selections[form.jobId],qualities:form.qualities});});
+$('torrent-pause').onclick=remoteAction(()=>remoteCommand('torrent_pause'));
+$('project-select').onchange=()=>{remoteDraft().projectId=$('project-select').value;renderProjects();};
+for(const [id,key] of [['project-series','seriesNumber'],['project-season','seasonNumber'],['project-parallelism','parallelism']])$(id).oninput=()=>{const draft=remoteDraft();if(draft)draft[key]=$(id).value;};
+$('project-set-parallelism').onclick=remoteAction(()=>remoteCommand('project_parallelism',{parallelism:Number($('project-parallelism').value)}));
+$('project-add').onclick=remoteAction(()=>{
+  const payload=remotePayload(),draft=remoteDraft();
+  if(draft.seriesNumber||draft.seasonNumber){
+    const movie_number=Number(draft.seriesNumber),season_number=Number(draft.seasonNumber);
+    if(!Number.isSafeInteger(movie_number)||movie_number<1||!Number.isSafeInteger(season_number)||season_number<1||payload.mode!=='single')throw new Error('Выберите режим «Один проект / сериал» и положительные номера сериала и сезона.');
+    payload.series={movie_number,season_number};
+  }
+  return remoteCommand('project_add',payload);
+});
+$('project-source').onclick=()=>{$('remote-folder-path').scrollIntoView({behavior:'smooth',block:'center'});$('remote-folder-path').focus();};
+$('project-pause-all').onclick=remoteAction(()=>remoteCommand('project_pause_all'));
+$('project-actions').onclick=remoteAction(event=>{
+  const button=event.target.closest('[data-project-action]');if(!button||button.disabled)return;
+  const action=button.dataset.projectAction,payload={project_id:remoteDraft().projectId};
+  if(action==='send'){
+    if(!confirm('Карточки оформлены и сохранены? Начать отправку через Telegram Desktop на выбранном компьютере? Windows должна быть разблокирована.'))return;
+    payload.confirmed=true;
+  }
+  return remoteCommand('project_'+action,payload);
+});
 $('remote-refresh').onclick=remoteAction(loadRemote);
 $('remote-folder').onchange=()=>{const draft=remoteDraft();if(draft&&$('remote-folder').value){draft.folder=$('remote-folder').value;renderRemote();}};
 for(const id of ['remote-folder-path','remote-mode','remote-hardware','remote-load','remote-section','remote-qualities'])$(id).addEventListener('input',remoteSaveInput);
@@ -517,6 +745,38 @@ $('find-card').onclick=action(async()=>{
 });
 
 const groupedSelection=new Map();
+async function openFilePreview(assetId){
+  const info=await api(`/api/uploads/${encodeURIComponent(assetId)}/preview`);
+  const dialog=document.createElement('dialog');dialog.className='file-preview-dialog';
+  dialog.innerHTML=`<h2>${esc(info.filename)}</h2><p class="muted">${esc(bytes(info.size))}</p><div data-player></div><p role="status"></p><div class="batch-toolbar">${info.telegram_url?`<a class="secondary" href="${esc(info.telegram_url)}" target="_blank" rel="noopener noreferrer">Открыть исходное сообщение</a>`:''}<button type="button" data-close>Закрыть</button></div>`;
+  const status=dialog.querySelector('[role=status]');
+  if(info.player_configured){
+    const video=document.createElement('video');video.controls=true;video.preload='metadata';video.playsInline=true;
+    video.src=`/api/uploads/${encodeURIComponent(assetId)}/stream`;
+    video.onerror=async()=>{try{const detail=await api(`/api/uploads/${encodeURIComponent(assetId)}/stream-status`);status.textContent=detail.error;}catch{status.textContent='Не удалось прочитать видео. Проверьте сессию просмотра и журнал сервера.';}};
+    dialog.querySelector('[data-player]').append(video);
+  }else status.textContent='Плеер ещё не подключён: требуется Telegram-сессия аккаунта с доступом к Storage. После настройки видео будет воспроизводиться здесь с перемоткой.';
+  dialog.querySelector('[data-close]').onclick=()=>dialog.close();
+  dialog.addEventListener('close',()=>{const video=dialog.querySelector('video');if(video){video.pause();video.removeAttribute('src');video.load();}dialog.remove();});
+  document.body.append(dialog);dialog.showModal();
+}
+function groupableItems(d){return d.status==='draft'&&!d.body.movie_number&&!d.stream_pending?d.body.items.filter(i=>!(d.grouped_assets||[]).includes(i.asset_id)):[];}
+function selectGroupCard(d,checked){
+  for(const item of groupableItems(d)){
+    if(checked)groupedSelection.set(item.asset_id,{asset_id:item.asset_id,draft_id:d.id,review_token:d.review_token});
+    else groupedSelection.delete(item.asset_id);
+  }
+}
+function syncGroupSelection(){
+  $('group-count').textContent=groupedSelection.size;
+  for(const input of document.querySelectorAll('[data-group-card]')){
+    const d=batch.items.find(d=>d.id===input.dataset.groupCard),items=d?groupableItems(d):[];
+    const count=items.filter(i=>groupedSelection.has(i.asset_id)).length;
+    input.checked=items.length>0&&count===items.length;input.indeterminate=count>0&&count<items.length;
+    input.disabled=batch.busy||batch.loading||!items.length;
+  }
+  for(const input of document.querySelectorAll('[data-group-asset]'))input.checked=groupedSelection.has(input.dataset.groupAsset);
+}
 const batch = {offset:0,limit:20,total:0,items:[],selected:new Set(),edits:new Map(),package:[],busy:false,loading:false};
 function confirmBatch(chosen){
   const dialog=$('batch-confirm');
@@ -545,7 +805,7 @@ async function loadBatch(){
     batch.items=data.items;batch.total=data.total;batch.limit=data.limit;batch.selected.clear();
     $('batch-page').textContent=data.total?`${batch.offset+1}–${batch.offset+data.items.length} из ${data.total}`:'Нет черновиков на проверке';
     $('batch-list').innerHTML=data.items.length?data.items.map(d=>`<article class="panel batch-card">
-      <div class="batch-card-heading"><label><strong>${esc(d.body.title||'Без названия')}</strong></label><div><button class="secondary" data-batch-open="${esc(d.id)}">Проверить / изменить</button> <button class="secondary" data-batch-attach="${esc(d.id)}">В существующую карточку</button></div></div>
+      <div class="batch-card-heading"><label><input type="checkbox" data-group-card="${esc(d.id)}" aria-label="Выбрать всю карточку для объединения"> <strong>${esc(d.body.title||'Без названия')}</strong><small> · выбрать карточку целиком</small></label><div><button class="secondary" data-batch-open="${esc(d.id)}">Проверить / изменить</button> <button class="secondary" data-batch-attach="${esc(d.id)}">В существующую карточку</button></div></div>
       ${d.launcher_instance?`<p class="muted">Компьютер: ${esc(d.launcher_name||'Лаунчер')} · ${esc(d.launcher_instance.slice(0,6))}</p>`:''}
       <p class="${d.can_publish?'batch-ready':'muted'}">${d.can_publish?(batch.package.some(p=>p.id===d.id)?'Проверен · добавлен в пакет':'Файлы готовы · откройте карточку для отдельной проверки'):esc(d.reason)}</p>
       <p class="muted">${d.body.content_type==='movie'?'Фильм':'Сериал'} · Файлы: ${d.ready_files}/${d.total_files} · Постер: ${d.body.poster_url?'указан':'не выбран — проверьте карточку'}</p>
@@ -555,9 +815,9 @@ async function loadBatch(){
         <button class="secondary" data-batch-save="${esc(d.id)}">Сохранить постер и описание</button>
         <p data-batch-message role="status">${batch.edits.has(d.id)?'Есть несохранённые изменения':''}</p>
       </div>`:''}
-      <div class="group-file-picks">${d.body.items.map(i=>`<label><input type="checkbox" data-group-asset="${esc(i.asset_id)}" data-group-draft="${esc(d.id)}" ${(d.grouped_assets||[]).includes(i.asset_id)||d.status!=='draft'||d.body.movie_number?'disabled':''} ${groupedSelection.has(i.asset_id)?'checked':''}> ${esc(i.relative_path||i.name)} ${(d.grouped_assets||[]).includes(i.asset_id)?'· уже объединён':''}</label>`).join('')}</div><details><summary>Описание и варианты</summary><p class="batch-description">${esc(d.body.description||'Описание не заполнено. Проверьте название и выберите фильм в TMDB.')}</p><ul>${d.body.items.map(i=>`<li>${esc(i.category||d.body.season_name||'Основной файл')} → ${esc(i.name)}<br><small>${esc(i.relative_path||'')}</small></li>`).join('')}</ul>${d.body.poster_url?`<p>Постер: <a href="${esc(d.body.poster_url)}" target="_blank" rel="noopener noreferrer">Открыть изображение</a></p>`:''}</details>
+      <div class="batch-toolbar"><button class="secondary" data-extract-files="${esc(d.id)}">Отделить / перенести отмеченные файлы</button><span class="muted">Отметьте нужные файлы ниже. Затем выберите новую или существующую карточку.</span></div><div class="group-file-picks">${d.body.items.map(i=>`<div class="file-review-row"><label><input type="checkbox" data-group-asset="${esc(i.asset_id)}" data-group-draft="${esc(d.id)}" ${(d.grouped_assets||[]).includes(i.asset_id)||d.status!=='draft'||d.body.movie_number?'disabled':''} ${groupedSelection.has(i.asset_id)?'checked':''}> ${esc(i.relative_path||i.name)} ${(d.grouped_assets||[]).includes(i.asset_id)?'· уже перенесён':''}</label><button class="secondary" data-preview-asset="${esc(i.asset_id)}">▶ Просмотр</button></div>`).join('')}</div><details><summary>Описание и варианты</summary><p class="batch-description">${esc(d.body.description||'Описание не заполнено. Проверьте название и выберите фильм в TMDB.')}</p><ul>${d.body.items.map(i=>`<li>${esc(i.category||d.body.season_name||'Основной файл')} → ${esc(i.name)}<br><small>${esc(i.relative_path||'')}</small></li>`).join('')}</ul>${d.body.poster_url?`<p>Постер: <a href="${esc(d.body.poster_url)}" target="_blank" rel="noopener noreferrer">Открыть изображение</a></p>`:''}</details>
     </article>`).join(''):'<div class="panel batch-card">Здесь появятся черновики из очереди лаунчера. Уже опубликованные и отклонённые карточки сюда не входят.</div>';
-  }finally{batch.loading=false;batchControls();}
+  }finally{batch.loading=false;batchControls();syncGroupSelection();}
 }
 $('batch-list').oninput=event=>{
   const field=event.target.dataset.batchField;
@@ -569,7 +829,7 @@ $('batch-list').oninput=event=>{
   batchControls();
 };
 window.addEventListener('beforeunload',event=>{if(batch.edits.size){event.preventDefault();event.returnValue='';}});
-$('batch-list').onchange=event=>{const assetId=event.target.dataset.groupAsset;if(assetId){const d=batch.items.find(d=>d.id===event.target.dataset.groupDraft);if(event.target.checked)groupedSelection.set(assetId,{asset_id:assetId,draft_id:d.id,review_token:d.review_token});else groupedSelection.delete(assetId);$('group-count').textContent=groupedSelection.size;return;}
+$('batch-list').onchange=event=>{const cardId=event.target.dataset.groupCard;if(cardId){const d=batch.items.find(d=>d.id===cardId);if(d)selectGroupCard(d,event.target.checked);syncGroupSelection();return;}const assetId=event.target.dataset.groupAsset;if(assetId){const d=batch.items.find(d=>d.id===event.target.dataset.groupDraft);if(event.target.checked)groupedSelection.set(assetId,{asset_id:assetId,draft_id:d.id,review_token:d.review_token});else groupedSelection.delete(assetId);syncGroupSelection();return;}
   const id=event.target.dataset.batchCheck;if(!id||batch.busy)return;
   if(event.target.checked)batch.selected.add(id);else batch.selected.delete(id);batchControls();
 };
@@ -602,6 +862,8 @@ async function chooseExistingTarget(){
   await search();
 }
 $('batch-list').onclick=action(async event=>{
+  const preview=event.target.closest('[data-preview-asset]');if(preview){await openFilePreview(preview.dataset.previewAsset);return;}
+  const extract=event.target.closest('[data-extract-files]');if(extract){const selected=[...groupedSelection.values()].filter(i=>i.draft_id===extract.dataset.extractFiles);await openGroupFiles(selected);return;}
   const save=event.target.closest('[data-batch-save]');
   if(save){
     if(batch.busy||batch.loading)return;
@@ -822,22 +1084,28 @@ for(const [id,refresh] of [['ratings-auto',false],['ratings-refresh',true]])$(id
   });
 });
 
-$('group-files').onclick=action(async()=>{
-  if(!groupedSelection.size)throw new Error('Отметьте файлы для одной карточки.');
+async function openGroupFiles(selected=null){
+  const chosen=selected||[...groupedSelection.values()];
+  if(!chosen.length)throw new Error('Отметьте файлы для одной карточки.');
   if(batch.edits.size||state.dirty)throw new Error('Сначала сохраните изменения открытых карточек.');
   await refresh();
-  const targets=state.drafts.filter(d=>d.status==='draft'&&!d.body.movie_number&&![...groupedSelection.values()].some(i=>i.draft_id===d.id));
+  const targets=state.drafts.filter(d=>d.status==='draft'&&!d.body.movie_number&&!chosen.some(i=>i.draft_id===d.id));
+  const sourceBodies=[...new Set(chosen.map(i=>i.draft_id))].map(id=>state.drafts.find(d=>d.id===id)?.body).filter(Boolean);
+  const firstBody=sourceBodies[0]||{};
   const dialog=document.createElement('dialog');
-  dialog.innerHTML='<h2>Одна карточка из выбранных файлов</h2><p>У карточки будет общее название, постер и описание. Исходные файлы повторно не отправляются. После объединения настройте категории или сезоны каждого файла.</p><form><label>Название<input name="title" required maxlength="200"></label><label>Тип<select name="content_type"><option value="movie">Фильм</option><option value="series">Сериал</option></select></label><p role="status"></p><button>Создать карточку</button><button type="button">Отмена</button></form>';
+  dialog.innerHTML='<h2>Объединить выбранные карточки и файлы</h2><p>У карточки будет общее название, постер и описание. Исходные файлы повторно не отправляются. После объединения настройте категории или сезоны каждого файла.</p><form><label>Название<input name="title" required maxlength="200"></label><label>Тип<select name="content_type"><option value="movie">Фильм</option><option value="series">Сериал</option></select></label><p role="status"></p><button>Создать карточку</button><button type="button">Отмена</button></form>';
   const destination=document.createElement('label');destination.innerHTML=`Добавить файлы в<select name="target_id"><option value="">Новую карточку</option>${targets.map(d=>`<option value="${esc(d.id)}">${esc(d.body.title)}</option>`).join('')}</select>`;
   dialog.querySelector('form').prepend(destination);
+  dialog.querySelector('[name=title]').value=firstBody.title||'';
+  dialog.querySelector('[name=content_type]').value=firstBody.content_type||'movie';
   destination.querySelector('select').onchange=event=>{const existing=Boolean(event.target.value);for(const name of ['title','content_type'])dialog.querySelector(`[name="${name}"]`).disabled=existing;dialog.querySelector('button').textContent=existing?'Добавить в карточку':'Создать карточку';};
   dialog.querySelector('[type=button]').onclick=()=>dialog.close();dialog.onclose=()=>dialog.remove();document.body.append(dialog);dialog.showModal();
   dialog.querySelector('form').onsubmit=async event=>{event.preventDefault();const button=dialog.querySelector('button');button.disabled=true;
-    try{const body=Object.fromEntries(new FormData(event.target));body.season_number=body.content_type==='series'?1:null;if(body.target_id)body.target_token=targets.find(d=>d.id===body.target_id).review_token;const d=await api('/api/drafts/group-files',{method:'POST',json:{items:[...groupedSelection.values()],body}});groupedSelection.clear();$('group-count').textContent='0';await refresh();state.assets.push(...await Promise.all(d.body.items.filter(i=>!asset(i.asset_id)).map(i=>api(`/api/uploads/${i.asset_id}`))));dialog.close();await openDraft(d);notice('Файлы объединены. Настройте названия подкатегорий и сезоны, описание и постер.');}
+    try{const body=Object.fromEntries(new FormData(event.target));body.season_number=null;if(!body.target_id){body.poster_url=firstBody.poster_url||'';body.description=firstBody.description||'';}if(body.target_id)body.target_token=targets.find(d=>d.id===body.target_id).review_token;const d=await api('/api/drafts/group-files',{method:'POST',json:{items:chosen,body}});for(const item of chosen)groupedSelection.delete(item.asset_id);syncGroupSelection();await loadBatch();await refresh();state.assets.push(...await Promise.all(d.body.items.filter(i=>!asset(i.asset_id)).map(i=>api(`/api/uploads/${i.asset_id}`))));dialog.close();await openDraft(d);notice('Файлы объединены. Настройте названия подкатегорий и сезоны, описание и постер.');}
     catch(error){dialog.querySelector('[role=status]').textContent=error.message;button.disabled=false;}
   };
-});
+}
+$('group-files').onclick=action(()=>openGroupFiles());
 
 // Drag only from the handle, leaving text fields selectable and editable.
 let queueDrag=null;

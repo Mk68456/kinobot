@@ -158,6 +158,26 @@ async def get_upload(request):
     return web.json_response(file)
 
 
+async def preview_upload(request):
+    result = repository.asset_preview(request.match_info['id'], request['admin_id'])
+    from webpanel.media_preview import connection_settings
+    api_id, api_hash, session = connection_settings()
+    result['player_configured'] = bool(api_id.isdecimal() and api_hash and session.is_file())
+    return web.json_response(result)
+
+
+async def stream_preview_upload(request):
+    return await request.app['media_preview'].handle(request)
+
+
+async def stream_preview_status(request):
+    try:
+        await request.app['media_preview'].source(request.match_info['id'], request['admin_id'])
+    except ValueError as error:
+        return web.json_response({'error': str(error)})
+    return web.json_response({'error': 'Если видео не воспроизводится, проверьте кодек файла и журнал сервера.'})
+
+
 async def upload_chunk(request):
     chunk = await request.read()
     offset = int(request.headers.get("X-Upload-Offset", "-1"))
@@ -260,6 +280,8 @@ async def notify_request_for_draft(request, draft_id, number):
     current = content_requests.by_draft(draft_id)
     if not current or current['status'] == 'added':
         return
+    if not content_requests.target_available(current, number, manual=True):
+        return
     try:
         bot = request.app['uploads'].bot
         username = (await bot.get_me()).username
@@ -271,7 +293,7 @@ async def notify_request_for_draft(request, draft_id, number):
             ))
         source = await bot.send_message(
             request['admin_id'],
-            'По вашему запросу произведение добавлено в KinoTime: ' + current['title'],
+            'По вашему запросу произведение добавлено в KinoTime: ' + current['title'] + content_requests.target_label(current),
             parse_mode='', reply_markup=keyboard,
         )
         content_requests.complete(current['id'], number, request['admin_id'],
@@ -607,6 +629,8 @@ def create_app(bot, config=settings):
         else min(config.WEB_MAX_FILE_BYTES, 50_000_000)
     )
     app['contest_bot'] = bot
+    from webpanel.media_preview import PreviewStream
+    app['media_preview'] = PreviewStream()
     from webpanel import contests as contest_admin
     app["uploads"] = Uploads(
         bot, config.UPLOAD_DIR, max_bytes, config.UPLOAD_QUOTA_BYTES, config.WEB_CHUNK_BYTES
@@ -621,6 +645,9 @@ def create_app(bot, config=settings):
             web.get("/api/assets", list_assets),
             web.post("/api/uploads", create_upload),
             web.get("/api/uploads/{id}", get_upload),
+            web.get('/api/uploads/{id}/preview', preview_upload),
+            web.get('/api/uploads/{id}/stream', stream_preview_upload),
+            web.get('/api/uploads/{id}/stream-status', stream_preview_status),
             web.put("/api/uploads/{id}/chunk", upload_chunk),
             web.post("/api/uploads/{id}/complete", complete_upload),
             web.delete("/api/uploads/{id}", discard_upload),
@@ -680,6 +707,7 @@ def create_app(bot, config=settings):
     async def lifecycle(app):
         app["uploads"].start()
         yield
+        await app['media_preview'].close()
         await app["uploads"].stop()
 
     app.cleanup_ctx.append(lifecycle)

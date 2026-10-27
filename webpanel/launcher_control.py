@@ -4,10 +4,16 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import PurePosixPath, PureWindowsPath
+from urllib.parse import parse_qs, urlsplit
 
 from database.connection import database
 
 ACTIONS = {'prepare', 'send', 'stop', 'refresh', 'switch_folder', 'browse_folder'}
+PROJECT_ACTIONS = {'project_add', 'project_pause', 'project_resume', 'project_priority',
+                   'project_cards', 'project_send', 'project_pause_all', 'project_parallelism'}
+ACTIONS |= PROJECT_ACTIONS
+TORRENT_ACTIONS = {'torrent_search', 'torrent_search_stop', 'torrent_add', 'torrent_start', 'torrent_pause', 'torrent_files'}
+ACTIONS |= TORRENT_ACTIONS
 QUALITIES = {'source', '1080p', '720p', '480p', '360p'}
 RENDER_OPTIONS = {
     'mode': {'single', 'batch'},
@@ -18,6 +24,60 @@ RENDER_OPTIONS = {
 MAX_BROWSE_ENTRIES = 100
 MAX_BROWSE_BYTES = 128 * 1024
 MAX_FOLDER_LENGTH = 4000
+
+
+def torrent_payload(current, action, payload):
+    if not supports(current, 'torrent_control'):
+        raise ValueError('Обновите лаунчер для управления торрентами из WEB.')
+    status = current['status'].get('torrents', {})
+    if action in ('torrent_pause', 'torrent_search_stop'):
+        return {}
+    if action == 'torrent_search':
+        query = payload.get('query')
+        if not isinstance(query, str) or not 3 <= len(query.strip()) <= 120:
+            raise ValueError('Введите название от 3 до 120 символов.')
+        if status.get('search', {}).get('state') == 'searching':
+            raise ValueError('Поиск уже выполняется.')
+    if action in ('torrent_search', 'torrent_add'):
+        seasons = payload.get('seasons', '0')
+        if (not isinstance(seasons, str) or len(seasons) > 100
+                or not re.fullmatch(r'0|all|все|[1-9]\d?(?:\s*[-,]\s*[1-9]\d?)*', seasons.strip())):
+            raise ValueError('Сезоны: 0 — фильм; 1; 1-3; 1,3; все.')
+        if action == 'torrent_search':
+            return {'query': query.strip(), 'seasons': seasons.strip()}
+    if status.get('busy') or current['status'].get('operation_busy'):
+        raise ValueError('Дождитесь завершения текущей операции лаунчера или приостановите её.')
+    if action == 'torrent_add':
+        if bool(payload.get('result_id')) == bool(payload.get('magnet')):
+            raise ValueError('Выберите результат поиска или одну magnet-ссылку.')
+        if payload.get('result_id'):
+            result_id = payload['result_id']
+            if not isinstance(result_id, str) or not any(r.get('id') == result_id for r in status.get('search', {}).get('results', [])):
+                raise ValueError('Результат поиска устарел. Повторите поиск на выбранном компьютере.')
+            return {'result_id': result_id, 'seasons': seasons.strip()}
+        magnet = payload.get('magnet')
+        if not isinstance(magnet, str) or len(magnet) > 8000 or any(ord(c) < 32 for c in magnet):
+            raise ValueError('Вставьте корректную magnet-ссылку.')
+        parsed = urlsplit(magnet)
+        if parsed.scheme != 'magnet' or not any(re.fullmatch(r'urn:btih:([0-9a-fA-F]{40}|[a-zA-Z2-7]{32})', v)
+                                               for v in parse_qs(parsed.query).get('xt', [])):
+            raise ValueError('Вставьте magnet-ссылку с хешем BTIH.')
+        return {'magnet': magnet, 'seasons': seasons.strip()}
+    job_id = payload.get('job_id')
+    job = next((j for j in status.get('jobs', []) if j.get('id') == job_id), None)
+    if not isinstance(job_id, str) or not job or job.get('status') in ('prepared', 'project_queued', 'cancelled'):
+        raise ValueError('Выберите незавершённое скачивание этого компьютера.')
+    if action == 'torrent_files':
+        if job.get('selection_locked'):
+            raise ValueError('Файлы уже скачаны. Продолжите подготовку с прежним выбором.')
+        return {'job_id': job_id}
+    ids, qualities = payload.get('file_ids'), payload.get('qualities')
+    if (not isinstance(ids, list) or not 1 <= len(ids) <= 1000 or any(type(i) is not int for i in ids)
+            or len(ids) != len(set(ids)) or not set(ids).issubset({f['index'] for f in job.get('files', [])})):
+        raise ValueError('Выберите видеофайлы этой раздачи (до 1000).')
+    if not isinstance(qualities, list) or not qualities or any(not isinstance(q, str) or q not in QUALITIES for q in qualities):
+        raise ValueError('Выберите качества для подготовки проекта.')
+    return {'job_id': job_id, 'file_ids': ids, 'qualities': list(dict.fromkeys(qualities))}
 
 
 def absolute_folder(value, roots=False):
@@ -97,6 +157,9 @@ def heartbeat(admin_id, data):
         database.execute("UPDATE LauncherTransfers SET expires_at=?,updated_at=? WHERE admin_id=? AND instance_id=? AND status='claimed'",
                          (time.time() + 90, time.time(), admin_id, instance))
         database.execute("UPDATE LauncherCommands SET status='failed',result='Команда истекла: компьютер не ответил вовремя.' WHERE admin_id=? AND instance_id=? AND status='pending' AND created_at < datetime('now','-2 minutes')", (admin_id, instance))
+        if status.get('operation_busy') is False:
+            database.execute("UPDATE LauncherCommands SET status='failed',result='Операция прервана. Проверьте состояние проекта перед повтором.' WHERE admin_id=? AND instance_id=? AND status='claimed' AND action IN ('project_add','project_cards','project_send')",
+                             (admin_id, instance))
         row = database.execute("SELECT id,action,payload FROM LauncherCommands WHERE admin_id=? AND instance_id=? AND status='pending' ORDER BY id LIMIT 1", (admin_id, instance)).fetchone()
         command = None
         if row:
@@ -168,6 +231,33 @@ def enqueue(admin_id, action, payload, instance_id=''):
     if not current['online']:
         raise ValueError('Этот компьютер не в сети. Запустите лаунчер и проверьте подключение.')
     payload = dict(payload)
+    if action in TORRENT_ACTIONS:
+        payload = torrent_payload(current, action, payload)
+    if action in PROJECT_ACTIONS:
+        if not supports(current, 'project_control'):
+            raise ValueError('Обновите лаунчер для управления очередью проектов.')
+        if action == 'project_parallelism':
+            value = payload.get('parallelism')
+            if type(value) is not int or not 1 <= value <= 4:
+                raise ValueError('Число одновременных обработок: от 1 до 4.')
+            payload = {'parallelism': value}
+        elif action == 'project_pause_all':
+            payload = {}
+        elif action == 'project_add':
+            payload['folder'] = permitted_folder(current, payload.get('folder'))
+            series = payload.get('series')
+            if series is not None:
+                if (not isinstance(series, dict) or set(series) != {'movie_number', 'season_number'}
+                        or any(type(v) is not int or not 0 < v < 2**53 for v in series.values())
+                        or payload.get('mode') != 'single'):
+                    raise ValueError('Для сезона выберите один проект и положительные номера сериала и сезона.')
+        else:
+            project_id = payload.get('project_id')
+            if not isinstance(project_id, str) or not any(p.get('id') == project_id for p in current['status'].get('projects', [])):
+                raise ValueError('Выберите существующий проект этого компьютера.')
+            if action == 'project_send' and payload.get('confirmed') is not True:
+                raise ValueError('Подтвердите готовность карточек перед отправкой.')
+            payload = {'project_id': project_id, **({'confirmed': True} if action == 'project_send' else {})}
     if action in ('prepare', 'send', 'switch_folder') and current['status'].get('busy'):
         raise ValueError('Лаунчер занят. Дождитесь завершения текущей операции или остановите её.')
     if action == 'browse_folder':
@@ -180,7 +270,7 @@ def enqueue(admin_id, action, payload, instance_id=''):
         payload = {'folder': folder, 'offset': offset}
     elif action == 'switch_folder':
         payload = {'folder': permitted_folder(current, payload.get('folder'))}
-    if action in ('prepare', 'send'):
+    if action in ('prepare', 'send', 'project_add'):
         if any(key in payload for key in ('folder', *RENDER_OPTIONS)) and not supports(current, 'remote_render'):
             raise ValueError('Обновите лаунчер: эта версия не поддерживает запуск с выбранной папкой и параметрами.')
         if 'folder' in payload:
@@ -200,8 +290,14 @@ def enqueue(admin_id, action, payload, instance_id=''):
         payload = {**payload, 'qualities': list(dict.fromkeys(qualities))}
     with database.transaction():
         # Never replay an unacknowledged operation: it may already have started.
-        database.execute("UPDATE LauncherCommands SET status='failed',result='Компьютер не подтвердил команду.' WHERE admin_id=? AND instance_id=? AND status='claimed' AND updated_at < datetime('now','-5 minutes')", (admin_id, instance_id))
+        database.execute("UPDATE LauncherCommands SET status='failed',result='Компьютер не подтвердил команду.' WHERE admin_id=? AND instance_id=? AND status='claimed' AND action NOT IN ('project_add','project_cards','project_send') AND updated_at < datetime('now','-5 minutes')", (admin_id, instance_id))
         blockers = " AND action<>'browse_folder'" if action == 'stop' else ''
+        if action in ('stop', 'project_pause', 'project_pause_all', 'project_priority', 'browse_folder'):
+            blockers = " AND action NOT IN ('browse_folder','project_add','project_cards','project_send')"
+        if action == 'browse_folder':
+            blockers = " AND action NOT IN ('project_add','project_cards','project_send')"
+        if action in ('torrent_search', 'torrent_search_stop', 'torrent_pause'):
+            blockers = " AND action NOT IN ('project_add','project_cards','project_send')"
         if database.execute("SELECT 1 FROM LauncherCommands WHERE admin_id=? AND instance_id=? AND status IN ('pending','claimed')" + blockers,
                             (admin_id, instance_id)).fetchone():
             raise ValueError('Предыдущая команда для этого компьютера ещё выполняется.')

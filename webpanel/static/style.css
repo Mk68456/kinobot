@@ -35,3 +35,28 @@
 #catalog-search input[type=checkbox]{width:20px;height:20px;min-height:20px;padding:0;margin:0;flex-shrink:0;accent-color:var(--blue)}
 
 .series-fill-dialog{width:min(760px,90vw);max-height:85vh;overflow:auto}.series-fill-list{max-height:50vh;overflow:auto;padding:4px 12px 4px 0}.series-fill-list label{display:block;margin:12px 0}.series-fill-list input{width:100%;box-sizing:border-box}
+
+.file-review-row{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:12px 0}.file-review-row label{display:flex;gap:10px;align-items:center;min-width:0;overflow-wrap:anywhere}.file-review-row button{flex-shrink:0}.file-preview-dialog{width:min(1000px,calc(100% - 24px));max-height:92vh;overflow:auto}.file-preview-dialog h2{overflow-wrap:anywhere}.file-preview-dialog video{display:block;width:100%;max-height:68vh;background:#000}.file-preview-dialog [role=status]{white-space:pre-wrap}@media(max-width:600px){.file-review-row{align-items:flex-start;flex-direction:column}}
+
+.queue-tools{padding:16px;border-bottom:1px solid var(--line);background:var(--surface)}.queue-tools-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}.queue-tools-row+ .queue-tools-row{margin-top:12px}.queue-tools-row label{min-width:140px;flex:1}.queue-tools-row .queue-search{flex:2}.queue-tools select,.queue-tools input{width:100%}.queue-tools p{font-size:.875rem;margin-bottom:0}@media(max-width:600px){.queue-tools-row{align-items:stretch;flex-direction:column}.queue-tools-row button{width:100%}}
+
+.queue-row.queue-incomplete{border-left:3px solid var(--red);background:rgba(255,164,170,.05)}.queue-issue-note{font-size:.875rem;margin-top:8px}.queue-incomplete [aria-invalid=true]{border-color:var(--red)}.queue-issues{border:1px solid var(--red);border-radius:8px;padding:12px;margin:12px 0}.queue-issues-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto;margin-top:10px}.queue-issues-list button{text-align:left;overflow-wrap:anywhere}
+
+/* Requests without posters use the full card width, including source notes. */
+.request-card.request-card-text{grid-template-columns:minmax(0,1fr)}
+.request-card>div{min-width:0}
+.file-status [data-preview-asset]{margin-top:6px;white-space:nowrap}
+#remote-project-panel select,#remote-project-panel input{width:100%;min-height:44px;margin-top:6px}
+#remote-project-panel .remote-settings-grid{align-items:center}
+#project-summary,#project-details{overflow-wrap:anywhere;min-width:0}
+#project-details details{border-bottom:1px solid var(--line);padding:12px 0}
+#project-details summary{cursor:pointer;min-height:44px}
+#project-details p{padding:8px 12px;background:var(--surface2);border-radius:6px}
+#remote-torrents{min-width:0;overflow-wrap:anywhere}
+#remote-torrents select,#remote-torrents input:not([type=checkbox]),#remote-torrents textarea{width:100%;min-height:44px;margin-top:6px}
+#remote-torrents details{margin:16px 0}#remote-torrents summary{cursor:pointer;min-height:44px}
+#remote-torrents>label{display:block;margin:12px 0}#remote-torrents button{min-height:44px}
+#torrent-files{max-height:360px;overflow:auto}#torrent-files label{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+#torrent-files input{width:22px;height:22px;flex-shrink:0}#torrent-files span{min-width:0}#torrent-files small{display:block}
+#torrent-qualities label{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-right:14px;white-space:nowrap;overflow-wrap:normal;width:auto}
+#torrent-qualities input[type=checkbox]{width:20px;height:20px;min-height:20px;flex:0 0 20px;margin:0}

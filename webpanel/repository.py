@@ -21,7 +21,45 @@ def asset(asset_id, admin_id):
     result = database.execute(
         f"SELECT {ASSET_FIELDS} FROM WebAssets WHERE id=? AND admin_id=?", (asset_id, admin_id)
     ).fetchone()
-    return dict(zip(ASSET_FIELDS.split(","), result)) if result else None
+    return with_storage_order([dict(zip(ASSET_FIELDS.split(","), result))])[0] if result else None
+
+
+def asset_preview(asset_id, admin_id):
+    file = asset(asset_id, admin_id)
+    if not file:
+        raise ValueError('Файл недоступен.')
+    from services.storage_backup import storage_reference
+    reference = storage_reference(file['file_id']) if file['file_id'] else None
+    if not reference:
+        row = database.execute('SELECT source_chat_id,source_message_id FROM WebAssets WHERE id=? AND admin_id=?',
+                               (asset_id, admin_id)).fetchone()
+        reference = {'chat_id': row[0], 'message_id': row[1]} if row and row[0] and row[1] else None
+    link = None
+    if reference and str(reference['chat_id']).startswith('-100') and int(reference['message_id']) > 0:
+        link = f"https://t.me/c/{str(reference['chat_id'])[4:]}/{int(reference['message_id'])}"
+    return {'filename': file['filename'], 'size': file['size'], 'telegram_url': link,
+            'can_send': file['status'] == 'ready' and bool(file['file_id'])}
+
+
+def with_storage_order(files):
+    """Attach channel message order without using the database recovery timestamp."""
+    metadata = {}
+    for offset in range(0, len(files), 400):
+        ids = [file['id'] for file in files[offset:offset+400]]
+        placeholders = ','.join('?' for _ in ids)
+        for asset_id, source_chat, source_message, file_id, backup_chat, backup_message in database.execute(
+                f'''SELECT a.id,a.source_chat_id,a.source_message_id,a.file_id,
+                    s.storage_chat_id,s.storage_message_id
+                    FROM WebAssets a LEFT JOIN TelegramStorageFiles s ON s.file_id=a.file_id AND s.status='ready'
+                    WHERE a.id IN ({placeholders})''', ids):
+            original = bool(source_chat and source_message and str(source_chat).startswith('-100') and (
+                (file_id or '').startswith('storage:') or database.execute(
+                    'SELECT 1 FROM TelegramStorage WHERE chat_id=?', (source_chat,)).fetchone()))
+            chat = source_chat if original else backup_chat
+            message = source_message if original else backup_message
+            if chat and message and str(chat).startswith('-100') and message > 0:
+                metadata[asset_id] = {'storage_chat_id': chat, 'storage_message_id': message}
+    return [{**file, **metadata.get(file['id'], {})} for file in files]
 
 
 def assets(admin_id, draft_id=None):
@@ -45,7 +83,7 @@ def assets(admin_id, draft_id=None):
             result.extend(dict(zip(ASSET_FIELDS.split(','), row)) for row in database.execute(
                 f'SELECT {ASSET_FIELDS} FROM WebAssets WHERE admin_id=? AND id IN ({placeholders})',
                 (admin_id, *keys)))
-    return result
+    return with_storage_order(result)
 
 
 def receive_telegram(admin_id, message):
@@ -729,7 +767,10 @@ def group_files(admin_id, selections, body):
                 raise ValueError('Файл уже объединён в другую карточку.')
             item=next((i for i in source['body']['items'] if i['asset_id']==file['id']),None)
             if not item:raise ValueError('Файл не принадлежит выбранной карточке.')
-            items.append({**item,'category':item.get('category') or 'Варианты'})
+            merged_item = {**item, 'category': item.get('category') or 'Варианты'}
+            if source['body'].get('content_type') == 'series' and not merged_item.get('season_number'):
+                merged_item['season_number'] = source['body'].get('season_number')
+            items.append(merged_item)
         existing = target['body']['items'] if target else []
         if {i['asset_id'] for i in existing} & {i['asset_id'] for i in items}:
             raise ValueError('Эти файлы уже есть в карточке назначения.')
