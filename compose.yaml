@@ -30,8 +30,6 @@ services:
       bot-api:
         condition: service_healthy
     environment:
-      BOT_TOKEN: ${BOT_TOKEN:-}
-      ADMIN_IDS: ${ADMIN_IDS:-}
       WEB_ENABLED: '1'
       WEB_HOST: 0.0.0.0
       WEB_PORT: '8088'

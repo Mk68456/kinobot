@@ -5,6 +5,7 @@ requires-python = "==3.11.*"
 dependencies = [
     "aiogram==2.25.2",
     "aiohttp==3.8.6",
+    "telethon==1.45.0",
 ]
 
 [dependency-groups]

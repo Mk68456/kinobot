@@ -28,6 +28,8 @@ async def on_startup(dispatcher):
     broadcasts.start(dispatcher.bot)
     from services.storage_backup import backup
     backup.start(dispatcher.bot)
+    from services.zona_delivery import delivery as zona_delivery
+    zona_delivery.start(dispatcher.bot)
 
 
 async def on_shutdown(dispatcher):
@@ -35,6 +37,9 @@ async def on_shutdown(dispatcher):
     from services.broadcasts import broadcasts
     from services.tmdb import close_session
     from services.storage_backup import backup
+
+    from services.zona_delivery import delivery as zona_delivery
+    await zona_delivery.stop()
 
     if web_runner is not None:
         await web_runner.cleanup()
