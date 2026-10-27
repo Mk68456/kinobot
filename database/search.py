@@ -66,11 +66,6 @@ def get_movies_by_title(query: str, content_type=None, catalog_section=None, use
     cursor.execute("PRAGMA table_info(Movies)")
     columns = {row[1] for row in cursor.fetchall()}
     filters, params = [], []
-    if user_id is not None:
-        from database.age_access import sql_filter
-        clause, values = sql_filter(user_id)
-        filters.append(clause)
-        params.extend(values)
     if content_type and "content_type" in columns:
         filters.append("COALESCE(content_type,'movie')=?")
         params.append(content_type)
