@@ -1,13 +1,25 @@
 import unittest
+import contextlib
+import io
 from unittest.mock import AsyncMock, patch
 
 from aiohttp import ClientSession, ClientTimeout
 from data import settings
 from webpanel.server import start
 from webpanel.uploads import Uploads
+from database.connection import database
+from database.migrations import migrate
 
 
 class WebStartupTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        database.open(':memory:')
+        with contextlib.redirect_stdout(io.StringIO()):
+            migrate()
+
+    async def asyncTearDown(self):
+        database.close()
+
     async def test_production_start_accepts_http_connections(self):
         with (
             patch.object(settings, "WEB_HOST", "127.0.0.1"),
@@ -26,5 +38,10 @@ class WebStartupTests(unittest.IsolatedAsyncioTestCase):
                         self.assertIn("KinoTime", await response.text())
                     async with client.get(f"http://127.0.0.1:{port}/static/app.js") as response:
                         self.assertEqual(response.status, 200)
+                    with patch('webpanel.server.imports.authenticate', return_value=99), patch('webpanel.server.imports.reopen', return_value={'id':'one','status':'draft'}) as reopen:
+                        async with client.post(f'http://127.0.0.1:{port}/api/desktop/import/one/reopen', json={'kind':'rejected'}, headers={'Authorization':'Bearer test-token'}) as response:
+                            self.assertEqual(response.status, 200)
+                            self.assertEqual((await response.json())['draft']['status'], 'draft')
+                        reopen.assert_called_once_with(99, 'one', 'rejected', '')
             finally:
                 await runner.cleanup()
