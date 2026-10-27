@@ -307,6 +307,38 @@ def _stream_projects():
 MIGRATIONS += (_stream_projects,)
 
 
+def _request_targets():
+    database.execute("ALTER TABLE ContentRequests ADD COLUMN episode INTEGER NOT NULL DEFAULT 0")
+    database.execute("ALTER TABLE ContentRequests ADD COLUMN voice TEXT NOT NULL DEFAULT ''")
+    database.execute("ALTER TABLE ContentRequests ADD COLUMN verification TEXT NOT NULL DEFAULT ''")
+    database.execute("ALTER TABLE ContentRequests ADD COLUMN expected_episodes TEXT NOT NULL DEFAULT ''")
+
+
+MIGRATIONS += (_request_targets,)
+
+
+def _request_voice_evidence():
+    database.execute("ALTER TABLE ContentRequests ADD COLUMN voice_evidence TEXT NOT NULL DEFAULT '[]'")
+
+
+MIGRATIONS += (_request_voice_evidence,)
+
+
+def _zona_jobs():
+    database.execute("""CREATE TABLE ZonaJobs (
+        id TEXT PRIMARY KEY, admin_id INTEGER NOT NULL, page_url TEXT NOT NULL,
+        source_id TEXT NOT NULL, label TEXT NOT NULL, metadata TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'queued', error TEXT, path TEXT,
+        file_id TEXT, asset_id TEXT, message_id INTEGER,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(admin_id,source_id))""")
+    database.execute("CREATE INDEX idx_zona_jobs_status ON ZonaJobs(status,created_at)")
+
+
+MIGRATIONS += (_zona_jobs,)
+
+
 def migrate(backup_dir=None):
     version = database.execute("PRAGMA user_version").fetchone()[0]
     if version > len(MIGRATIONS):

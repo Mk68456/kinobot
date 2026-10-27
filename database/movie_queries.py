@@ -23,11 +23,6 @@ def get_movies_page(page=0, content_type=None, per_page=5, catalog_section=None,
     sql = "SELECT movie_title,movie_number FROM Movies"
     params = []
     filters = []
-    if user_id is not None:
-        from database.age_access import sql_filter
-        clause, values = sql_filter(user_id)
-        filters.append(clause)
-        params.extend(values)
     if content_type:
         filters.append("COALESCE(content_type,'movie')=?")
         params.append(content_type)
