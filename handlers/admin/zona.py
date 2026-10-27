@@ -1,6 +1,7 @@
 """Administrator-only trial of page -> chosen video -> private Telegram delivery."""
 
 import asyncio
+import logging
 import secrets
 import time
 
@@ -9,8 +10,10 @@ from loader import dp
 from database import zona_jobs as jobs
 from services.zona_delivery import delivery, normalize_page, size_error, upload_limit, STATUSES
 from tools.zona_prototype import discover
+from services.zona_errors import lookup_failure
 
 looking_up = set()
+logger = logging.getLogger(__name__)
 
 
 def job_markup(job):
@@ -64,11 +67,13 @@ async def inspect_page(message, state, value):
         await state.set_state('Zona:pick')
         await state.update_data(zona_page=page, zona_sources=sources, zona_created=time.time())
         await show_choices(message, state)
-    except Exception:
+    except Exception as exc:
+        explanation, code = lookup_failure(exc)
+        # Exception text and traceback may contain temporary signed provider URLs.
+        logger.warning('Zona lookup failed code=%s type=%s', code, type(exc).__name__)
         if (await state.get_data()).get('zona_nonce') == nonce:
             await state.finish()
-            await message.answer('Не удалось получить варианты со страницы. Источник мог измениться '
-                                 'или временно недоступен. Попробуйте /zona позже.')
+            await message.answer(explanation, parse_mode='')
     finally:
         looking_up.discard(message.from_user.id)
 
