@@ -1,0 +1,21 @@
+# Build only when the Bot API or Python runtime must change. No bot source is copied.
+FROM debian:bookworm-slim AS api-build
+ARG BOT_API_REVISION=e3e9dd8e5b3d7ab8537cd5a10dc31d5ffa8f82d1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates git cmake g++ gperf libssl-dev zlib1g-dev make \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+RUN git init && git remote add origin https://github.com/tdlib/telegram-bot-api.git \
+    && git fetch --depth 1 origin ${BOT_API_REVISION} && git checkout FETCH_HEAD \
+    && git submodule update --init --recursive --depth 1
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+    && cmake --build build --target install --parallel 1
+
+FROM python:3.11-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libssl3 zlib1g libstdc++6 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 10001 --create-home bot
+RUN pip install --no-cache-dir uv==0.11.32
+COPY --from=api-build /usr/local/bin/telegram-bot-api /usr/local/bin/telegram-bot-api
+RUN telegram-bot-api --version && python -c "import sys; assert sys.version_info[:2] == (3, 11)"
