@@ -51,7 +51,7 @@ def device_draft(admin_id, draft_id, instance_id=''):
     return current
 
 
-def create(admin_id, manifest, instance_id='', *, allow_append=False):
+def create(admin_id, manifest, instance_id='', *, allow_append=False, allow_existing_season=False):
     if not isinstance(manifest, dict) or manifest.get('version') != 1:
         raise ValueError('Неподдерживаемый формат списка файлов.')
     title = str(manifest.get('title', '')).strip()
@@ -197,7 +197,7 @@ def create(admin_id, manifest, instance_id='', *, allow_append=False):
                                      (digest, item['asset_id'], digest))
         current['backend_patch'] = 'draft-reopen-v4'
         return current
-    if content_type == 'series' and database.execute(
+    if content_type == 'series' and not allow_existing_season and database.execute(
             'SELECT 1 FROM MovieCategories WHERE movie_number=? AND (season_number=? OR name=?)',
             (movie_number, season_number, series_fields['season_name'])).fetchone():
         raise ValueError('Этот сезон уже опубликован. Для добавления серий используйте редактор сериала.')

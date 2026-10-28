@@ -376,6 +376,14 @@ async def desktop_stream(request):
     return web.json_response({'draft': current, 'bot_username': me.username, 'bot_name': me.full_name})
 
 
+async def desktop_provider_import(request):
+    from webpanel.provider_import import create
+    current, linked = create(request['admin_id'], await body(request), request['instance_id'])
+    me = await request.app['uploads'].bot.get_me()
+    return web.json_response({'draft': current, 'linked_existing': linked,
+                              'bot_username': me.username, 'bot_name': me.full_name})
+
+
 async def desktop_stream_finish(request):
     from webpanel import streaming
     current = streaming.finish(request['admin_id'], request['instance_id'], request.match_info['id'])
@@ -411,7 +419,8 @@ async def desktop_session(request):
     me = await request.app['uploads'].bot.get_me()
     return web.json_response({'protocol': 2, 'admin_id': request['admin_id'],
                               'max_import_files': repository.MAX_IMPORT_FILES,
-                              'capabilities': {'multi_launcher': 1, 'remote_control': 1, 'streaming_import': 1},
+                              'capabilities': {'multi_launcher': 1, 'remote_control': 1, 'streaming_import': 1,
+                                               'provider_import': 1},
                               'bot_username': me.username, 'bot_name': me.full_name})
 
 
@@ -668,6 +677,7 @@ def create_app(bot, config=settings):
             web.get('/api/drafts/{id}/promo', promo_draft),
             web.post('/api/card-candidates', card_candidates),
             web.post('/api/desktop/import', desktop_import),
+            web.post('/api/desktop/provider-import', desktop_provider_import),
             web.post('/api/desktop/stream', desktop_stream),
             web.post('/api/desktop/stream/{id}/finish', desktop_stream_finish),
             web.post('/api/desktop/transfers/reset', desktop_transfer_reset),
