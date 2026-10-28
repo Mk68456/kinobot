@@ -1,541 +1,409 @@
 {
-  "release": "server-2026-10-17-catalog-fix",
-  "files": {
-    ".dockerignore": {
-      "bytes": 132,
-      "sha256": "55f3a4fd7632f30e43fc92b258f8fcbdee8fab767cb5f8905c49c5f159dd0f98"
-    },
-    ".env.example": {
-      "bytes": 491,
-      "sha256": "0f9b3f4d87bfb5a0f9c2505ddc396d107e757e2a7f4de4267e54e8ff860f082a"
-    },
-    "app.py": {
-      "bytes": 2133,
-      "sha256": "1df58f5e7ec01201df29466c362385b4b6a04c0387ceedcb50a569af63ec4f7e"
-    },
-    "assets/kinotime-avatar.png": {
-      "bytes": 632995,
-      "sha256": "d7e279ccff7bf6ee3e39c5725053d65489520baf08fe81870b3d7c576f3e18d8"
-    },
-    "assets/telegram-stars-banner.png": {
-      "bytes": 1755105,
-      "sha256": "9e984204170d2b479cdb0b79245fc79cf073ad52ea17aff1e63b7c6f486ee8d6"
-    },
-    "compose.yaml": {
-      "bytes": 2115,
-      "sha256": "17aed07d4c8ab27c6337d8325dd2d124b1afbe71f10cf1aab9c4728db67baf33"
-    },
-    "data/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "data/config.py": {
-      "bytes": 738,
-      "sha256": "987af8c540fcce7ff0b8f78084b3c21bb254589c31b4daab2259a333f862807a"
-    },
-    "data/settings.py": {
-      "bytes": 1095,
-      "sha256": "64f9483f03a0d3677a55893cb0bed1a61679799ce9ab8b73001ccc7029e2c475"
-    },
-    "database/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "database/admin/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "database/admin/migrate_movies.py": {
-      "bytes": 5338,
-      "sha256": "b10720facf8e5061cf8e71dbce927aad718a1902527fb80066f500f389bdd397"
-    },
-    "database/admin/migrate_users.py": {
-      "bytes": 1001,
-      "sha256": "0854555bc91f0f85e72de2f2bb325e6640c0256bcc8e4c85fd931d0e0d0c73f8"
-    },
-    "database/age_access.py": {
-      "bytes": 5612,
-      "sha256": "4f8c02388b29a0166a35e41d0d608cff7208b8a663c2e9418823340475448832"
-    },
-    "database/broadcasts.py": {
-      "bytes": 1823,
-      "sha256": "271f8314316790ec6afe61a0e407ae7f140a69acffe3406de8b072830c4097d1"
-    },
-    "database/catalog_sections.py": {
-      "bytes": 1477,
-      "sha256": "aef281634879f8507f58ac490f3fbdcd1463c6b9b394b4a7ab4ba9e259577ae5"
-    },
-    "database/categories.py": {
-      "bytes": 6947,
-      "sha256": "cafc88de1e04b54a81d403f49e88bd5ce3c7a70a5816495fe27e23303446810a"
-    },
-    "database/channels.py": {
-      "bytes": 1329,
-      "sha256": "0b22ee7c959b3899576967949389afddee5a6f4bd217d93f85bfb6cfed9eebc3"
-    },
-    "database/connection.py": {
-      "bytes": 2094,
-      "sha256": "b1ab3c7e5eb757d521cf54fcd43669f14798005dbf22400c6da9413d2a3844b0"
-    },
-    "database/content_requests.py": {
-      "bytes": 6831,
-      "sha256": "a6d5f983e66c788c07d52e520c489426dcb193e649023914de051d23590759d8"
-    },
-    "database/contests.py": {
-      "bytes": 20606,
-      "sha256": "b69d3dde4b350c209ec2c984ccae27dc65be0b09557dd097ed60117f05e00a70"
-    },
-    "database/design.py": {
-      "bytes": 1718,
-      "sha256": "40efb09598b6931cc5039bba9b9e044710961bf8f5cd1a9f0ffa88b4d6d21834"
-    },
-    "database/episode_variants.py": {
-      "bytes": 4004,
-      "sha256": "823240b44278c363a54fe22fbf4b151cad2c1e17ec961b8a52b228cc44d8b108"
-    },
-    "database/migrations.py": {
-      "bytes": 18001,
-      "sha256": "96512275250886c689d3d2bb8929146dd368e439f7bc806ec1dfb83ef51dc66e"
-    },
-    "database/movie_queries.py": {
-      "bytes": 2025,
-      "sha256": "95811cdc1751f473cd856fa555d69c4561e3524b4637351b52b9929a0718c47c"
-    },
-    "database/movies.py": {
-      "bytes": 2672,
-      "sha256": "bd5ff2a0c0e3df312463357560d9f4bc78f87f4e390a86f4a49e659cd5ed4cc8"
-    },
-    "database/people.py": {
-      "bytes": 1301,
-      "sha256": "e8151ea869023575e45d340b7c69c40a4afd1723406685e0ce8e605e57dc9c39"
-    },
-    "database/progress.py": {
-      "bytes": 6582,
-      "sha256": "e746c44add5349f0203cf193a35c9788b160b9111ac2c63f63d2928d4ed3f88d"
-    },
-    "database/roles.py": {
-      "bytes": 2527,
-      "sha256": "a47d5668eda7178e72bbdc256fd608569434de298ea28c32b2575d244ccf29cc"
-    },
-    "database/search.py": {
-      "bytes": 4910,
-      "sha256": "2fecdc522626265ec28b74390fa95d32d81b8bccaccdce7886a9c07bdfb536c9"
-    },
-    "database/stats.py": {
-      "bytes": 5334,
-      "sha256": "04f34dd21ddab74f701bcc591806d75687b414ed6725b245f9db1dae5af71ea8"
-    },
-    "database/torrents.py": {
-      "bytes": 1048,
-      "sha256": "c460b109d77b609929c6c7c196f9fcf76361725ec4e5a099e9af2efc08f903ca"
-    },
-    "database/users/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "deploy/Caddyfile": {
-      "bytes": 45,
-      "sha256": "5c1a4a78d5d66253f5c767def07a71d113ed8f0ff25f593137762a400df672d5"
-    },
-    "deploy/Dockerfile.bot-api": {
-      "bytes": 1204,
-      "sha256": "b8c3afc4ea21b8cf7c91f4b0eda34314cc93884609b5adecefbd1890b1361224"
-    },
-    "Dockerfile": {
-      "bytes": 1293,
-      "sha256": "782fd601fb8220aaa16e9085691a35faa3cfcb94d0543f65d4eea492a78b9ea1"
-    },
-    "entrypoint.sh": {
-      "bytes": 533,
-      "sha256": "0c04e6f91c638eae7d03dfd643cd4fa01500d02341e3f231e9fcfbc32f7bed22"
-    },
-    "handlers/__init__.py": {
-      "bytes": 60,
-      "sha256": "8e7c337f1a677d98c0f993f3fa6c45b5d34d60c6f0da440c53b748204b335965"
-    },
-    "handlers/admin/__init__.py": {
-      "bytes": 295,
-      "sha256": "6a73c5641a8c5c4a1be13c51e259115248291f60c8c99f6a58e3206bf728bf7f"
-    },
-    "handlers/admin/admin_command.py": {
-      "bytes": 354,
-      "sha256": "fa484de3cfd2c621d3373cfc0daa5a2cc2b4330e4bba68dca6100c64927c0bc9"
-    },
-    "handlers/admin/broadcasts.py": {
-      "bytes": 3953,
-      "sha256": "ffa8ee7183f932636360ece739b82a2959324d195b73c99858bbc5ea2e71d051"
-    },
-    "handlers/admin/channels_func.py": {
-      "bytes": 5137,
-      "sha256": "47645a37a98c2cae0b9a347f8f5f49fc691aab0099c54330b479bf45736407b0"
-    },
-    "handlers/admin/content_requests.py": {
-      "bytes": 7081,
-      "sha256": "e8992ba61bd001fe96a0b43f650d41625b8f1b9f17e0dbeea72c4aeb4e7e6942"
-    },
-    "handlers/admin/design.py": {
-      "bytes": 4411,
-      "sha256": "a6f81b43e7d63ea1e8183f189a6a2a55e28e614266a5aaae741ad9067be87fce"
-    },
-    "handlers/admin/menu.py": {
-      "bytes": 4214,
-      "sha256": "5c9e9da06590d6ae6c2c599687129dca77a3292bd11c82d4481433b9abb0a44d"
-    },
-    "handlers/admin/movie_categories.py": {
-      "bytes": 6551,
-      "sha256": "e8976831fc0eb34eb2694e2d2a4f6e2f8d98a778ee08242d118b2ec37267c240"
-    },
-    "handlers/admin/movie_create.py": {
-      "bytes": 12517,
-      "sha256": "d7508fb66078b3424a13548ed5b86bbab4abe3bda0f830a6acbc1829aa7ae631"
-    },
-    "handlers/admin/movie_delete.py": {
-      "bytes": 2835,
-      "sha256": "b6dc647a38fd66bfcbdfa8715a4460a0978746683b2b5cb3729572b7f5985a9b"
-    },
-    "handlers/admin/movie_edit.py": {
-      "bytes": 11135,
-      "sha256": "0852ff817dd43be40e6cf662528e02da2ba76723a9edc0662130bf65dade5968"
-    },
-    "handlers/admin/roles.py": {
-      "bytes": 6951,
-      "sha256": "2818154978303cb576e11b02f6e9ba5aa7a7b668a9d5e488b31bf68ba76aa740"
-    },
-    "handlers/admin/series_edit.py": {
-      "bytes": 15032,
-      "sha256": "90a66c8be044b16b08a50dbeb33d997cd38559f4f0771bc15a719a4c4023099f"
-    },
-    "handlers/admin/stats_handlers.py": {
-      "bytes": 6761,
-      "sha256": "1c66220cce23d10c070d92803592540675e310d837f40f08b711b2eb5fbf153b"
-    },
-    "handlers/admin/torrents_edit.py": {
-      "bytes": 6359,
-      "sha256": "d8dbd750ac30ffeb3b25a09118d131df337c0b624867c075112928515b38f836"
-    },
-    "handlers/admin/watch_stats.py": {
-      "bytes": 4411,
-      "sha256": "5ce1b32697d7dfd3d89a8a4288bb55a6b932d28c42e9e4d0f88b0763628f3fff"
-    },
-    "handlers/admin/web_panel.py": {
-      "bytes": 6672,
-      "sha256": "92de28ee9187e902bb35917feab1302f50b6c5e4dd341733b75e69d7a09e4db4"
-    },
-    "handlers/start.py": {
-      "bytes": 3037,
-      "sha256": "50ffb82e878f41dc7a411506302cefda7b77f28cabb033f5078cccf5c4592827"
-    },
-    "handlers/users/__init__.py": {
-      "bytes": 171,
-      "sha256": "30fc4032cac7b830a3ddd577146118bc746999e19a8cef462039190c397dbaaf"
-    },
-    "handlers/users/age_settings.py": {
-      "bytes": 7153,
-      "sha256": "b062300441b1f52a7d0c6f3d7dd546b2befc600228f290d6860c36e00bbff76a"
-    },
-    "handlers/users/check_user_sub.py": {
-      "bytes": 1010,
-      "sha256": "57f4a714cb9098cbbf2d455989751f30dbe7296742a157ff852b3a10b8fd17d7"
-    },
-    "handlers/users/content_requests.py": {
-      "bytes": 10719,
-      "sha256": "574ed51c3c806acb2a4efbd1fc36c3b1b8945282b16a29dd52ae4989f16634ae"
-    },
-    "handlers/users/contests.py": {
-      "bytes": 5093,
-      "sha256": "5639a3484183cd9337f40406886512dda278424df2c61f3ffd54be4ec5981f3a"
-    },
-    "handlers/users/find_movie.py": {
-      "bytes": 50929,
-      "sha256": "1d127404d94e438710440df65f0f987de951150be175e3f94e3b7d8e76377070"
-    },
-    "handlers/users/inline_share.py": {
-      "bytes": 2805,
-      "sha256": "82ae4758efcc2b87b609f64672df7be53117411cd5cf90bc32a304f54c2118dd"
-    },
-    "handlers/users/start_command.py": {
-      "bytes": 143,
-      "sha256": "2af0fb52b1096b037cd732029f5cd2d986b338770a4ab9cb93f5bb213867a617"
-    },
-    "keyboards/__init__.py": {
-      "bytes": 64,
-      "sha256": "649d2f24272fcdac3f6af1a8dc45e82bcd2d84d4e86881808cb292cbe9072b22"
-    },
-    "keyboards/admin/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "keyboards/admin/keyboard.py": {
-      "bytes": 11850,
-      "sha256": "0565979cbdee603f915f9cf0cbcc257276ad685828f5b1f9cf208f67ab4d570e"
-    },
-    "keyboards/admin/roles.py": {
-      "bytes": 1560,
-      "sha256": "5676ff862e026bfa9b9decdcfa9bf9efc7078b6167014212374bf5c9a06b777d"
-    },
-    "keyboards/inline/__init__.py": {
-      "bytes": 2,
-      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6"
-    },
-    "keyboards/inline/sub_keyboard.py": {
-      "bytes": 433,
-      "sha256": "386b2532499585a16cad72a3389f3e509e2cca46eca0c671a84ed296914a1d5b"
-    },
-    "keyboards/users/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "keyboards/users/keyboard.py": {
-      "bytes": 2574,
-      "sha256": "726c8fb01105b257fa3c1a8938784ae234acf64f5d3b0aff5f5bad57fd901cbb"
-    },
-    "loader.py": {
-      "bytes": 735,
-      "sha256": "30c06720e1a27a3d72cf425ca68bbf2ef012a43b2f43edf087969f64525626d7"
-    },
-    "pyproject.toml": {
-      "bytes": 387,
-      "sha256": "656304189b43b7efd1f9ce06a516d48afa8b294fb60791792f289d38aa3ac1c8"
-    },
-    "README.md": {
-      "bytes": 5502,
-      "sha256": "e157eec52e4f201e9d628c8225892c698d3dbcdcaafc223d31530361c50226c0"
-    },
-    "RELEASE-NOTES.md": {
-      "bytes": 5522,
-      "sha256": "10dca16c266ed9a8830ba3ac3c40d9be015dde85a24c32cba4b33fb2939ffda4"
-    },
-    "requirements.txt": {
-      "bytes": 800,
-      "sha256": "6c18779b6e0ad8766b3461ad834c0f53159ce0852450712fec791bdf0df6dd8e"
-    },
-    "services/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "services/access.py": {
-      "bytes": 2626,
-      "sha256": "7383cb1dd88e944034f9953d7d1e8f7d12eadb985916e9fc46280c70661f06f9"
-    },
-    "services/age_access.py": {
-      "bytes": 2668,
-      "sha256": "6d2a5ece9610824a16f08814ed3c02f727fed732ca57730a4b888235c896b483"
-    },
-    "services/broadcasts.py": {
-      "bytes": 4497,
-      "sha256": "4d321a4a1f9d9519d725da80b1e433ae4559ec19f272e826972c397938602a98"
-    },
-    "services/catalog.py": {
-      "bytes": 1785,
-      "sha256": "37fdf72bf2f3ad60a0703fe92ebab6dbfadbe0f9bd207704dedf282e1b5b3176"
-    },
-    "services/contests.py": {
-      "bytes": 7296,
-      "sha256": "65d860c4f787369df62b90e93c310e4ac50282c1404ea2c1ae3d0925baf82032"
-    },
-    "services/episode_cards.py": {
-      "bytes": 4709,
-      "sha256": "ff09b559646ab7afee9a581325674bf04be1987ff093c6ee0b99b370dad1a019"
-    },
-    "services/movie_sharing.py": {
-      "bytes": 3081,
-      "sha256": "b1b5cdbcd1f2ad0eefc4da1d9faa590b9b20a901b88bd51afbeb604cb0b8b95d"
-    },
-    "services/poiskkino.py": {
-      "bytes": 5181,
-      "sha256": "d6d5332ffb02117bc15fc3182ef0b61f587d8eb066b669a7c5776c143e9f0db1"
-    },
-    "services/ratings.py": {
-      "bytes": 1423,
-      "sha256": "5f72f3adad537f0b04483473e64998ccb9336ead3ecb35d4c39d655de6db7671"
-    },
-    "services/storage_backup.py": {
-      "bytes": 8586,
-      "sha256": "7ed507b057e7b367209f11cadd54591f99784572d0048e95dc22aaf8651edf29"
-    },
-    "services/storage_recovery.py": {
-      "bytes": 5939,
-      "sha256": "4bc3dfc0e986f9f9b16bee871047ef70f6dd36836dcb7da20591aa0e39e14ff1"
-    },
-    "services/subscriptions.py": {
-      "bytes": 1036,
-      "sha256": "e0be312d6f17796bcc55e9c183a55021388f0d2be4f1a57fcc8bf337982afef5"
-    },
-    "services/tmdb.py": {
-      "bytes": 10399,
-      "sha256": "d2eb9f277f771c77f3f12eac51df352e9220de0ad9960f17b2a0a0c4049c70d6"
-    },
-    "services/trailers.py": {
-      "bytes": 2859,
-      "sha256": "1c7bb2c2462b10b59850284e00b7985b855dc20b077184fcc2a0a58a90a7797d"
-    },
-    "services/welcome.py": {
-      "bytes": 1947,
-      "sha256": "6838b3faa062f72bc22e31974aefc4cb2df581c164a7819d6daae504444340f6"
-    },
-    "setup.sh": {
-      "bytes": 344,
-      "sha256": "c9d450d224bb51eed5bac8d6bfc0a55928d105d4df1235f2ee4084d7f0239446"
-    },
-    "states/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "states/admin_states.py": {
-      "bytes": 1193,
-      "sha256": "f061b1bac9e2d9eac5838ad88e2d338480ea910bbf4fea6bab312dc18919ac9d"
-    },
-    "states/user_states.py": {
-      "bytes": 123,
-      "sha256": "9ccdd2499aa95c281dd78f9ea3db6ebbbd6662aeaac1118bd2fd512163125a47"
-    },
-    "tools/backup_database.py": {
-      "bytes": 927,
-      "sha256": "72d7c50ea30b21492f540eefd5ba3608319b7c729be98c1aa0d77d80130793f9"
-    },
-    "tools/deploy_storage.py": {
-      "bytes": 1973,
-      "sha256": "01df75bfce63133f145e58470bd3d1cd298c9db6d7cbc497fbbd63c9ce6b6da4"
-    },
-    "tools/logout_cloud.py": {
-      "bytes": 1073,
-      "sha256": "a72c4e5819722a97b6e2397d4bc563a0dc882e0dfba18b7450ea4b38c841afb7"
-    },
-    "tools/prepare_storage.py": {
-      "bytes": 1005,
-      "sha256": "d4959907908f5f98ecc926d2cd15d2b1f819b254753e680462786b32ebc6a2c7"
-    },
-    "tools/restore_storage.py": {
-      "bytes": 1918,
-      "sha256": "a50979f94b9f964c18b692f421aad085bc0b10127a3c355df42e8af2a80ad7f8"
-    },
-    "tools/setup_deploy.py": {
-      "bytes": 8177,
-      "sha256": "92eae965f98e00130eeab4f81bf3ad96ae564e78fe9b8b8d8fe4492f9bb506fb"
-    },
-    "tools/storage_diagnostics.py": {
-      "bytes": 1303,
-      "sha256": "681631966de5ab4e9f18cc1093ba36f486841d8cba401181fbf68791dc1afc99"
-    },
-    "utils/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "utils/set_bot_commands.py": {
-      "bytes": 289,
-      "sha256": "3ec9ec28309efb456415612966f773b83e9ce255df79404cc4401608010aeb2d"
-    },
-    "uv.lock": {
-      "bytes": 55851,
-      "sha256": "06de62415cef6adb79ccd6dadc593ac03e012e9e951fba36b0ca2d6f8bc44e49"
-    },
-    "verification/checks.txt": {
-      "bytes": 1342,
-      "sha256": "f22b506c95d910bf82c50f90a98d9bb37fbd02e90f0e098db23a49219261af39"
-    },
-    "verification/source-audit.json": {
-      "bytes": 4234,
-      "sha256": "b4be805a595506e30a61d5b7c94e4ac95244fdc8da1de593e1d6e47486b1e7d2"
-    },
-    "verification/startup-and-storage.json": {
-      "bytes": 656,
-      "sha256": "71f0b447a3a725b62999f20dc425f754a3a1983ae2a9e7da3395a4d704466668"
-    },
-    "webpanel/__init__.py": {
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    "webpanel/auth.py": {
-      "bytes": 1957,
-      "sha256": "442e8e5550c08a8593a35e19b30cd562ba2269dc3179500f9b263a3631487f20"
-    },
-    "webpanel/catalog_merge.py": {
-      "bytes": 9331,
-      "sha256": "19738d8de992a11ef1ad4f6bdb29f78b6b830106ee0aaa1a0a55395f0b7f5cbb"
-    },
-    "webpanel/contests.py": {
-      "bytes": 2779,
-      "sha256": "6927c406999f90eb6539571952329cc5a900b0dfa8b487e72005f336013ef9a5"
-    },
-    "webpanel/episode_merge.py": {
-      "bytes": 11275,
-      "sha256": "f79e1ccda64bd2671fb97af4099fa5cc2ec5e75cab4de13ffc929265f4d80c54"
-    },
-    "webpanel/imports.py": {
-      "bytes": 17902,
-      "sha256": "667e0d7ed29cdd5606c44e444426d248a37a0570d0b837ba7bc5d5840fcb7678"
-    },
-    "webpanel/launcher_control.py": {
-      "bytes": 14034,
-      "sha256": "1ddd50c5c6c93b00a0e148fb69707a7273d69d617bf0895e865d078136771bd5"
-    },
-    "webpanel/launcher_transfers.py": {
-      "bytes": 5780,
-      "sha256": "d07658402c12f33b8b32a58d3698fbbb74164d5fdbadf27e1d1e8942b10eb8d4"
-    },
-    "webpanel/repository.py": {
-      "bytes": 44797,
-      "sha256": "f64e7a90668283c4ae5e7fad1f563cd3ad0f3f6091f2e8e73002f765ca2e4937"
-    },
-    "webpanel/series_validation.py": {
-      "bytes": 3061,
-      "sha256": "db70bdb6a9c249a7b93c0c86723e8d2b2ebf03049736a5349aa2767468416632"
-    },
-    "webpanel/server.py": {
-      "bytes": 32414,
-      "sha256": "539858f328727dffb0f6f6dc845fdd1a2bfb63dc68a6f63a7a3a627cccef8927"
-    },
-    "webpanel/static/app.js": {
-      "bytes": 119501,
-      "sha256": "39e89daab55862977ff2df2bef1ac18a78464f0f7c2128d8620b4dbc88a0fc37"
-    },
-    "webpanel/static/contests.js": {
-      "bytes": 12596,
-      "sha256": "3437c9f6b3f6fb75eebcf7a0f683f355b878c29832ddaef9b5242a0f50c4d71a"
-    },
-    "webpanel/static/favicon.svg": {
-      "bytes": 223,
-      "sha256": "77dcf042c0f6e4be7ee31f52a4a492b02c7b7cecc5af8e1376e3537b7bbfc355"
-    },
-    "webpanel/static/index.html": {
-      "bytes": 32771,
-      "sha256": "cbec12b8bb7b8ad20bce19cfda55ce718e0c6fd20c8dae540c01949d7a6e763f"
-    },
-    "webpanel/static/series-fill.js": {
-      "bytes": 4359,
-      "sha256": "d2715352a2ce5904f04dd786979b812715945dbc3324e251d0931d8abfe8a31d"
-    },
-    "webpanel/static/style.css": {
-      "bytes": 22464,
-      "sha256": "a35dcee385449d8da0cdbeaecea034cd2714fc77f5238917030c86672c3c6388"
-    },
-    "webpanel/streaming.py": {
-      "bytes": 4944,
-      "sha256": "64aa055e96572c71676dd88d77635522c8c005ef8e7f7327ab098084701ab8f6"
-    },
-    "webpanel/uploads.py": {
-      "bytes": 10744,
-      "sha256": "3c5e32d9121726bffed7e9c602f729327ebdfd743980dd064d4c30020bcfb041"
-    },
-    "tools/run_as_bot.py": {
-      "bytes": 882,
-      "sha256": "a64e7aad8142cdfbf2050ff5fb7038d17ac34702dd2d79bef7a75bc12f9ff259"
-    },
-    "BUILD-FIX-2026-10-17.txt": {
-      "bytes": 1731,
-      "sha256": "79f4a0c3f32ea4b1922bc972744b615092388c5e13b7567967416f2b96e7aa0e"
-    },
-    "verification/build-fix-20261017.json": {
-      "bytes": 270,
-      "sha256": "d6b1d0f599fd334869b3f4273b5d540bbeee53d96f3fef0f2b4e8648d21261c1"
-    },
-    "CATALOG-FIX.txt": {
-      "bytes": 927,
-      "sha256": "a2b368a851b1a753a9a19b96137615aa4d3582866f8598aa3cad193fe54f4f6b"
-    },
-    "verification/catalog-fix.json": {
-      "bytes": 100,
-      "sha256": "2123b7c31294b5e69a00f1d451c559ac6792e0305805364850ad2cca72aac1a5"
-    }
-  }
+  ".dockerignore": "7279093238a3f59b13bd26c190b8e8229e749f2551b2401d91b098ccd9b3ad44",
+  ".env.example": "2a17885a99fe8d99d909ff34c97e4a194bf87153c9f49fd09f40193bff62f5e5",
+  ".gitattributes": "ce6c7ec9402aeb13f85abcbffb363145dcadf067f23c78ddd0efee9f0a37aaea",
+  ".github/workflows/checks.yml": "f540fcc5dfd25c2c632b92302e95cbbce4f397319cca261a214f94edb816ed2a",
+  ".gitignore": "fca79325abbb3c17ace5abd70d450713d2a844e274b461a3055c8e3da2213d1d",
+  "CHANGED-FILES.txt": "d45acce0591a190bad24defa4df4d872383a34ef204cc28e346e6bead41c122f",
+  "CHECKS.json": "84f9211a0c22b5daa0b5d4a068d05217077ee081e5bc6685061662b77e53f825",
+  "Dockerfile": "06f76acc505a069ecdd995752840eea14fd8134fe8c41dc0a43ae1c86526e111",
+  "INSTALL-INSTANT.md": "e7cbf989879ecd03021d21613d60a2d2e4b91925e0db32ac292282f66aa4ba87",
+  "README.md": "c100a485960f3c014bacdd931e639a85bbe83aa4584d7248a70e6be162e325d8",
+  "Start-Zona-Prototype.cmd": "bf098100a82e5abefe77d75a29dfa57d9675ebcf5d0575955c99d46af6d88647",
+  "app.py": "7f26adde9d7e107f0d6e4bdeb5f4429b7c60f2d2fdf57b7af07bf2393c5e12d5",
+  "assets/kinotime-avatar.png": "d7e279ccff7bf6ee3e39c5725053d65489520baf08fe81870b3d7c576f3e18d8",
+  "assets/telegram-stars-banner-prompt.txt": "cceccee2157d5f2a23d271be38c8b6f580aca847a9bc6fb02dd514552218579a",
+  "assets/telegram-stars-banner.png": "9e984204170d2b479cdb0b79245fc79cf073ad52ea17aff1e63b7c6f486ee8d6",
+  "compose.yaml": "96480c966225bee28de55f82fa3d3144630f853a23279fb29ed660311b227d71",
+  "data/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "data/config.py": "d01a47fefb290c84066f3f77de2d7bf7250c852d56c5c0ef92fd12aa0c2ba723",
+  "data/settings.py": "8d4b58a1576960c0460c99d98c98be63949127324d577b4390552697c100f3ad",
+  "database/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "database/admin/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "database/admin/migrate_movies.py": "b10720facf8e5061cf8e71dbce927aad718a1902527fb80066f500f389bdd397",
+  "database/admin/migrate_users.py": "0854555bc91f0f85e72de2f2bb325e6640c0256bcc8e4c85fd931d0e0d0c73f8",
+  "database/age_access.py": "4f8c02388b29a0166a35e41d0d608cff7208b8a663c2e9418823340475448832",
+  "database/broadcasts.py": "271f8314316790ec6afe61a0e407ae7f140a69acffe3406de8b072830c4097d1",
+  "database/catalog_sections.py": "aef281634879f8507f58ac490f3fbdcd1463c6b9b394b4a7ab4ba9e259577ae5",
+  "database/categories.py": "cafc88de1e04b54a81d403f49e88bd5ce3c7a70a5816495fe27e23303446810a",
+  "database/channels.py": "0b22ee7c959b3899576967949389afddee5a6f4bd217d93f85bfb6cfed9eebc3",
+  "database/connection.py": "b1ab3c7e5eb757d521cf54fcd43669f14798005dbf22400c6da9413d2a3844b0",
+  "database/content_requests.py": "51ddc101df1e4eb0f9465d4f6cd62e8f4b6b1f44443609600437961e6c7118d7",
+  "database/contests.py": "b69d3dde4b350c209ec2c984ccae27dc65be0b09557dd097ed60117f05e00a70",
+  "database/design.py": "40efb09598b6931cc5039bba9b9e044710961bf8f5cd1a9f0ffa88b4d6d21834",
+  "database/episode_variants.py": "823240b44278c363a54fe22fbf4b151cad2c1e17ec961b8a52b228cc44d8b108",
+  "database/instant_jobs.py": "f9760259bcd2bc977695e14dd5aa14cfcc9f2a4cf90cfffc46d68ee2c3746410",
+  "database/migrations.py": "1bea3f4af214fa2f9c3cb6630bb12063543dfc708c61b841cb8dfb00c38fd62c",
+  "database/movie_queries.py": "b4fb1fcd6a322d0be14a883643a0f4984f46a904a444c7f9a95327ebddb548b4",
+  "database/movies.py": "bd5ff2a0c0e3df312463357560d9f4bc78f87f4e390a86f4a49e659cd5ed4cc8",
+  "database/people.py": "e8151ea869023575e45d340b7c69c40a4afd1723406685e0ce8e605e57dc9c39",
+  "database/progress.py": "e746c44add5349f0203cf193a35c9788b160b9111ac2c63f63d2928d4ed3f88d",
+  "database/roles.py": "a47d5668eda7178e72bbdc256fd608569434de298ea28c32b2575d244ccf29cc",
+  "database/search.py": "f741b1e163d3e1000e6c5934718eed1ccc8a1b9cf2097e20c1708d9936d175d6",
+  "database/stats.py": "04f34dd21ddab74f701bcc591806d75687b414ed6725b245f9db1dae5af71ea8",
+  "database/torrents.py": "c460b109d77b609929c6c7c196f9fcf76361725ec4e5a099e9af2efc08f903ca",
+  "database/users/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "database/zona_jobs.py": "6b2ac158d04be79640f71abae86d00f00b56c75934de7511e390e68351c2470b",
+  "deploy/Caddyfile": "5c1a4a78d5d66253f5c767def07a71d113ed8f0ff25f593137762a400df672d5",
+  "deploy/Dockerfile.bot-api": "b8c3afc4ea21b8cf7c91f4b0eda34314cc93884609b5adecefbd1890b1361224",
+  "deploy/Dockerfile.bothost": "06f76acc505a069ecdd995752840eea14fd8134fe8c41dc0a43ae1c86526e111",
+  "deploy/Dockerfile.vps": "391568a2243af99b7b145401fbf7ca58ba4dc285f66e3f68fd99872cb55a8b9f",
+  "deploy/bothost_config.py": "d01a47fefb290c84066f3f77de2d7bf7250c852d56c5c0ef92fd12aa0c2ba723",
+  "deploy/bothost_supervisor.py": "241ea4ae5426c6f5a68e56f81247b8e224813150f8db2a55093465978124c345",
+  "docs/AGE_ACCESS_2026_10_08.md": "fb1c23f1a467c19b90acb1e445d31f68d40623819c6260ba440edb5fc70d9a8f",
+  "docs/API_RECOVERY_FIX.md": "42287e5702954e408af3395307c15b1e6b1dde880a2d1ee42d7bab01e2bd8675",
+  "docs/BOTHOST_ZONA_SETUP.md": "8db500c4e456a8e6362eccfe4f1732ff11bce63d449b9a22a570aeeea84110ae",
+  "docs/CONTEST_SUBSCRIPTION_FIX.md": "20942259031fcf1f45cce72ed315509dcde0c6a5f8742e4d9cc9d8eba9764b59",
+  "docs/CURRENT_UPDATE.md": "3c2d27ef8dc64367b07fa145521bef70cb5578d95c5e662e44b52a7d9419f824",
+  "docs/DESKTOP_IMPORT.md": "8a38ae083d8aa2b5f11f53b352180ffcadf7732dc2c31dd358d5c3aefb3d5777",
+  "docs/DISK_SCAN_FIX.md": "6448959bcdcb9fcb73f6e74fc0402ecb42e7e28c486142fe3650c0facc75e326",
+  "docs/DISK_SPACE_1_3_4.md": "0505430d8cd82e73383a4476074f2d87b3820823f1c9cb0d765f89b58f0b6be7",
+  "docs/DOCKER_SETUP.md": "6b58f8986e84084fc71aec38ba507946b81d9cb2b00d5a2f24426d1b6f7fd0df",
+  "docs/DOWNLOAD_PROJECTS_1_4_6.md": "c0987ec0d5feeadeb05875eaa982e5b3d737c5601bf50364335224cb5bc2e5a3",
+  "docs/EPISODE_MERGE_2026_10_08.md": "b4a3d3991e8f6ef76fd903d4bb726fa610e5971682be0f35acd26742358bd32b",
+  "docs/EPISODE_NUMBER_ORDER_FIX.md": "faf033db33a07092b0b7e0f746fde93f894805fa42199f9df74a259224785615",
+  "docs/EPISODE_SELECTION_CARDS_2026_10_08.md": "35ed429875cc3a67796c5a26ae2ddf959845878b489da61259b02d79819ef7be",
+  "docs/HARDWARE_1_3_2.md": "3e338d8f3631323172344081f786cf58deb3c56025e76906f122b33e0366702d",
+  "docs/INSTANT_DELIVERY_SETUP.md": "e7cbf989879ecd03021d21613d60a2d2e4b91925e0db32ac292282f66aa4ba87",
+  "docs/INTEL_PIPELINE_1_3_6.md": "b4ffc4cb50edac3f053752870352bb4d2db4887158cfe906676334abdd59ac14",
+  "docs/JACKETT_1_4_7.md": "9682a3fd3da66d211deeebd84934d79ce0f79b58b519f4248d702af07fafd5c2",
+  "docs/LAUNCHER_1000_FILES_FIX.md": "53f265146a8403ac750766c0e57d79269f9a63cec3bc390002d0c47a07709e17",
+  "docs/LAUNCHER_CARD_RECOVERY_FIX.md": "9161d75c21609d528c1c59f96e59ea6371f911108c43387612885652b0386de4",
+  "docs/LAUNCHER_UPLOAD_QUALITY_FIX.md": "acb7f6279d4ae6549611c61d2208399a92df81a6bb60f8f656e9e012e29d9aba",
+  "docs/LOCAL_CLIPS.md": "4f1dd90f041e50548873579aae706d30058dc0b887dbf94b04eecedf07b4ca09",
+  "docs/LONG_NAMES_1_3_1.md": "74171d6fab38dfa55ec50065c4c546f64e7cfaf31eb2cf6c160f9410387ed80f",
+  "docs/MEMEFLOW.md": "36fb2cbccb51da3962fcbf8e65647b937f3fb497e73576ddf7bf19fc5aaa538b",
+  "docs/MERGE_SERIES_CARDS.md": "1c144e624f640a69429fc2250cf774802e64d4a256682363097faf9d7045723b",
+  "docs/MULTIPLE_LAUNCHERS_1_3.md": "246692031e52d8ee78a61f61f9980da1bee2dba1207c3f9554e3c29095ad563f",
+  "docs/MULTI_PROJECTS_1_4.md": "c15a530aa32d7067c3de6638857dc138b207983d8b267deeae7f0cd2c812b709",
+  "docs/NOT_FOUND_RECOVERY.md": "0bdc28cd5be0b699cc695be55f1dd83887894af01ac62f6fb73e3e3ef0a1c578",
+  "docs/PANEL_CONNECTION_DIAGNOSTICS.md": "b3c1cdcb1c1103aed581c2aa937494569e376b220053084911ec78cfa5416bb0",
+  "docs/PREPARATION_PAUSE_FIX.md": "b38977bcbb45241d6f9a120f38cab82cf39908c76fcda8b5b01c8a5b34066451",
+  "docs/REFERRAL_CONTEST.md": "fd0ab533d76f660bd8282e652f080c2ea7a7e0acae25c07642f525e7918be1c7",
+  "docs/RELEASE_ASSISTANT.md": "abb8833380538e97b327c31b9a4a250803e1c4f386d35ba407e9b625a6b72ef1",
+  "docs/RELEASE_SEARCH.md": "7608459a8ed6ed7bf1e94f34f4d0dd5f16e7630e5d6336787c09e4170509b02c",
+  "docs/REMOTE_PROJECTS_1_4_8.md": "cd6b598b44eb10ad72e4ed4ddf1dbc103e246a5827e91b900a14becee2394d78",
+  "docs/REMOTE_RENDER_1_3_3.md": "ca964f477bce3a9b8dd43202706e366d6be63f7d7ffe7338c9221dfce0d00d9c",
+  "docs/REMOTE_TORRENTS_1_4_9.md": "82806bfa9c93e5a2526c94543d722ca7234a40c4489df45e40c1367aeaabf11d",
+  "docs/REQUEST_VOICES_UPDATE_2026_10_25.md": "b9d1beb3734784d93502d5fbb35a42b809c5a66132fe076e560aa6e0cafa2230",
+  "docs/RESUME_REJECTED_SEND.md": "4175f7be06dc82f35050d661ac7035d9f255de94e5ce014601c3e45dbda58dfd",
+  "docs/SEASON_IMPORT_PROGRESS.md": "7b5bd7777698d456be348a5be0e68b8c930942554f78928a6f4e937197b35bc4",
+  "docs/SERIES_NAVIGATION_2026_10_08.md": "03f3297c6edd74e11aea08fb059bf248cb5586161e15b1ba4c051fa8b668b595",
+  "docs/SERIES_PUBLICATION_CONFLICTS.md": "8b1f7ae6b1334321a2d1b0867e2e8b469c3b2eaa1eb72bf681d7ff7a78f6998e",
+  "docs/SERIES_QUALITIES_AND_REJECT_ALL.md": "8f638569b7d0970f7c33b73d4c493174181ecf3a7d23bf9f0396eedb006dc4dc",
+  "docs/STREAM_PIPELINE_1_3_5.md": "4e1bcfeb5c5be94d9c256002e0f97d1e65162c784d51d16987a144b01353bfbd",
+  "docs/TORRENT_LAUNCHER.md": "d16e0317bbf35b195d297c783673622cd760aee67cd2a1ac0d2af4cf68472e97",
+  "docs/UPLOAD_PREVIEW_2026_10_26.md": "56caff9aef63fd7b3309400aa3896d328fc78ec2527329ece670fbf03690d30c",
+  "docs/WEB_ADMIN.md": "9216b4ebccaf446540bbf68db462ab7274898581e3dee67e160c525c9af88d0e",
+  "docs/WEB_SETUP.md": "c83b8fb2585bec00b8e745ef0ea1ff76361a08eaa06a140a5883e1184a953114",
+  "docs/WELCOME_DESIGN.md": "bbb5fdc1f3146b9d222d857f4b7b78bc1776af7e544a03a9fa9a1c7ad18f8a2a",
+  "docs/YOUGEN_BRIDGE_PROTOTYPE.md": "9407337a1af0400fe5399fd0506bc0495c852343c0967eee122dd938fa8bbc74",
+  "docs/YOUGEN_LIVE_STATUS.md": "a253cac0a97d8837c11abc6827ca65e52f9f5f72018639368d0bfb303ad9521f",
+  "docs/YOUGEN_OBSERVATIONS_2026-10-28.md": "32c6a9f37aaf98bb31912ff8432b2bdab38243305407885717ecb6d5a9e8d115",
+  "docs/YOUGEN_QUEUE_PILOT.md": "b9dcd720a67cca698b9907661c88a19e25f3933e2b10c674df592226feb55358",
+  "docs/YOUGEN_SERIES_UPDATE.md": "55381f65f46269e89054eb5b071cf289a99c076aab06533e7b02c5b45defc223",
+  "docs/ZONA_BOT_PILOT.md": "4d1b5ca9e549ab8bb091ef92f682627cfdead414b8d97086e1f2aff6c89017fc",
+  "docs/build_development_plan.py": "30e7251b4ec3a7350cbcfa6e3a9a39bd166f3bfea6efcdb5d79f56de1948fae0",
+  "docs/content-request-targets.md": "31d1cf86ea79317746c61f420a1079bad7c65f7be448740814bc86c07a404563",
+  "docs/development-plan-2026-09-27/KinoTime-Development-Plan.md": "59e3630ed44ba77cc1749ed2e14d4d9b5465067063151a91b89a679e25d8fd66",
+  "docs/development-plan-2026-09-27/KinoTime-Development-Plan.txt": "9ad862d4d79d1b44d5e2b54d877a57eb7852472932d54bfbf08e2912139b47bf",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/00 \u0421\u0442\u0430\u0440\u0442.md": "9e676dd01e500bc538fcafe51b5d3375edcb393a494c9ede1ff47fbc8e23086e",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/01 \u0418\u0442\u043e\u0433 \u0430\u043d\u0430\u043b\u0438\u0437\u0430.md": "1b95926850aa1ecb31e6f8a87baa77d84578f27483cc8b0549ebcaad4ca6e54c",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/02 \u041a\u0430\u0440\u0442\u0430 \u0433\u043e\u0442\u043e\u0432\u043d\u043e\u0441\u0442\u0438.md": "8959d0059544dc4c15a2eda47bd62badcc4758f4b377bcd164c73b3c0da71130",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/03 \u041f\u0440\u043e\u0434\u0443\u043a\u0442 \u0438 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u0441\u043a\u0438\u0439 \u043f\u0443\u0442\u044c.md": "1d3304894cb45e50c1e4b27bccb69701a9fbaaf96e63f533733dd414647e9511",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/04 \u041f\u043b\u0430\u043d \u043d\u0430 90 \u0434\u043d\u0435\u0439.md": "af017aa48d44fdcdf0cc3a0e2df4f76301b3b2e44235a5174e18dd68ec84c7e7",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/05 \u041e\u0447\u0435\u0440\u0435\u0434\u044c \u0437\u0430\u0434\u0430\u0447.md": "b56990f60c969b7d66a8f4faa1b877bf39acd9f1dc8dba9d907a74ba3d1276ec",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/06 \u0422\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u043e\u0435 \u0440\u0430\u0437\u0432\u0438\u0442\u0438\u0435.md": "141e1955e3b0a51134346d3baafc470f80fb25ad2510deca47fae0e704e3dbe5",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/07 \u041a\u0430\u0442\u0430\u043b\u043e\u0433 \u0438 \u0438\u043c\u043f\u043e\u0440\u0442.md": "ba43005c9d34cdd9366fb0affa5790a241e78f1487757ace87d1dce02bdeb3c1",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/08 \u041c\u0435\u0442\u0440\u0438\u043a\u0438 \u0438 \u044d\u043a\u0441\u043f\u0435\u0440\u0438\u043c\u0435\u043d\u0442\u044b.md": "9b1994abfe9bda2bc8ea6541ef7ba27ce51e6876a2a94d4ce656ba2d2e7b2345",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/09 \u041f\u0440\u0438\u0432\u043b\u0435\u0447\u0435\u043d\u0438\u0435 \u0431\u0435\u0437 \u0431\u044e\u0434\u0436\u0435\u0442\u0430.md": "9eb2ce6d8c622cbd50265b9d34303f3cdd58bfed0ca5a05d5a946457ef58c32c",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/10 \u0420\u0438\u0441\u043a\u0438 \u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435.md": "7415c9f50e8897bd2fc300d675354c8104419b0ff1bc26aad7a76b862d961dfa",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/11 \u042d\u043a\u043e\u043d\u043e\u043c\u0438\u043a\u0430 \u0438 \u0440\u0435\u0448\u0435\u043d\u0438\u044f.md": "749aa179da5f5e859cca1cdbf263c18ea07fd6d497ba354140fc80680e88feae",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/12 \u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0440\u0438\u0442\u043c.md": "4c45927f775d6f9699f052aac65d7933083d924853d0e97dbe2a16d70412689b",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/13 \u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u0438 \u0433\u0440\u0430\u043d\u0438\u0446\u044b \u0430\u043d\u0430\u043b\u0438\u0437\u0430.md": "52c8ac805554a7ffe2bfc757fd287f9bcde323acf26c1ce124477eb7ec230b82",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/14 \u0424\u0430\u0439\u043b\u044b \u043f\u0440\u043e\u0435\u043a\u0442\u0430.md": "b94f41cf96fe3ec8012a3b92e6df7878f8a00c7b06994ef5344f99c4f8982eb7",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-01 \u041f\u0430\u0441\u043f\u043e\u0440\u0442 \u0432\u0435\u0440\u0441\u0438\u0439 \u0438 \u0435\u0434\u0438\u043d\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a.md": "da752cb596388a4bc29e4fe37405ab396608b674de5c7223b5eafc8f44896ea7",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-02 \u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0431\u0430\u0437\u044b \u0438 Storage.md": "78a657251ca9f20ab7495f42cd7f58cc2c13a7fb9be2b6a7625d38424cc00dd6",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-03 \u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043e\u0444\u043b\u0430\u0439\u043d-\u0441\u0446\u0435\u043d\u0430\u0440\u0438\u044f \u043d\u0430 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430\u0445.md": "631588f16e4ba8442c23acc765f6a2d20ce02752cb6e93d3f730b5a49bd4bf2b",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-04 \u0420\u0430\u0437\u043c\u0435\u0440 \u0438 \u0441\u0432\u043e\u0439\u0441\u0442\u0432\u0430 \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d\u043d\u043e\u0433\u043e \u0432\u0430\u0440\u0438\u0430\u043d\u0442\u0430.md": "2a3a5db88778c357da03deb38ca672fb31ba3d1f0ebb8668a26d9f29f9f0e744",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-05 \u0418\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f \u0438 \u043e\u0431\u0440\u0430\u0442\u043d\u0430\u044f \u0441\u0432\u044f\u0437\u044c.md": "51f90d1aa78f34191e8c18be53b1e76924c3fa937442001d6bd39be890cc700e",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-06 \u0421\u043e\u0431\u044b\u0442\u0438\u044f \u0432\u043e\u0440\u043e\u043d\u043a\u0438 \u0438 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438.md": "dd6a177e1814270a1b2c64e51e537db985e75916eafaab2379c7f19ddccd91c6",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-07 \u041a\u0430\u0442\u0430\u043b\u043e\u0433 \u0434\u043b\u044f \u043f\u0438\u043b\u043e\u0442\u0430 \u0438 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c \u043a\u0430\u0447\u0435\u0441\u0442\u0432\u0430.md": "c10117b7b0c8e82b774ef78d386033cd0a07a771c1339bb7115161809c838444",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-08 \u041d\u0430\u0431\u043b\u044e\u0434\u0430\u0435\u043c\u044b\u0439 \u043f\u0438\u043b\u043e\u0442.md": "b09793e0162367cb0d82044f2cb6c757af6ec7c824477b47e31eb4698beead76",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-09 \u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u043e\u0432 \u043f\u0440\u0438\u0432\u043b\u0435\u0447\u0435\u043d\u0438\u044f.md": "833b5853bf9c50a0e06fff726065abdbbcd13000a7bd4156cd297caedccc939c",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-10 \u0414\u043b\u0438\u043d\u043d\u0430\u044f \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u043c\u043f\u043e\u0440\u0442\u0430.md": "c1d762a397dcf9d8afdbce0a22347866171a283a581855ea92b54da6ffd7a33f",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-11 \u041c\u043e\u043d\u0438\u0442\u043e\u0440\u0438\u043d\u0433 \u0440\u0430\u0431\u043e\u0442\u044b \u0438 \u0440\u0435\u0437\u0435\u0440\u0432\u043e\u0432.md": "8f515dbf8fcde4690a07b69e1ca5e66aba659c8113cca0563a6ef7ddc87ebb2c",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-12 \u0417\u0430\u044f\u0432\u043a\u0438 \u0438 \u0435\u0436\u0435\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u0430\u044f \u0440\u0435\u0434\u0430\u043a\u0442\u0443\u0440\u0430.md": "ec369233b060af71673d976611865c02c93490013cae2a6044577e73f4c4148b",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-13 \u0421\u043f\u0438\u0441\u043e\u043a \u0432 \u0434\u043e\u0440\u043e\u0433\u0443.md": "d5e913a8dee8cb90133896a29ec5cbd9710dd314d1f7b65e102988e955f6e936",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-14 \u0417\u0430\u043c\u0435\u0440\u044b \u043d\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u0438 \u0430\u0443\u0434\u0438\u0442 \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439.md": "6be8e1b2f326788360d42a63dde8872271e4b9c046f594750d40779511669c37",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0417\u0430\u0434\u0430\u0447\u0438/KT-15 \u0420\u0435\u0448\u0435\u043d\u0438\u0435 \u043f\u043e \u044d\u043a\u043e\u043d\u043e\u043c\u0438\u043a\u0435 \u0438 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u043c\u0443 \u043a\u0432\u0430\u0440\u0442\u0430\u043b\u0443.md": "44d6fcf0adfca54fa5a66acbe84c1245cdb045c9a6979e507bf1a45593827daa",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0428\u0430\u0431\u043b\u043e\u043d\u044b/\u0428\u0430\u0431\u043b\u043e\u043d \u043d\u0435\u0434\u0435\u043b\u0438.md": "1a960a74b7d32d1a8a63e92a9b9a902be4c6830498a619a56b5bb747a26a30a5",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0428\u0430\u0431\u043b\u043e\u043d\u044b/\u0428\u0430\u0431\u043b\u043e\u043d \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430.md": "29aafb147621f611f68213552640f74169d4dff2f057771d1dee08dfc23facb4",
+  "docs/development-plan-2026-09-27/KinoTime-Obsidian/\u0428\u0430\u0431\u043b\u043e\u043d\u044b/\u0428\u0430\u0431\u043b\u043e\u043d \u044d\u043a\u0441\u043f\u0435\u0440\u0438\u043c\u0435\u043d\u0442\u0430.md": "b549ba88188b2cd169911cffd83130a4da4044ef2f0f68c43d954384e218cefc",
+  "docs/development-plan-2026-09-27/README.txt": "06676cefcc9073a68c053f40804ce6e254ddc14073cd49fcfca35d82166f215e",
+  "docs/video-source-research-2026-10-27.md": "eb4c22df03f76dbd2e6ef05873f8ca46b08bc60da9e357f889bbc46be36509e8",
+  "docs/zona-prototype.md": "835265642c7f478840563b7d93f010b5c45a5fd1ad7464e45aa0afa54277d983",
+  "entrypoint.sh": "0c04e6f91c638eae7d03dfd643cd4fa01500d02341e3f231e9fcfbc32f7bed22",
+  "handlers/__init__.py": "8e7c337f1a677d98c0f993f3fa6c45b5d34d60c6f0da440c53b748204b335965",
+  "handlers/admin/__init__.py": "a47383e5cd422cf4bf890bfd8a16c336186cec7f0fefc4a65d7c074f8b739455",
+  "handlers/admin/admin_command.py": "fa484de3cfd2c621d3373cfc0daa5a2cc2b4330e4bba68dca6100c64927c0bc9",
+  "handlers/admin/broadcasts.py": "ffa8ee7183f932636360ece739b82a2959324d195b73c99858bbc5ea2e71d051",
+  "handlers/admin/channels_func.py": "47645a37a98c2cae0b9a347f8f5f49fc691aab0099c54330b479bf45736407b0",
+  "handlers/admin/content_requests.py": "3adef036524803356620bb22eccebc72ace11305b3cfd6140a7dd9d296475aa0",
+  "handlers/admin/design.py": "a6f81b43e7d63ea1e8183f189a6a2a55e28e614266a5aaae741ad9067be87fce",
+  "handlers/admin/menu.py": "5c9e9da06590d6ae6c2c599687129dca77a3292bd11c82d4481433b9abb0a44d",
+  "handlers/admin/movie_categories.py": "e8976831fc0eb34eb2694e2d2a4f6e2f8d98a778ee08242d118b2ec37267c240",
+  "handlers/admin/movie_create.py": "d7508fb66078b3424a13548ed5b86bbab4abe3bda0f830a6acbc1829aa7ae631",
+  "handlers/admin/movie_delete.py": "b6dc647a38fd66bfcbdfa8715a4460a0978746683b2b5cb3729572b7f5985a9b",
+  "handlers/admin/movie_edit.py": "0852ff817dd43be40e6cf662528e02da2ba76723a9edc0662130bf65dade5968",
+  "handlers/admin/roles.py": "2818154978303cb576e11b02f6e9ba5aa7a7b668a9d5e488b31bf68ba76aa740",
+  "handlers/admin/series_edit.py": "90a66c8be044b16b08a50dbeb33d997cd38559f4f0771bc15a719a4c4023099f",
+  "handlers/admin/stats_handlers.py": "1c66220cce23d10c070d92803592540675e310d837f40f08b711b2eb5fbf153b",
+  "handlers/admin/torrents_edit.py": "d8dbd750ac30ffeb3b25a09118d131df337c0b624867c075112928515b38f836",
+  "handlers/admin/watch_stats.py": "5ce1b32697d7dfd3d89a8a4288bb55a6b932d28c42e9e4d0f88b0763628f3fff",
+  "handlers/admin/web_panel.py": "92de28ee9187e902bb35917feab1302f50b6c5e4dd341733b75e69d7a09e4db4",
+  "handlers/admin/zona.py": "5cffc25a169a89bdcfedcf78b59f2bbb909ca9fd62279a3b3061baca48156af9",
+  "handlers/start.py": "50ffb82e878f41dc7a411506302cefda7b77f28cabb033f5078cccf5c4592827",
+  "handlers/users/__init__.py": "643a2fd8296f037f02768e6d181b1554ad844184a3dfc37eddb0a8021d1f7e90",
+  "handlers/users/age_settings.py": "f4c7dcaea46dc85a6c6caef844f3388d6f95399cc73db6075fefdc107e924653",
+  "handlers/users/check_user_sub.py": "57f4a714cb9098cbbf2d455989751f30dbe7296742a157ff852b3a10b8fd17d7",
+  "handlers/users/content_requests.py": "b1e56bfe5054e6fc9d9252fa0c897f2300437817fc23810ceac5af738e6bd267",
+  "handlers/users/contests.py": "28097184e220cf21abbeac71313175a53ea9fd65598ef78645967efd143ad0d1",
+  "handlers/users/find_movie.py": "48f3cbb756b117502a19b6d8f03118813eef7bd6d130fb0dad15a2c2a457e1ed",
+  "handlers/users/inline_share.py": "72bf5255a49abc75505887355b41a447c8b44f271912963e28c8c1b91e512fa8",
+  "handlers/users/instant.py": "a8a80a29bd17ff80df9f8b5a027d7c4bf997fee5811d4c3368768583423e6d8b",
+  "handlers/users/start_command.py": "2af0fb52b1096b037cd732029f5cd2d986b338770a4ab9cb93f5bb213867a617",
+  "keyboards/__init__.py": "649d2f24272fcdac3f6af1a8dc45e82bcd2d84d4e86881808cb292cbe9072b22",
+  "keyboards/admin/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "keyboards/admin/keyboard.py": "0565979cbdee603f915f9cf0cbcc257276ad685828f5b1f9cf208f67ab4d570e",
+  "keyboards/admin/roles.py": "5676ff862e026bfa9b9decdcfa9bf9efc7078b6167014212374bf5c9a06b777d",
+  "keyboards/inline/__init__.py": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+  "keyboards/inline/sub_keyboard.py": "386b2532499585a16cad72a3389f3e509e2cca46eca0c671a84ed296914a1d5b",
+  "keyboards/users/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "keyboards/users/keyboard.py": "9b010dfbcdfb98164b1f55be5500638b225f76b628b72edf8ddba7d9030acda9",
+  "loader.py": "30c06720e1a27a3d72cf425ca68bbf2ef012a43b2f43edf087969f64525626d7",
+  "packaging/age_access/package_update.py": "af5d8ba1d00f79f1ea5b9ff6284f3a3b0e7f3f5f415fc76825adc95caf188441",
+  "packaging/episode_cards/package_server_update.py": "e77211e9ad3f1a23ea28622450238f2a9b3e6b5c5a9575b1f5c71fe8f3aa7d82",
+  "packaging/episode_cards/package_update.py": "c7f499bf52cc2ebc83cc9394fe462f989725d5c2ac0ae2c5183af11916e6a6e9",
+  "packaging/episode_merge/package_update.py": "a43b5d2c0f3c1bf9e63031ab19e697918bea21145161e21643127e306112ea4d",
+  "packaging/launcher/BUILD.md": "504c9c0a963dfdda7db98eb41800d01c5244dc7d847ddd83f23ba59efa58cd60",
+  "packaging/launcher/KinoTime.iss": "4c8d3f2003114312890316e086684cb14a3bd08fc6abf78bae04fc4d7737944e",
+  "packaging/launcher/README.txt": "92f7690b9a52a174ffb5b02b967b8ae43a0c74a36a1929bc3bf1193aee5eccd0",
+  "packaging/launcher/THIRD_PARTY.md": "67add3e19ca2e1b7ba832826b5913d33bc0535c0bda825bf12c80c3ad7ad9fdd",
+  "packaging/launcher/build_windows.py": "f3733f31d19ea34a8e1c3d1b7f09a68f658c622fe3113b2cf91e1a4870e36a15",
+  "packaging/launcher/check_bundle_sources.py": "1737df103c3883acf0cecf6cd186d04a0db11708258744c3a463948e6cd57773",
+  "packaging/launcher/package_disk_update.py": "3886f838e6c8baad1feb96bb133e6907d2441e0b2f50d5162631b65917ee8518",
+  "packaging/launcher/package_intel_update.py": "6e708d456a1de73e212e09880570e0411be2160e7edbf1244fc9232a5736173e",
+  "packaging/launcher/package_release.py": "0a1cb0fc2309ac5b3b2a83d51d695e6cb98a937322353c97a72412eb03525108",
+  "packaging/launcher/package_server.py": "b16cdd2b4ff7d46b3276ac7e7ded080a1aaee8424a6c645c73a47e2771d32c7a",
+  "packaging/launcher/package_stream_update.py": "08decc714e867a59c1ea1b9970395120b9eea131e860cc8b55182d4f6abb4e0e",
+  "packaging/launcher/package_update.py": "ba2cecd6a8836fadd01d0422a705d9cab948c7a7736caa068b9134bc0ec875dd",
+  "packaging/launcher/requirements-build.txt": "b1725742b330ef684de475f24bf20367015b3f7ae1646e710ae6d6dd9a8b9cf7",
+  "packaging/launcher/verify_disk_update.py": "4182443002a001fe336a00df016ce2aea51631d3cbd0317f328edf5f639e7f99",
+  "packaging/launcher/verify_windows.py": "a7cfa96763b2fbf84e9c2c9ea2a5841ccba3bb7c9b660c6002f9e04fd4f9cefe",
+  "packaging/series_navigation/package_update.py": "f9ae26279309b07612c22e3a555131d2185ece4c4561a59cc3a13b6228ec67cd",
+  "packaging/series_publication/package_update.py": "fe813bb6b1f43517351e0b13b8018837c7d66439d49bf202c3d6e963121df3cb",
+  "pyproject.toml": "635130a9d70177558fa485df2898b5595a1294b090496c6b3255328850d04159",
+  "requirements.txt": "e459e169b9fc488deceb5499e77854af9129ee505a5edcb319586d3764a479bb",
+  "services/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "services/access.py": "7383cb1dd88e944034f9953d7d1e8f7d12eadb985916e9fc46280c70661f06f9",
+  "services/age_access.py": "8155c6885dbaf0890a46c35480155f84e7e334c720b5cd49ccd9acf4038e3378",
+  "services/broadcasts.py": "4d321a4a1f9d9519d725da80b1e433ae4559ec19f272e826972c397938602a98",
+  "services/catalog.py": "37fdf72bf2f3ad60a0703fe92ebab6dbfadbe0f9bd207704dedf282e1b5b3176",
+  "services/contests.py": "65d860c4f787369df62b90e93c310e4ac50282c1404ea2c1ae3d0925baf82032",
+  "services/episode_cards.py": "ff09b559646ab7afee9a581325674bf04be1987ff093c6ee0b99b370dad1a019",
+  "services/instant.py": "f7139ecd9d891bb405d70428e395f8093fd0a54e0b7c451719fb2b07b436610a",
+  "services/instant_agent.py": "2029538bb363871835fba4ab078327aee834d6bb999d737f7c459b58e51bea63",
+  "services/local_clips.py": "f8359258e57839b31358056549f46b47626251f8a0a90d029036d00902cad9c7",
+  "services/meme_render.py": "bb827aec1a77064d087d901b32622d1492779bd0d83691bb3ffe5b6cdec582e7",
+  "services/movie_sharing.py": "b1b5cdbcd1f2ad0eefc4da1d9faa590b9b20a901b88bd51afbeb604cb0b8b95d",
+  "services/poiskkino.py": "d6d5332ffb02117bc15fc3182ef0b61f587d8eb066b669a7c5776c143e9f0db1",
+  "services/ratings.py": "5f72f3adad537f0b04483473e64998ccb9336ead3ecb35d4c39d655de6db7671",
+  "services/request_voices.py": "7fba12133f3ed4e9b63978ee439e72123367a54bc3ddef8a1ce9e20bdd683932",
+  "services/storage_backup.py": "7ed507b057e7b367209f11cadd54591f99784572d0048e95dc22aaf8651edf29",
+  "services/storage_recovery.py": "4bc3dfc0e986f9f9b16bee871047ef70f6dd36836dcb7da20591aa0e39e14ff1",
+  "services/subscriptions.py": "e0be312d6f17796bcc55e9c183a55021388f0d2be4f1a57fcc8bf337982afef5",
+  "services/tmdb.py": "2e3dadf7ba72a484dd4e3bb1a7e833e9bf2e16556e37c9550661c2311b32f851",
+  "services/trailers.py": "1c7bb2c2462b10b59850284e00b7985b855dc20b077184fcc2a0a58a90a7797d",
+  "services/welcome.py": "0cbc6e2eec817ce03f9cedcdfdc7a1635fe975aec439aa7ce6e26ab0e522f6da",
+  "services/zona_delivery.py": "3a0c78538127c8f89700289be2c1c90d02d6a6a7e02b8d53addc92b760ef0136",
+  "services/zona_errors.py": "3b11aea45c29c3c01915ebc0153c7d4699d6d9047b6a42b86bf6174379e3307c",
+  "setup.ps1": "80bfe51da7c7f98921c0e0f445ad10983eeeb7934013d27763548b07a3228e6b",
+  "setup.sh": "c9d450d224bb51eed5bac8d6bfc0a55928d105d4df1235f2ee4084d7f0239446",
+  "states/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "states/admin_states.py": "f061b1bac9e2d9eac5838ad88e2d338480ea910bbf4fea6bab312dc18919ac9d",
+  "states/user_states.py": "9ccdd2499aa95c281dd78f9ea3db6ebbbd6662aeaac1118bd2fd512163125a47",
+  "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "tests/age_fixtures.py": "c50afa71bcefd0b47b72058c2d28fd50dbc274b9a87acb29085b96cda22ce451",
+  "tests/test_admin_merge.py": "758e00d3902c8c1ef773c910b304a2ae44bfb5c6251db1894f54f18165ef0a48",
+  "tests/test_age_access.py": "17f9caa8a0f71b009edcd821c28d3c9c5a1c3242754535e0f718245b7156f409",
+  "tests/test_age_handlers.py": "4d0038a70239bb3662c2ee0a3f33738b2c413bb9de231a4b092c58740b19da3f",
+  "tests/test_audio_variants.py": "d5f6019563e0b47d61fb5a47ffcefc3705f3e2d7689c3d6f9d546b9e6993ae19",
+  "tests/test_batch_import.py": "fffc33a00046660b38218225ea28618a939ea750c36ad2cd228594f07a5d92a4",
+  "tests/test_bothost_supervisor.py": "16996de6a2d8345def704931265538238164329280c7cec56c40df3d33d93cba",
+  "tests/test_catalog_merge.py": "489301106a4e69c571990b81adf7823f9c5bd7b7c825a10c0d8a9f74a8a4a5ba",
+  "tests/test_catalog_sections.py": "836a41831815e74797a6ee7c05e22a001d2dc351c00d81d3c9e43a5578d15388",
+  "tests/test_content_request_cards.py": "c1a1104ba7ca398e0901580a4b7fff63d089b018f2a1ea055095737b15344cd5",
+  "tests/test_contests.py": "235b17616b56c3f0791ebb4585b2011b98754c5045d246c338ba4e97d6ea6f69",
+  "tests/test_database.py": "1276950be9d53bf5532b2030b4fd8dcc6aa767fd26bcb3644601a6e27fbc6c17",
+  "tests/test_deploy.py": "1c8b52252e2d3ea96c980fed7b9cf4b0bd46c85f5edfe6c21d6a9f5023750364",
+  "tests/test_desktop_import.py": "bcd8e21544e999183df4cc830c5a595eb0553302ab32da9abcb1bf3f710915ac",
+  "tests/test_disk_space.py": "2daf1eadd2acceb472e95a7080603c49f82e0e79779cb583a1dedd2061545c1b",
+  "tests/test_download_projects.py": "ce311ba1f579d11207bc2c829b9b4ad5aeef5a8a22271286915449e09b73dd3f",
+  "tests/test_episode_card_text.py": "4427fe2240d2ceda84c683da22c864210f9ea58113f8bb4ebae34bba28c00453",
+  "tests/test_episode_merge.py": "ccee67925c79914e134071a8cd3220196ed49b0fd35203f6d7059c8e20a70f78",
+  "tests/test_episode_merge_http.py": "958b974857fb357ff1b1247bbe982c69d860e82b745a6d11cc176f4afd065da6",
+  "tests/test_episode_selection_cards.py": "b47e0df5c0feed703b0ece2a0edd17b2cd0178667d3512bbcce19669b9244358",
+  "tests/test_episode_variant_choices.py": "a722caa4048a09cdb1b0e0221ae3cf25f5edb61ccfcc9f6ba7a47bcca46bc9cb",
+  "tests/test_handlers.py": "f1da154d106f3684745a0fca9ebb297e2b01ffba76976ee804daab7bd9f6439e",
+  "tests/test_hardware_diagnostics.py": "40aadb2a2e13aaffa9be5e7aa0f69400b9f23da5584a4ba8a818f9dfba740bff",
+  "tests/test_import_capacity.py": "8dbd45aa9045532820a72fd9fe8c4d8ff42817240ac92f14c1308bad8dbf8095",
+  "tests/test_instant.py": "0405f7c5042087b1c12c2a1c63ec85c868c2ddf89d35819d35a34f19b1f5a6d6",
+  "tests/test_instant_agent.py": "2fb5445ef760cec386cd9af0f9c18bf622745219a21dd945c9b9fd1e7f4fbfba",
+  "tests/test_instant_api.py": "b5e051e6aec4bf4a67b74a9d6df0d25e4c5773cb03bf52c1309aa32f68802232",
+  "tests/test_intel_pipeline.py": "7e5f72f50ea956c77f2d43f17713b7e48643a51990d9c257f5292ba88f810049",
+  "tests/test_jackett_search.py": "9c6ccc8c5e59e61e01d06d48a5c8d42392f18f04488f5689427cd0d7e62437b6",
+  "tests/test_launcher_control.py": "b3f1d594cee4a225a6fd8dfe3cdea98d80e85b50ced05bd4536275c7c5b4fdcc",
+  "tests/test_launcher_projects.py": "f87e9a77ab2c9bac88726cd0e122bb274dc5ebe12069bb6408cfb5c90b583ea6",
+  "tests/test_launcher_recovery.py": "5062430ce529dc75b09b908a8f897bf43471b54ffdb7d3a77db6ca9d6afe390e",
+  "tests/test_launcher_season_preparation.py": "e83c4a5c721435c73cf2a4f3e6e56330c972b10369a2036ad665b05870923fec",
+  "tests/test_local_clips.py": "15071bbc6f73dae48db808c14b1374933167502569d05bd7de4b9f2624996227",
+  "tests/test_long_import_names.py": "aafd2dd90a2cbadc12bb5dd6cdaeb11c869ca07f7a604a3f14b09579b9826f4c",
+  "tests/test_media_preview.py": "0f2fdc75b4c47197fc4804106fd1258a84af66e2c0c5a5e2f6f623ce217276bb",
+  "tests/test_meme_render.py": "68ffe227929391d745fe8e81f4fb5e9e1f8549527da018939687458dfaf6fc14",
+  "tests/test_memeflow_queue.py": "1ac41a7a30f4b24dcef2c9a3b63f1a304bbd2ff1ab05bca96ddf3c619d8524c9",
+  "tests/test_multiple_launchers.py": "49cab984931a39ed1880bf713c7d2a615818129635981c223b10bb4a91b14c08",
+  "tests/test_poiskkino.py": "d0eaadcaa4c815b8fa49840755d365f5bf05e2be223fd479c7032c33fc6b0f98",
+  "tests/test_progress.py": "24daca485e895cfa93099a873595c33ed6707117689648e2a4f1642cf5257751",
+  "tests/test_provider_import.py": "914a9e323808dea62ff97318f07b1f0df52b8b509e1f4d3db80a927e25142635",
+  "tests/test_publication_package.py": "39a33afd1bc6265981ac7917eba04a2078b7a468c20549fcbfd718c2ee0dedb9",
+  "tests/test_qbit_auth_ui.py": "306be9bd176e6ea5dcf3eece53cf0a9e09ac826d2337a5d1fdf91c5dd5914082",
+  "tests/test_ratings.py": "3ac75ae8c19c9db03a737fad3907bea40125b4821eab6a313cdb08a751a0a3fe",
+  "tests/test_release_assistant_ui.py": "78f3cbb2c39bcf6e42048544a22cb12ee60f2199fef9243c6eab21ecf9cf90f3",
+  "tests/test_release_auto_queue.py": "ed66a3756125cfc034591b6d67c1a9fb66fe9e0a0a6a6a73cfe7cedf786d2f22",
+  "tests/test_release_description.py": "ac92d40d0cc96b871cec87dc3282a2289828b2e16e0844f89101a8715b54144f",
+  "tests/test_release_search.py": "7967506ee569ee10fb97890988205c73d071d342e35683d3752c5cfd24d50657",
+  "tests/test_release_search_ui.py": "6f6909db31a859b2d051223ba461ea1b4592901f78519800691e16e12c0c4e1d",
+  "tests/test_remote_launcher_control.py": "0ef43ba217f429446b9172c445fbb51567bb36994c02f6d8578faf3ba2c4de2b",
+  "tests/test_remote_projects.py": "de5f885f6b5ecbf845beb4d7750e92cf7f0741826d3f7cd2832bf707f61afcf7",
+  "tests/test_remote_render.py": "7e30c3585cf450ff25dc1535d2537436ca448bb7011b12fc8525afa4640293af",
+  "tests/test_remote_torrents.py": "0ee1c6d32aadae7b5b74fcc49db8313d127ba6798cfad29418461d60d3ab0308",
+  "tests/test_request_voices.py": "3b68f6638cc3abcd8daadad735f9d3eb315d0ccb150367ce4cad7dc8088cd780",
+  "tests/test_run_as_bot.py": "a86be2a115386571a07bcf212cd7f23d3b559d1cae0611d01f16d433f05e9aeb",
+  "tests/test_season_import.py": "f3e5d42b9bc32a24f95c3b6bc4cfee51c437fbd2146cc624c469f549d28d7bc7",
+  "tests/test_series_navigation_handlers.py": "3917efaa81884f057344ad9950a75d8b8c3fc4a2722ec1da187a4b1433bf9424",
+  "tests/test_series_publication_conflicts.py": "78d1b6bd8be5c46aac2129e0ec9e6bd71550ddf946b359c861f557ef3723b6e4",
+  "tests/test_series_quality.py": "c3be5a8976af067c73fee8c53e7359f113ec12631d726b1b057ce009a7b1aa50",
+  "tests/test_services.py": "811d3c18fa3ba63d32a9e87006a6e2de97a5451007477afb9ae09982e4c297d0",
+  "tests/test_source_size_limit.py": "62285b2aa54e37b5fa8decbad20b48a4ce849bb05dc24aad5a593462b8b82c48",
+  "tests/test_storage_backup.py": "9e08d3a05348a168de0f92be4aa5da6660b74747531995507af692fd8ffcc26d",
+  "tests/test_storage_order.py": "bc07fde7b88c66981b455fb63f233e74af631849cdbaaaabc7380addbb5a3e6d",
+  "tests/test_stream_pipeline.py": "52fd385660e064143d819f041a5111644a9ce1fcc48472dd2ae6f1f70629c224",
+  "tests/test_torrent_panel.py": "497ab800704af862d3f6bbd1eb240b5bb75de80a255a5e1e07e4db7b15a71ce3",
+  "tests/test_torrent_queue.py": "c76b866c01cc3446c39019071ec3e5db9b1ac7eb7918fa1f14b22b889056ff4f",
+  "tests/test_trailers.py": "3f28720cdfd5c222fd3439f59137afc707248d14ca1215d95754d9762a379ab5",
+  "tests/test_video_hardware.py": "c889ce11920f452e2f292619ab1d84c8f5a5ebee9de49e6c077c8573777a8874",
+  "tests/test_web_startup.py": "e2d81837a018e7a434edac4bf103ec657d69831d84b3319c669d77479080581e",
+  "tests/test_yougen_bridge.py": "51b937eab921f1e9d44515f4a5651db1cd2c13cb6d038888c71ba6d807e7ce5a",
+  "tests/test_yougen_delivery.py": "eaee4773a696d16d4ff8dcbe9572e7ad8f3182131a57d06fa98b55e1c1837700",
+  "tests/test_yougen_queue.py": "5ff5a276a75fb553f67e4dc2b39cca66b6a9571cadf07e97b5172a0159cf86b3",
+  "tests/test_zona_delivery.py": "d417072d561b8e472e73c62321ffc2341d24e8ae4deef3443901b75661ec31a6",
+  "tests/test_zona_errors.py": "fbd93a3f871ffbb958ca6338711792dfed6b6bf269a0112ac64a69ef87bab9f4",
+  "tests/test_zona_prototype.py": "17e27caf098802c9b5e39bb3eb39a44d1efa9e67542744364152287af7dc5d95",
+  "tools/Start-KinoTime-Clips.cmd": "d7762b5bad692e2585b55b3ccab7febb63ff23805f5f269f431e6cb2b2cc3da5",
+  "tools/Start-KinoTime.cmd": "b02ae1739b25b5cc4946c9603b01847400323ed00d0667f34eb659e2eb80f4ba",
+  "tools/Start-MemeFlow.cmd": "1b29a7734347265a019f9dc63fe5770da284042dc9f1ea824112127b9a9cbd9f",
+  "tools/authorize_instant.py": "4e1f5115b9575cf812d70dfaad8adb0f965ae6d5fc1e669b000ca065425c9a5a",
+  "tools/backup_database.py": "72d7c50ea30b21492f540eefd5ba3608319b7c729be98c1aa0d77d80130793f9",
+  "tools/build_kinotime_banner.py": "866d8d9d1ac9099a87b660d9e051f5927d76352d39844040d845c8739f760bfa",
+  "tools/build_stars_banner.py": "474cfd01d0b9619427b59810bfb20998965b35a74b65092da5e4b71c4fc9d65b",
+  "tools/check_age_access_ui.cjs": "799fedf9b354805e22a6f702cd1c2edad559f880d1576099f27eae74ebb322cf",
+  "tools/check_episode_merge_ui.cjs": "c7b81e506efa9dd8213e86c5df6bc17215ca6700f9c6f3c589865c251641d892",
+  "tools/check_import_capacity_ui.cjs": "a4b27890b1919e3cf531afcd64e4d5754fb7fc26dd6ff20b846fe39fe64fdff2",
+  "tools/check_long_names_ui.cjs": "5a4f271b584e6a87076e5c1d8c6c0f65c7bda946eea259ec72edb635df36f100",
+  "tools/check_multiple_launchers_ui.cjs": "76bc7e535cdeda08e5f0ea3883f64cf847d408acab8b1f72ff1682a5cfbed2ba",
+  "tools/check_remote_projects_ui.cjs": "b22134b88192db8b67bed9729f8fd5ab883f3ce3e9333761544e882beb78cb75",
+  "tools/check_remote_render_ui.cjs": "4eb7c95e5de95e77c870b377fd266c1f5d43f7c0c3cfb7e33240e10e1459c9d0",
+  "tools/check_remote_torrents_ui.cjs": "acdd642509d3e46cee2e35e76fe991e15b3095ac2c1ee569ece9259d6f0f2694",
+  "tools/check_request_voices.py": "5b7171431c301b6162a949c3b4af3f09fbb9c44c6b282458e672fd87126288d4",
+  "tools/check_request_voices_ui.cjs": "008d58eb6d50c162351fda4c4b940f3c2030aa4a10579f14ae3bcd180dbae3be",
+  "tools/check_series_conflicts_ui.cjs": "bb7108c140f7386b2e802aa06f2219652b18081d43da13e03929c7d64e54c4fb",
+  "tools/check_stream_launcher_layout.py": "475e5e76b586508326414388974df450592490409028bda6116b5a8c592817c3",
+  "tools/check_stream_pipeline_ui.cjs": "c7344a2bfeebfbc80c60c7759b3492a7ed9cd6b55800cf0ed6fc3691f5145557",
+  "tools/clips_requirements.txt": "91a6a6e2c4ef245696ea4a27264c838d9ea969f0056b5cac65b2d9468c26c4ad",
+  "tools/clips_studio.py": "56dbd44f48891167de6d35ae74c9698cad0c174d2be74869ebcebe5c8b75cd64",
+  "tools/connect_storage_preview.py": "e6bce730ac4b9591bdc2093740c21c18fa408a8d3050c8e98026e5c9f51c2d46",
+  "tools/contest_ui_check.cjs": "1eebbb568489f9ca2c86e04c0969f0c5187bd0b0f0153f1b457c9e1332960a04",
+  "tools/contest_ui_preview.py": "c376fb618ddb64b21e4cdcf234476477d85283da9d954af2cbda6f1b07a1728a",
+  "tools/deploy_storage.py": "01df75bfce63133f145e58470bd3d1cd298c9db6d7cbc497fbbd63c9ce6b6da4",
+  "tools/desktop-requirements.txt": "342497eb052bdd486424c0845364365269e69b8941220162c8333db4f140bb07",
+  "tools/desktop_launcher.py": "4cd0a7d378a6534b954efe5e61fb3c9405cc31b6c5e6ad420ff82d7199655b5e",
+  "tools/disk_space.py": "dc163779d24b8d5a5319104537c1070ff7577c14113f9d7cf1bcf5f07395ba20",
+  "tools/download_clips_model.py": "114f1866316e0911f0d45070f7ab25cd8dfa8fccfb325cd4b4a555ebe26ca868",
+  "tools/jackett_search.py": "71b3e656e5ea5dad87c1b1e93616d064b4d63f0afb6d7198ab3f345575025b05",
+  "tools/jackett_sources_ui.py": "3cc52368f8ff754b2489a33d482a11f4897d7b70a658ac8fcfc9387227d77169",
+  "tools/launcher_device.py": "4a2de2134de630f0b54f1eb6c9a85a1cd0c9e289f08ad90f3b025cef3d3f9fee",
+  "tools/launcher_entry.py": "e7d30c7e124eb1b44b71d7ee4bb416873d75088fef6aba08e542670937ed91eb",
+  "tools/launcher_projects.py": "d5496d45b3c065d1dff3fcd9e76f532ad9b4fb29a37e5cf4eef162b9d6f6ddb6",
+  "tools/launcher_projects_ui.py": "3e9216a22b0a3320b95944c0f461021862105898cf49b87bef32803561a0bac4",
+  "tools/launcher_runtime.py": "211e29a5c1618bfe5ebf2de2322c62e4385c6fb43647ec5ab3b1116ded14cbc0",
+  "tools/logout_cloud.py": "a72c4e5819722a97b6e2397d4bc563a0dc882e0dfba18b7450ea4b38c841afb7",
+  "tools/memeflow.py": "dcd678b997367a7914190143a846c6c95a45d0a45edd907eb7419f7721fcd929",
+  "tools/memeflow_requirements.txt": "1464cb489f86cd16730d6dd045d58b585ddb27f3b1055faddaffa66f4b4989c8",
+  "tools/pack_contest_subscription_fix.py": "5b7e7ebbf114172f99b62f3258f23db911df18ae3d1586169b37f20c84220e74",
+  "tools/pack_contest_update.py": "1e72855626090f3b0fe0f85b0a0c35266c635313ca6de96279ee0dfb9345fc89",
+  "tools/pack_launcher_capacity_fix.py": "13a2eece05c448306e746211ae23b7cb6d03ab3a130e66be94110da5f0bcb0e8",
+  "tools/pack_launcher_upload_quality_fix.py": "151f2399b5a004f682a390d261c21ea772e71c58b0ea24f53c78e6a317e28200",
+  "tools/pack_request_voices_update.py": "2bedabf45803dedcf4d51bdd721cc236502bbd2e24ff4d6f13b6496fd951e3be",
+  "tools/prepare_storage.py": "dced139d2f90f49e4697050d2ae3b200737e0e5d1a4ed425963d37c7c7e711a3",
+  "tools/preview_web.py": "c9652aa0fd379632e5a448ef22574f5f9a1be9a89d20605696fe7a28b11836f6",
+  "tools/release_assistant_ui.py": "819e76057d1be0f675cdf8e183661c6136ea87888003c5499a8bce0b8b539856",
+  "tools/release_description.py": "7a5427dcab147f7140c36fe76d20c5f2dbc555ef2bbe2c052da27493bb222635",
+  "tools/release_search.py": "6884420d20fe75a9c8715b390ff0d9256bde6b62ee1eda53c6eb6da126431f40",
+  "tools/release_search_ui.py": "ba987506a6f35fea605ea0a0383b3e78387a5d33531a12c115ad903c3148293f",
+  "tools/remote_projects.py": "8c52af6141c23aef489612111ef983e4f15dcdc1f347a05db76d5f39abbd7356",
+  "tools/remote_render.py": "62b7b2ce6fb6fbdafce234bae5871ee5893adc0c905e2207cc849f0d82fd8e56",
+  "tools/remote_torrents.py": "9267aa76953d3f817e547c6c3b8f6083df025eda8736a933599e3c6175a9d2f1",
+  "tools/restore_storage.py": "a50979f94b9f964c18b692f421aad085bc0b10127a3c355df42e8af2a80ad7f8",
+  "tools/run_as_bot.py": "a64e7aad8142cdfbf2050ff5fb7038d17ac34702dd2d79bef7a75bc12f9ff259",
+  "tools/setup_deploy.py": "92eae965f98e00130eeab4f81bf3ad96ae564e78fe9b8b8d8fe4492f9bb506fb",
+  "tools/storage_diagnostics.py": "681631966de5ab4e9f18cc1093ba36f486841d8cba401181fbf68791dc1afc99",
+  "tools/stream_pipeline.py": "115f0f3a2beeb04c1cec029f572c892687462778459754fceba033a0a3323e01",
+  "tools/torrent_panel.py": "fbb5b651e4c583d8ee34a26bca3b4577fa2c619970ae24cfc954d800e37edf7d",
+  "tools/torrent_queue.py": "f69713965198c51afe4eae55e8a4cba7a0df916c7668e2bb585ee5564dc21eb2",
+  "tools/video_hardware.py": "4de3ac47ce5510c5b249f52309303b97cce320386f1a746730618c66625daac7",
+  "tools/video_hardware_ui.py": "7fdf76e897843d234280e6326f6839cdb4f975ac8130504ebc2a777d3dadf5e8",
+  "tools/yougen_agent.py": "e66bae56a5551c7b0a6e0abbb781845c134f1491fe118e65f1c7f74394ea13d2",
+  "tools/yougen_bridge.py": "2f551b0592f731c442b952a31cd4c0599be33dbd2d940537ef5d6a2939816f27",
+  "tools/yougen_delivery.py": "71492ae4366f16a1dabeb5d6927bab9be6ce1b8309b78a88dceda11faef193ce",
+  "tools/yougen_queue.py": "b8b1d3b26cadda8782e351b37acb7e79d15c07e7155daed67c6fa76b5551a8af",
+  "tools/yougen_worker.py": "cc88cb28d8045fe9f47e372d20405e5e6ce990e8f39200c7f9384709954db254",
+  "tools/zona_modern.py": "6c7b36029c260e5636eff7ee834d9db510f4dbb60ac11dcf53e46b8f10e4777a",
+  "tools/zona_prototype.py": "81f794b6bbc1f65d37b7e2c78794eb1c2de3b61fd4c78516d991bc78c22c74b5",
+  "tools/zona_source.py": "b87b4def8a97d14eb74c44ca715f252f0b533a4d06fb029db0a133b2062951a1",
+  "utils/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "utils/set_bot_commands.py": "7ff89faee840f97e7028e56bbdf0bdb59be88b939ba49bef588228e356e43184",
+  "uv.lock": "0e09b173dfeea05387dbca93d375bf8dca5b711c21287a370a141098d000db31",
+  "webpanel/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "webpanel/auth.py": "442e8e5550c08a8593a35e19b30cd562ba2269dc3179500f9b263a3631487f20",
+  "webpanel/catalog_merge.py": "19738d8de992a11ef1ad4f6bdb29f78b6b830106ee0aaa1a0a55395f0b7f5cbb",
+  "webpanel/contests.py": "6927c406999f90eb6539571952329cc5a900b0dfa8b487e72005f336013ef9a5",
+  "webpanel/episode_merge.py": "f79e1ccda64bd2671fb97af4099fa5cc2ec5e75cab4de13ffc929265f4d80c54",
+  "webpanel/imports.py": "78469ee07596179b573581f6a59cdaf4534f896c94ef47ea7eee3c40c6da7573",
+  "webpanel/instant.py": "9fc8ac0f2edecd37c524be2789e9490f3b99c0e9f8eac265bc3ca123163b6ae8",
+  "webpanel/launcher_control.py": "73d888193564198d38aa2f9e1dfc0e31646701bbab44e1de7ab71f763c923cdd",
+  "webpanel/launcher_transfers.py": "d07658402c12f33b8b32a58d3698fbbb74164d5fdbadf27e1d1e8942b10eb8d4",
+  "webpanel/media_preview.py": "0a4f6cc32b17259052c8a6d6c4adf84e1b7f9f7cb2946f895fb232b314ffd19f",
+  "webpanel/provider_import.py": "3210b759dbb524651c1250709df271d0aaa88ee86a91fd15c49ac2612f85dd8c",
+  "webpanel/repository.py": "c9807dfeb1708ccb0df08cf2285b53824bc3945fedf41c6c8c1d2719a3325c90",
+  "webpanel/series_validation.py": "db70bdb6a9c249a7b93c0c86723e8d2b2ebf03049736a5349aa2767468416632",
+  "webpanel/server.py": "8d9d09b2ace29c3d6ed39b004b5f7590b83ade3a4a30a181ca884c530b71259b",
+  "webpanel/static/app.js": "9b9cc706f73c9959e2b06ca406d4ceb55211e4e1bedb44a1dd7dd0fea41c8787",
+  "webpanel/static/contests.js": "3437c9f6b3f6fb75eebcf7a0f683f355b878c29832ddaef9b5242a0f50c4d71a",
+  "webpanel/static/favicon.svg": "77dcf042c0f6e4be7ee31f52a4a492b02c7b7cecc5af8e1376e3537b7bbfc355",
+  "webpanel/static/index.html": "62d960b8cf434da3155b216ede925bf39bd2160e1c90b1761f790846639e75e3",
+  "webpanel/static/series-fill.js": "d2715352a2ce5904f04dd786979b812715945dbc3324e251d0931d8abfe8a31d",
+  "webpanel/static/style.css": "2f0b09bf1ad364ae9b2ba9574c16bc2b32dbd1f502a36d3705faba09dd9d1569",
+  "webpanel/streaming.py": "64aa055e96572c71676dd88d77635522c8c005ef8e7f7327ab098084701ab8f6",
+  "webpanel/uploads.py": "3c5e32d9121726bffed7e9c602f729327ebdfd743980dd064d4c30020bcfb041"
 }

@@ -6,6 +6,7 @@ dependencies = [
     "aiogram==2.25.2",
     "aiohttp==3.8.6",
     "telethon==1.45.0",
+    "opentele2==2.0.0",
 ]
 
 [dependency-groups]

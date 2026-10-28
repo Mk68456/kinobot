@@ -15,6 +15,8 @@ async def on_startup(dispatcher):
 
     database.open(DATABASE_PATH)
     migrate(BACKUP_DIR)
+    from services.instant import recover
+    recover()
     from data.settings import WEB_ENABLED
 
     if WEB_ENABLED:
@@ -30,6 +32,8 @@ async def on_startup(dispatcher):
     backup.start(dispatcher.bot)
     from services.zona_delivery import delivery as zona_delivery
     zona_delivery.start(dispatcher.bot)
+    from services.instant_agent import start as start_instant_agent
+    await start_instant_agent()
 
 
 async def on_shutdown(dispatcher):
@@ -37,6 +41,9 @@ async def on_shutdown(dispatcher):
     from services.broadcasts import broadcasts
     from services.tmdb import close_session
     from services.storage_backup import backup
+
+    from services.instant_agent import stop as stop_instant_agent
+    await stop_instant_agent()
 
     from services.zona_delivery import delivery as zona_delivery
     await zona_delivery.stop()

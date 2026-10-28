@@ -183,6 +183,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "aiogram" },
     { name = "aiohttp" },
+    { name = "opentele2" },
     { name = "telethon" },
 ]
 
@@ -195,6 +196,7 @@ dev = [
 requires-dist = [
     { name = "aiogram", specifier = "==2.25.2" },
     { name = "aiohttp", specifier = "==3.8.6" },
+    { name = "opentele2", specifier = "==2.0.0" },
     { name = "telethon", specifier = "==1.45.0" },
 ]
 
@@ -235,6 +237,27 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c9/68/f16a3a8ba6f7b6dc92a1f19669c0810bd2c43fc5a02da13b1cbf8e253845/multidict-6.7.1-cp311-cp311-win_amd64.whl", hash = "sha256:bdbf9f3b332abd0cdb306e7c2113818ab1e922dc84b8f8fd06ec89ed2a19ab8b", size = 45981, upload-time = "2026-01-26T02:43:49.921Z" },
     { url = "https://files.pythonhosted.org/packages/ac/ad/9dd5305253fa00cd3c7555dbef69d5bf4133debc53b87ab8d6a44d411665/multidict-6.7.1-cp311-cp311-win_arm64.whl", hash = "sha256:b8c990b037d2fff2f4e33d3f21b9b531c5745b33a49a7d6dbe7a177266af44f6", size = 43159, upload-time = "2026-01-26T02:43:51.635Z" },
     { url = "https://files.pythonhosted.org/packages/81/08/7036c080d7117f28a4af526d794aab6a84463126db031b007717c1a6676e/multidict-6.7.1-py3-none-any.whl", hash = "sha256:55d97cc6dae627efa6a6e548885712d4864b81110ac76fa4e534c03819fa4a56", size = 12319, upload-time = "2026-01-26T02:46:44.004Z" },
+]
+
+[[package]]
+name = "opentele2"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "telethon" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/34/9b/6a958512c91d39be4d83e43c7ec1cfea521c18af836e506e3de931c047ad/opentele2-2.0.0.tar.gz", hash = "sha256:b2b8a4faa5bb1ff69b2a18f15add7311120cf6761e907736d45fc5d05958ce2d", size = 1261360, upload-time = "2026-10-24T04:39:15.317Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4f/01/3aa3919cbb6c0952eeb0a5a0c76cadfbbf6580247260eac7b508c642b433/opentele2-2.0.0-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:055cd74cdb96c8f295734e13bd3cb8074aa85984e40ce50a6197449c679c9fa7", size = 4329595, upload-time = "2026-10-24T04:14:32.928Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/29/5d92d386ff7e736fb856533dba56396e727550d758e8acacb1847b742888/opentele2-2.0.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:1c166eb6d7081a460de2bc43cbe90e120df7d041d2045d5c00f346689775f48a", size = 4141843, upload-time = "2026-10-24T04:14:35.054Z" },
+    { url = "https://files.pythonhosted.org/packages/59/e2/08deac11aac55e0deab2af8fb34838907ded1a2e4abf3c543da1ce43616a/opentele2-2.0.0-cp38-abi3-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:83d5b5d68db5508b657b0859685e70c2e7ea4a5dddc7ab422eab7275ff65e99b", size = 4473894, upload-time = "2026-10-24T04:14:36.628Z" },
+    { url = "https://files.pythonhosted.org/packages/9c/8f/cf8d6265de34436511486387363ffe88ee48b1626a5757032a5891809f04/opentele2-2.0.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5ec30bfd03929c4dad9884ac44389c5e31e74c0fc7b462148ff1af7d0b3d4854", size = 4264527, upload-time = "2026-10-24T04:14:38.374Z" },
+    { url = "https://files.pythonhosted.org/packages/11/a1/aea3dda0f5f895d8ee43597a4847f11bb62ceee35baf4b0de26144da6778/opentele2-2.0.0-cp38-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:3479d1aa0c8475193cf401a92ea9a89ebaf96ca6fd0ef1278c7912f2daaa3952", size = 4100366, upload-time = "2026-10-24T04:14:39.908Z" },
+    { url = "https://files.pythonhosted.org/packages/77/a0/c828a0757c2f407481f32a5269c04910ecb85b3890035554da09ee2a9605/opentele2-2.0.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:47500b72edfcddfe1373283c3341138090c50c9a7e0eddd335c32ff85fafe721", size = 4495238, upload-time = "2026-10-24T04:14:41.494Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/74/03905dcdd1fd1b484f18ff91a200dafa2aee7a92af75b3955979d9c89fc7/opentele2-2.0.0-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:9434d50a136b8673c8fcb250fc3349018fef55f9a8d9e70b92d8d1ccb6db7f15", size = 4567980, upload-time = "2026-10-24T04:14:43.362Z" },
+    { url = "https://files.pythonhosted.org/packages/65/28/b0abf75c2101de462329e248b59ad80e32db17efced3d025d7cca078dcf0/opentele2-2.0.0-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:76f03b0de65647c0b19366b8cc1e58abf09aff63195822acfc6c60d489326f7d", size = 4745807, upload-time = "2026-10-24T04:14:44.879Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/22/cbc497c1c05820a83f33e8345c06af0198933f82b9edd33d115c8a4b0644/opentele2-2.0.0-cp38-abi3-win_amd64.whl", hash = "sha256:3a473690e681cd309af151844441a0c9b79cbd10d35fe8f74709c8e3396c6833", size = 4217067, upload-time = "2026-10-24T04:14:46.48Z" },
+    { url = "https://files.pythonhosted.org/packages/68/7b/16bddb7a97862929cef4cf7dbf48a2e839745d5432161a6428ee2222d35d/opentele2-2.0.0-cp38-abi3-win_arm64.whl", hash = "sha256:6ba7ba2bdf39ed39649ceb9f507f333e109fab821b5e51e36dba9ce240e01d8d", size = 3918626, upload-time = "2026-10-24T04:14:48.433Z" },
 ]
 
 [[package]]
