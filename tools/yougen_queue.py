@@ -20,20 +20,23 @@ class Queue:
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
             db.commit()
 
-    def enqueue(self, payload):
+    def enqueue(self, payload, identity=None):
         required = {'query', 'result_title', 'title', 'voice', 'quality', 'season', 'episode'}
-        if set(payload) != required:
+        if set(payload) - {'content_type'} != required:
             raise ValueError('Некорректный состав задания.')
         for name in required - {'season', 'episode'}:
             if not isinstance(payload[name], str) or not 1 <= len(payload[name]) <= 200:
                 raise ValueError('Заполните строковые поля задания.')
-        if any(type(payload[n]) is not int or not 1 <= payload[n] <= 999 for n in ['season', 'episode']):
+        kind = payload.get('content_type', 'series')
+        if (kind not in {'movie', 'series'} or any(type(payload[n]) is not int for n in ['season', 'episode'])
+                or kind == 'series' and any(not 1 <= payload[n] <= 999 for n in ['season', 'episode'])
+                or kind == 'movie' and any(payload[n] != 0 for n in ['season', 'episode'])):
             raise ValueError('Сезон и серия должны быть положительными номерами.')
         from tools.yougen_bridge import VOICES
         if payload['voice'] not in VOICES or payload['quality'] not in {'240p', '360p', '480p', '720p', '1080p'}:
             raise ValueError('Выберите поддерживаемую озвучку и качество.')
         raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
-        key = hashlib.sha256(raw.encode()).hexdigest()
+        key = hashlib.sha256((('remote:' + identity) if identity else raw).encode()).hexdigest()
         with closing(sqlite3.connect(self.path)) as db:
             db.execute('INSERT OR IGNORE INTO Jobs(id,request_key,payload,status,phase) VALUES (?,?,?,?,?)',
                        (uuid.uuid4().hex, key, raw, 'queued', 'queued'))

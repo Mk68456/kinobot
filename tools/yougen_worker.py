@@ -55,13 +55,19 @@ def exact_video(message, payload):
     if not record or getattr(message, 'noforwards', False):
         return None
     label = f"{payload['title']} ({payload['voice']} [{payload['quality']}])"
-    if (record['label'] != label or record['season'] != payload['season']
+    if (record['label'].casefold() != label.casefold() or record['season'] != payload['season']
             or record['episode'] != payload['episode'] or record['quality'] != payload['quality']):
         return None
     return record
 
 
 def manifest(payload, record):
+    if payload.get('content_type') == 'movie':
+        path = f"{payload['voice']} {payload['quality']}/Видео.mp4"
+        return {'version': 1, 'title': payload['title'], 'content_type': 'movie',
+                'catalog_section': 'movies', 'selection': path,
+                'root': f"yougen/{BOT}/{record['message_id']}",
+                'files': [{'path': path, 'size': record['size'], 'mtime': '', 'quality': payload['quality']}]}
     path = f"S{payload['season']:02d}E{payload['episode']:02d}_{payload['quality']}.mp4"
     return {'version': 1, 'title': payload['title'], 'content_type': 'series',
             'catalog_section': 'series', 'new_series': True, 'season_number': payload['season'],
@@ -111,9 +117,9 @@ async def select_variant(client, source, card, menu, label):
         await asyncio.sleep(2)
 
 
-async def process(queue, job, config):
+async def process(queue, job, config, panel_override=None):
     payload, job_id = job['payload'], job['id']
-    panel = Panel(config['panel_url'], config['panel_token'], config['instance_id'])
+    panel = panel_override or Panel(config['panel_url'], config['panel_token'], config['instance_id'])
     # Verify server identity and access before making any request at the provider.
     info = await asyncio.to_thread(panel.request, 'session')
     if (info.get('bot_username', '').lower() != config['target'].lstrip('@').lower()
@@ -122,8 +128,8 @@ async def process(queue, job, config):
     attach = config.get('link_existing_catalog', False)
     if attach and info.get('capabilities', {}).get('provider_import') != 1:
         raise BridgeError('Для привязки к каталогу сначала установите серверное обновление provider_import.')
-    async with connection(session_path(config['session']), None, None,
-                          'desktop-copy', config['user_id']) as (client, source):
+    async with connection(session_path(config['session']), config.get('api_id'), config.get('api_hash'),
+                          config.get('profile', 'desktop-copy'), config['user_id']) as (client, source):
         target = await client.get_entity(config['target'])
         if not target.bot or target.id == source.id or target.username.lower() != config['target'].lstrip('@').lower():
             raise BridgeError('Не подтверждён бот-получатель.')
@@ -175,12 +181,13 @@ async def process(queue, job, config):
         draft = registered['draft']
         items = draft['body']['items']
         if (registered.get('bot_username', '').lower() != target.username.lower()
-                or draft['status'] != 'draft' or draft['body']['content_type'] != 'series'
+                or draft['status'] != 'draft' or draft['body']['content_type'] != payload.get('content_type', 'series')
                 or ' '.join(draft['body']['title'].split()).casefold() != ' '.join(payload['title'].split()).casefold()
                 or len(items) != 1 or not re.fullmatch(r'[a-f0-9]{32}', items[0]['asset_id'])
-                or items[0].get('quality') != payload['quality'] or items[0].get('voice') != payload['voice']
-                or items[0].get('season_number') != payload['season']
-                or items[0].get('name') != f"Серия {payload['episode']}"):
+                or items[0].get('quality') != payload['quality']
+                or payload.get('content_type', 'series') == 'series' and (
+                    items[0].get('voice') != payload['voice'] or items[0].get('season_number') != payload['season']
+                    or items[0].get('name') != f"Серия {payload['episode']}")):
             raise BridgeError('Панель вернула неожиданный черновик. Ничего не отправлено.')
         draft_id, asset_id = draft['id'], items[0]['asset_id']
         queue.update(job_id, 'draft_registered', details={'draft_id': draft_id, 'asset_id': asset_id,

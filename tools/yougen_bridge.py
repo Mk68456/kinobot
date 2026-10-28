@@ -14,8 +14,11 @@ import re
 import sys
 
 BOT = 'Kinobooprivate_bot'
-VOICES = {'LostFilm', 'AlexFilm', 'HDrezka Studio', 'TVShows', 'NewStudio', 'Jaskier',
+SERIES_VOICES = {'LostFilm', 'AlexFilm', 'HDrezka Studio', 'TVShows', 'NewStudio', 'Jaskier',
           'Кубик в Кубе | Kubik³', '[EN] Original', '[UA] HDrezka Studio'}
+MOVIE_VOICES = {'Перевод', 'Пифагор', 'Дублированный', 'Володарский Леонид', 'Горчаков Василий',
+                'Живов Юрий', 'Немахов Юрий', 'Сербин Юрий', '[EN] Original', '[UA] ICTV', '[UA] Дублированный'}
+VOICES = SERIES_VOICES | MOVIE_VOICES
 MENUS = {'Озвучка', 'Качество', 'Серии', 'Назад', 'Озвучки серии', 'Все озвучки'}
 
 
@@ -50,7 +53,7 @@ def video_record(message):
     if document.size < 10_000_000:
         return None
     match = re.search(r'(\d+) сезон\s+(\d+) серия', caption, re.I)
-    if not match:
+    if not match and not re.fullmatch(r'.+ \(.+ \[\d{3,4}p\]\)', caption.splitlines()[0].strip()):
         return None
     quality = re.search(r'\[(\d{3,4}p)\]', caption)
     title = caption.splitlines()[0].strip()
@@ -58,7 +61,7 @@ def video_record(message):
     if 'http' in title.lower() or '@' in title:
         return None
     return {'message_id': message.id, 'label': title[:240], 'size': document.size,
-            'season': int(match[1]), 'episode': int(match[2]),
+            'season': int(match[1]) if match else 0, 'episode': int(match[2]) if match else 0,
             'quality': quality[1] if quality else None}
 
 
