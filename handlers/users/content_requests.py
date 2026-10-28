@@ -70,6 +70,10 @@ async def send_missing_cards(message, title, kind):
         keyboard = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton(
             button, callback_data=f"request:quick:{kind}:{candidate['tmdb_id']}"
         ))
+        from services.instant import enabled
+        if enabled(message.chat.id):
+            keyboard.row(types.InlineKeyboardButton('⚡ Получить сразу',
+                         callback_data=f"instant:quick:{kind}:{candidate['tmdb_id']}"))
         caption = f"<strong>{escape(label)}</strong>\n\n{escape(candidate.get('overview') or 'Описание пока не добавлено.')}"
         try:
             if candidate.get("poster_url"):
@@ -81,11 +85,17 @@ async def send_missing_cards(message, title, kind):
     return True
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("request:quick:"), state="*")
+@dp.callback_query_handler(lambda c: c.data.startswith(("request:quick:", "instant:quick:")), state="*")
 async def quick_request(call, state):
     await call.answer()
     if not await allowed(call, state):
         return
+    if call.data.startswith('instant:'):
+        from services.instant import enabled
+        from database.age_access import preferences
+        if not enabled(call.from_user.id) or preferences(call.from_user.id)['max_age'] != 18:
+            await call.message.answer('Быстрая выдача сейчас недоступна при ваших настройках.')
+            return
     parts = call.data.split(":")
     if len(parts) != 4 or parts[2] not in ("movie", "series") or not parts[3].isdigit():
         return
@@ -177,11 +187,17 @@ async def confirmation(message, state):
         data.get("request_voice_evidence", []), ensure_ascii=False)})
     if existing:
         text += " — " + requests.STATUSES[existing["status"]]
+    actions = [("Тоже хочу посмотреть" if existing else "Отправить заявку", "request:confirm")]
+    from services.instant import enabled
+    from database.age_access import preferences
+    if (enabled(message.chat.id) and preferences(message.chat.id)['max_age'] == 18
+            and (kind == 'movie' or season and data.get('request_episode'))):
+        actions.insert(0, ('⚡ Получить сразу', 'instant:start'))
     await message.answer(
         text,
         parse_mode="",
         reply_markup=markup(
-            [("Тоже хочу посмотреть" if existing else "Отправить заявку", "request:confirm")]
+            actions
         ),
     )
 

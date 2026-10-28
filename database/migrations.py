@@ -339,6 +339,22 @@ def _zona_jobs():
 MIGRATIONS += (_zona_jobs,)
 
 
+def _instant_jobs():
+    database.execute('''CREATE TABLE InstantJobs (
+        id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, identity TEXT NOT NULL UNIQUE,
+        payload TEXT NOT NULL, request_id INTEGER, status TEXT NOT NULL,
+        owner TEXT, lease_hash TEXT, lease_until REAL, draft_id TEXT, asset_id TEXT,
+        file_id TEXT, sent_message_id INTEGER, error TEXT,
+        created_at REAL NOT NULL, updated_at REAL NOT NULL,
+        generation INTEGER NOT NULL DEFAULT 0)''')
+    database.execute('CREATE INDEX idx_instant_queue ON InstantJobs(status,created_at)')
+    database.execute('''CREATE TABLE InstantAgent (
+        id INTEGER PRIMARY KEY CHECK(id=1), owner TEXT NOT NULL, last_seen REAL NOT NULL)''')
+
+
+MIGRATIONS += (_instant_jobs,)
+
+
 def migrate(backup_dir=None):
     version = database.execute("PRAGMA user_version").fetchone()[0]
     if version > len(MIGRATIONS):

@@ -17,3 +17,8 @@ UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", DATA_DIR / "uploads")).resolve()
 UPLOAD_QUOTA_BYTES = int(os.environ.get("UPLOAD_QUOTA_BYTES", "20000000000"))
 WEB_MAX_FILE_BYTES = 2_000_000_000
 WEB_CHUNK_BYTES = 8 * 1024 * 1024
+
+# The first rollout is visible to administrators only; enable PUBLIC after a live check.
+INSTANT_ENABLED = os.environ.get('INSTANT_ENABLED', '0') == '1'
+INSTANT_PUBLIC = os.environ.get('INSTANT_PUBLIC', '0') == '1'
+INSTANT_AGENT_ENABLED = os.environ.get('INSTANT_AGENT_ENABLED', '0') == '1'
