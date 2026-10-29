@@ -17,8 +17,9 @@ def recover():
 
 
 def enabled(user_id):
-    from data import settings
-    return settings.INSTANT_ENABLED and (settings.INSTANT_PUBLIC or is_admin(user_id))
+    from database.instant_settings import effective
+    active, public = effective()
+    return active and (public or is_admin(user_id))
 
 
 def markup(job):

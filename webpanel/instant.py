@@ -17,10 +17,10 @@ def owner(request):
 
 
 async def claim(request):
-    from data import settings
+    from database.instant_settings import effective
     from webpanel.server import body
     await body(request)
-    if not settings.INSTANT_ENABLED:
+    if not effective()[0]:
         return web.json_response({'enabled': False, 'job': None})
     return web.json_response({'enabled': True, 'job': jobs.claim(owner(request))})
 

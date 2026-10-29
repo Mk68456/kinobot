@@ -14,6 +14,27 @@ from tools.yougen_bridge import VOICES, MOVIE_VOICES, SERIES_VOICES
 QUALITIES = ['360p', '480p', '720p', '1080p']
 
 
+@dp.message_handler(commands=['instant_mode'], state='*')
+async def mode_command(message):
+    from services.access import is_admin
+    from database import instant_settings
+    if not is_admin(message.from_user.id) or message.chat.type != 'private':
+        return
+    argument = message.get_args().strip().lower()
+    if argument:
+        if argument not in {'pilot', 'off', 'env'}:
+            await message.answer('Режимы: /instant_mode pilot — только администраторы; '
+                                 '/instant_mode off — выключить; /instant_mode env — настройки окружения.')
+            return
+        instant_settings.set_mode(argument, message.from_user.id)
+    active, public = instant_settings.effective()
+    description = 'выключена' if not active else 'для всех допущенных пользователей' if public else 'только для администраторов'
+    worker = 'на связи' if jobs.online() else 'пока не на связи'
+    await message.answer(f'Моментальная выдача: {description}.\n'
+                         f'Режим: {instant_settings.mode()}. Обработчик: {worker}.\n'
+                         'Пробное включение: /instant_mode pilot\nВыключение: /instant_mode off')
+
+
 def voice_choices(data):
     return sorted(MOVIE_VOICES if data['request_kind'] == 'movie' else SERIES_VOICES)
 
