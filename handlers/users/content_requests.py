@@ -60,7 +60,16 @@ async def send_missing_cards(message, title, kind):
     from database.age_access import preferences
     if preferences(message.chat.id)['max_age'] < 18:
         return False
-    results = await search(title, kind)
+    if kind is None:
+        movies = await send_missing_cards(message, title, 'movie')
+        series = await send_missing_cards(message, title, 'series')
+        return movies or series
+    if kind not in ('movie', 'series'):
+        return False
+    match = re.fullmatch(r"(.*?)\s*\(?((?:19|20)\d{2})\)?", title)
+    results = await search(match[1].strip() if match else title, kind)
+    if match:
+        results = [candidate for candidate in results if str(candidate.get('year')) == match[2]]
     if not results:
         return False
     for candidate in results:
@@ -74,6 +83,10 @@ async def send_missing_cards(message, title, kind):
         if enabled(message.chat.id):
             keyboard.row(types.InlineKeyboardButton('⚡ Получить сразу',
                          callback_data=f"instant:quick:{kind}:{candidate['tmdb_id']}"))
+        from services.access import is_admin
+        if is_admin(message.chat.id):
+            keyboard.row(types.InlineKeyboardButton('📦 Загрузить всё доступное',
+                         callback_data=f"bulk:card:{kind}:{candidate['tmdb_id']}"))
         caption = f"<strong>{escape(label)}</strong>\n\n{escape(candidate.get('overview') or 'Описание пока не добавлено.')}"
         try:
             if candidate.get("poster_url"):

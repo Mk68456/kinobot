@@ -109,7 +109,9 @@ async def selection(call, state):
                'year': str(selected.get('year') or (year_suffix[1] if year_suffix else '')),
                'voice': data['instant_voice'],
                'quality': QUALITIES[index], 'season': data.get('request_season', 0),
-               'episode': data.get('request_episode', 0)}
+               'episode': data.get('request_episode', 0),
+               'metadata': {'description': str(selected.get('overview') or '')[:2500],
+                            'poster_url': str(selected.get('poster_url') or '')[:1000]}}
     try:
         # Use the same request/vote identity; a private file does not publish the catalogue.
         with database.transaction():

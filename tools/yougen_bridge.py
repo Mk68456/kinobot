@@ -38,7 +38,7 @@ def safe_button(button):
     label = plain_label(getattr(button, 'text', ''))
     return bool(getattr(button, 'data', None)) and (
         label in VOICES | MENUS
-        or re.fullmatch(r'(?:240|360|480|720|1080)p', label) is not None
+        or re.fullmatch(r'(?:240|360|480|720|1080|1440|2160)p', label) is not None
         or re.fullmatch(r'(?:Сезон|Серия) [1-9][0-9]{0,2}', label) is not None)
 
 

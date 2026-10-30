@@ -12,7 +12,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import Request, HTTPRedirectHandler, build_opener
 
-from tools.yougen_bridge import (BOT, BridgeError, choose, choose_episode, connection, episode_position, message_by_id,
+from tools.yougen_bridge import (BOT, BridgeError, choose, connection, message_by_id,
                                  open_result, plain_label, safe_button, session_path, snapshot, video_record)
 from tools.yougen_queue import Queue
 
@@ -59,6 +59,11 @@ def exact_video(message, payload):
             or record['episode'] != payload['episode'] or record['quality'] != payload['quality']):
         return None
     return record
+
+
+def episode_name_matches(name, episode):
+    from database.categories import episode_order
+    return episode_order((0, name))[:2] == (0, episode)
 
 
 def manifest(payload, record):
@@ -146,20 +151,13 @@ async def process(queue, job, config, panel_override=None):
         record = video_record(card)
         if record['season'] != payload['season'] or record['episode'] != payload['episode']:
             queue.update(job_id, 'selecting_episode')
-            await select_variant(client, source, card, 'Серии', f"Сезон {payload['season']}")
-            # Season selection opens a numbered grid in the same message.
-            deadline = time.monotonic() + 20
-            while True:
-                current = await message_by_id(client, source, card.id)
-                try:
-                    episode_position(current, payload['season'], payload['episode'])
-                    break
-                except BridgeError:
-                    pass
-                if time.monotonic() >= deadline:
-                    raise BridgeError('Не открылось меню выбранного сезона.')
-                await asyncio.sleep(2)
-            await choose_episode(client, source, card.id, payload['season'], payload['episode'])
+            from tools.yougen_discovery import menu, pages
+            await menu(client, source, card.id, 'Серии')
+            await pages(client, source, card.id, r'Сезон [1-9][0-9]{0,2}', select=f"Сезон {payload['season']}")
+            current = await message_by_id(client, source, card.id)
+            if f"Сезон {payload['season']}" not in [plain_label(b.text) for row in current.buttons or [] for b in row]:
+                raise BridgeError('Не подтверждён сезон в меню серий.')
+            await pages(client, source, card.id, r'[1-9][0-9]{0,2}', select=str(payload['episode']))
             card = await wait_card(client, source, before, payload, target_episode=True)
             record = video_record(card)
         if not exact_video(card, payload):
@@ -181,13 +179,14 @@ async def process(queue, job, config, panel_override=None):
         draft = registered['draft']
         items = draft['body']['items']
         if (registered.get('bot_username', '').lower() != target.username.lower()
-                or draft['status'] != 'draft' or draft['body']['content_type'] != payload.get('content_type', 'series')
-                or ' '.join(draft['body']['title'].split()).casefold() != ' '.join(payload['title'].split()).casefold()
+                or draft['status'] not in ('draft', 'published') or draft['body']['content_type'] != payload.get('content_type', 'series')
+                or re.sub(r'\s*\((?:19|20)\d{2}\)$', '', ' '.join(draft['body']['title'].split())).casefold()
+                != ' '.join(payload['title'].split()).casefold()
                 or len(items) != 1 or not re.fullmatch(r'[a-f0-9]{32}', items[0]['asset_id'])
                 or items[0].get('quality') != payload['quality']
                 or payload.get('content_type', 'series') == 'series' and (
                     items[0].get('voice') != payload['voice'] or items[0].get('season_number') != payload['season']
-                    or items[0].get('name') != f"Серия {payload['episode']}")):
+                    or not episode_name_matches(items[0].get('name'), payload['episode']))):
             raise BridgeError('Панель вернула неожиданный черновик. Ничего не отправлено.')
         draft_id, asset_id = draft['id'], items[0]['asset_id']
         queue.update(job_id, 'draft_registered', details={'draft_id': draft_id, 'asset_id': asset_id,

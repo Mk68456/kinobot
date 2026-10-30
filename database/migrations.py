@@ -355,6 +355,42 @@ def _instant_jobs():
 MIGRATIONS += (_instant_jobs,)
 
 
+def _provider_batches():
+    database.execute('''CREATE TABLE ProviderBatches (
+        id TEXT PRIMARY KEY, admin_id INTEGER NOT NULL, payload TEXT NOT NULL,
+        status TEXT NOT NULL, owner TEXT, lease_hash TEXT, lease_until REAL,
+        error TEXT, created_at REAL NOT NULL, skipped INTEGER NOT NULL DEFAULT 0)''')
+    database.execute('''CREATE TABLE ProviderBatchItems (
+        job_id TEXT PRIMARY KEY REFERENCES InstantJobs(id),
+        batch_id TEXT NOT NULL REFERENCES ProviderBatches(id))''')
+    database.execute('''CREATE TABLE ProviderFiles (
+        identity TEXT PRIMARY KEY, admin_id INTEGER NOT NULL, draft_id TEXT NOT NULL,
+        asset_id TEXT NOT NULL, payload TEXT NOT NULL, publish_error TEXT)''')
+    database.execute('''CREATE TABLE ProviderTitles (
+        identity TEXT PRIMARY KEY, movie_number INTEGER NOT NULL REFERENCES Movies(movie_number) ON DELETE CASCADE)''')
+    database.execute('''CREATE TABLE ProviderPolicy (
+        id INTEGER PRIMARY KEY CHECK(id=1), automatic INTEGER NOT NULL, age_rating TEXT NOT NULL)''')
+    # Adopt only confirmed receipts from v25; do not request or publish old files.
+    import json
+    import re
+    from services.provider_catalog import identity
+    for admin, draft_id, asset_id, raw, number in database.execute('''
+            SELECT a.admin_id,j.draft_id,j.asset_id,j.payload,d.movie_number
+            FROM InstantJobs j JOIN WebAssets a ON a.id=j.asset_id JOIN WebDrafts d ON d.id=j.draft_id
+            WHERE j.status IN ('sent','ready') AND a.status='ready' AND a.file_id=j.file_id
+            ORDER BY j.created_at''').fetchall():
+        payload = json.loads(raw)
+        if not re.fullmatch(r'(?:19|20)\d{2}', str(payload.get('year', ''))):
+            continue
+        database.execute('INSERT OR IGNORE INTO ProviderFiles(identity,admin_id,draft_id,asset_id,payload) VALUES (?,?,?,?,?)',
+                         (identity(payload, True), admin, draft_id, asset_id, raw))
+        if number:
+            database.execute('INSERT OR IGNORE INTO ProviderTitles VALUES (?,?)', (identity(payload), number))
+
+
+MIGRATIONS += (_provider_batches,)
+
+
 def migrate(backup_dir=None):
     version = database.execute("PRAGMA user_version").fetchone()[0]
     if version > len(MIGRATIONS):

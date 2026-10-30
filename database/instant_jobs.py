@@ -63,16 +63,27 @@ def create(user_id, payload, request_id):
     return get(job_id)
 
 
-def claim(owner):
+def claim(owner, admin_id=None):
     now = time.time()
     with database.transaction():
         database.execute('INSERT OR REPLACE INTO InstantAgent VALUES (1,?,?)', (owner, now))
+        if (database.execute("SELECT 1 FROM sqlite_master WHERE name='ProviderBatches'").fetchone()
+                and database.execute("SELECT 1 FROM ProviderBatches WHERE status='discovering' AND lease_until>?", (now,)).fetchone()):
+            return None
         # A missing worker may already have sent a message. Never replay automatically.
         database.execute("UPDATE InstantJobs SET status='review',error='worker_interrupted',updated_at=? "
                          "WHERE status='working' AND lease_until<?", (now, now))
         if database.execute("SELECT 1 FROM InstantJobs WHERE status='working'").fetchone():
             return None
-        row = database.execute("SELECT id FROM InstantJobs WHERE status='queued' ORDER BY created_at,id LIMIT 1").fetchone()
+        order = 'created_at,id'
+        where = "status='queued'"
+        parameters = ()
+        if database.execute("SELECT 1 FROM sqlite_master WHERE name='ProviderBatchItems'").fetchone():
+            order = '(CASE WHEN EXISTS (SELECT 1 FROM ProviderBatchItems i WHERE i.job_id=InstantJobs.id) THEN 1 ELSE 0 END),created_at,id'
+            if admin_id is not None:
+                where += ' AND NOT EXISTS (SELECT 1 FROM ProviderBatchItems i JOIN ProviderBatches b ON b.id=i.batch_id WHERE i.job_id=InstantJobs.id AND b.admin_id!=?)'
+                parameters = (admin_id,)
+        row = database.execute('SELECT id FROM InstantJobs WHERE ' + where + ' ORDER BY ' + order + ' LIMIT 1', parameters).fetchone()
         if not row:
             return None
         token = secrets.token_urlsafe(24)

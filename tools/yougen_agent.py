@@ -91,6 +91,36 @@ async def run_once(config, queue):
     claimed = await asyncio.to_thread(panel.request, 'instant/claim', {})
     remote = claimed.get('job')
     if not remote:
+        if info.get('capabilities', {}).get('provider_batches') == 1 and claimed.get('enabled'):
+            batch = (await asyncio.to_thread(panel.request, 'batches/claim', {})).get('batch')
+            if batch:
+                from tools.yougen_discovery import discover
+                try:
+                    async with connection(session_path(config['session']), config.get('api_id'), config.get('api_hash'),
+                                          config.get('profile', 'desktop-copy'), config['user_id']) as (client, source):
+                        results = await client.inline_query(source, batch['payload']['query'])
+                        chosen = matching_result(results, batch['payload'])
+                        task = asyncio.create_task(discover(client, source, batch['payload'], chosen))
+                        try:
+                            while not task.done():
+                                await asyncio.wait({task}, timeout=30)
+                                active = await asyncio.to_thread(panel.request, f"batches/{batch['id']}/heartbeat",
+                                                                 {'lease': batch['lease']})
+                                if not active['active']:
+                                    raise BridgeError('Обход приостановлен или отменён администратором.')
+                            items = await task
+                        finally:
+                            if not task.done():
+                                task.cancel()
+                            await asyncio.gather(task, return_exceptions=True)
+                    result = await asyncio.to_thread(panel.request, f"batches/{batch['id']}/plan",
+                                                     {'lease': batch['lease'], 'items': items})
+                    return {'batch_id': batch['id'], **result}
+                except Exception as error:
+                    await asyncio.to_thread(panel.request, f"batches/{batch['id']}/plan",
+                                             {'lease': batch['lease'], 'error': str(error)[:200] if isinstance(error, BridgeError)
+                                              else type(error).__name__})
+                    raise
         return {'status': 'idle', 'enabled': claimed.get('enabled', False)}
     try:
         async with connection(session_path(config['session']), config.get('api_id'), config.get('api_hash'),

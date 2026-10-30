@@ -13,6 +13,10 @@ STATUS = {'queued': 'В очереди', 'working': 'Ищу и подготав�
 
 def recover():
     database.execute("UPDATE InstantJobs SET status='uncertain',error='bot_restarted' WHERE status='sending'")
+    if database.execute("SELECT 1 FROM sqlite_master WHERE name='ProviderBatchItems'").fetchone():
+        # These files have a durable receipt; requeue only their finalisation, not uncertain sends.
+        database.execute("UPDATE InstantJobs SET status='queued' WHERE status='ready' AND id IN "
+                         '(SELECT job_id FROM ProviderBatchItems)')
     database.commit()
 
 

@@ -386,7 +386,8 @@ def publish(draft_id, admin_id):
             return current["movie_number"]
         if current['status'] != 'draft':
             raise ValueError('Верните доработанный черновик на проверку перед одобрением.')
-        body = normalize_draft(current["body"])
+        from services.provider_catalog import reconcile
+        body = normalize_draft(reconcile(draft_id, current["body"]))
         if any(database.execute('SELECT 1 FROM GroupedFiles WHERE asset_id=? AND draft_id!=?',(i['asset_id'],draft_id)).fetchone() for i in body['items']):
             raise ValueError('Часть файлов объединена в другую карточку. Публикуйте объединённую карточку или соберите оставшиеся файлы отдельно.')
         items = body["items"]
@@ -497,7 +498,8 @@ def publish(draft_id, admin_id):
                 if number not in seasons:
                     existing = database.execute('SELECT id FROM MovieCategories WHERE movie_number=? AND season_number=?',(movie_number,number)).fetchall()
                     if len(existing)>1:raise ValueError('Несколько сезонов имеют один номер. Исправьте каталог.')
-                    seasons[number] = existing[0][0] if existing else add_movie_category(movie_number,f'Сезон {number}',number)
+                    season_name = body['season_name'] if number == body['season_number'] and body['season_name'] else f'Сезон {number}'
+                    seasons[number] = existing[0][0] if existing else add_movie_category(movie_number,season_name,number)
                 category_id=seasons[number]
                 add_series_file(category_id, item, file)
         else:
@@ -531,6 +533,8 @@ def publish(draft_id, admin_id):
             "UPDATE WebDrafts SET status='published',movie_number=? WHERE id=?", (movie_number, draft_id)
         )
         _review_event(current, admin_id, 'published', '')
+        from services.provider_catalog import published
+        published(draft_id, movie_number)
         return movie_number
 
 

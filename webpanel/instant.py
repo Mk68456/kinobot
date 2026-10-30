@@ -5,7 +5,7 @@ from aiohttp import web
 
 from database import instant_jobs as jobs
 from database.connection import database
-from webpanel import repository, provider_import
+from webpanel import repository
 from tools.yougen_worker import manifest as expected_manifest
 from tools.yougen_bridge import BOT
 
@@ -22,7 +22,7 @@ async def claim(request):
     await body(request)
     if not effective()[0]:
         return web.json_response({'enabled': False, 'job': None})
-    return web.json_response({'enabled': True, 'job': jobs.claim(owner(request))})
+    return web.json_response({'enabled': True, 'job': jobs.claim(owner(request), request['admin_id'])})
 
 
 async def draft(request):
@@ -48,7 +48,8 @@ async def draft(request):
                 raise ValueError('Черновик недоступен или уже обработан.')
             linked = bool(current['body']['movie_number'])
         else:
-            current, linked = provider_import.create(request['admin_id'], spec, request['instance_id'])
+            from services.provider_catalog import prepare
+            current, linked = prepare(request['admin_id'], spec, request['instance_id'], payload)
             jobs.update(job['id'], draft_id=current['id'], asset_id=current['body']['items'][0]['asset_id'])
     bot = request.app['uploads'].bot
     me = await bot.get_me()
@@ -74,5 +75,19 @@ async def result(request):
             if job['request_id']:
                 database.execute("UPDATE ContentRequests SET draft_id=?,status=CASE WHEN status='new' THEN 'planned' ELSE status END WHERE id=?",
                                  (job['draft_id'], job['request_id']))
-    await notify(request.app['uploads'].bot, job['id'])
+    from database import provider_batches
+    batch = provider_batches.for_job(job['id'])
+    if data.get('ok') is True:
+        from services.provider_catalog import publish
+        try:
+            publish(job['draft_id'], request['admin_id'], automatic=True)
+        except ValueError as error:
+            # Private delivery succeeds even when publication needs human review.
+            database.execute('UPDATE ProviderFiles SET publish_error=? WHERE draft_id=?',
+                             (str(error)[:300], job['draft_id']))
+            database.commit()
+    if not batch:
+        await notify(request.app['uploads'].bot, job['id'])
+    elif data.get('ok') is True:
+        jobs.update(job['id'], status='sent')
     return web.json_response({'status': jobs.get(job['id'])['status']})

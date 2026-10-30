@@ -33,7 +33,7 @@ class Queue:
                 or kind == 'movie' and any(payload[n] != 0 for n in ['season', 'episode'])):
             raise ValueError('Сезон и серия должны быть положительными номерами.')
         from tools.yougen_bridge import VOICES
-        if payload['voice'] not in VOICES or payload['quality'] not in {'240p', '360p', '480p', '720p', '1080p'}:
+        if payload['voice'] not in VOICES or payload['quality'] not in {'240p', '360p', '480p', '720p', '1080p', '1440p', '2160p'}:
             raise ValueError('Выберите поддерживаемую озвучку и качество.')
         raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
         key = hashlib.sha256((('remote:' + identity) if identity else raw).encode()).hexdigest()

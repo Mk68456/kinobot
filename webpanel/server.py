@@ -420,7 +420,7 @@ async def desktop_session(request):
     return web.json_response({'protocol': 2, 'admin_id': request['admin_id'],
                               'max_import_files': repository.MAX_IMPORT_FILES,
                               'capabilities': {'multi_launcher': 1, 'remote_control': 1, 'streaming_import': 1,
-                                               'provider_import': 1, 'instant_requests': 1},
+                                               'provider_import': 1, 'instant_requests': 1, 'provider_batches': 1},
                               'bot_username': me.username, 'bot_name': me.full_name})
 
 
@@ -645,6 +645,7 @@ def create_app(bot, config=settings):
     app["uploads"] = Uploads(
         bot, config.UPLOAD_DIR, max_bytes, config.UPLOAD_QUOTA_BYTES, config.WEB_CHUNK_BYTES
     )
+    from webpanel import provider_batches as batch_api
     app.add_routes(
         [
             web.get("/", index),
@@ -682,6 +683,9 @@ def create_app(bot, config=settings):
             web.post('/api/desktop/instant/claim', instant_api.claim),
             web.post('/api/desktop/instant/{id}/draft', instant_api.draft),
             web.post('/api/desktop/instant/{id}/result', instant_api.result),
+            web.post('/api/desktop/batches/claim', batch_api.claim),
+            web.post('/api/desktop/batches/{id}/plan', batch_api.plan),
+            web.post('/api/desktop/batches/{id}/heartbeat', batch_api.heartbeat),
             web.post('/api/desktop/stream', desktop_stream),
             web.post('/api/desktop/stream/{id}/finish', desktop_stream_finish),
             web.post('/api/desktop/transfers/reset', desktop_transfer_reset),
