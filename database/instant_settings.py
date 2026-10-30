@@ -11,7 +11,7 @@ def mode():
 
 
 def set_mode(value, admin_id):
-    if value not in {'env', 'pilot', 'off'}:
+    if value not in {'env', 'pilot', 'public', 'off'}:
         raise ValueError('Неизвестный режим.')
     with database.transaction():
         database.execute('CREATE TABLE IF NOT EXISTS InstantSettings ('
@@ -26,6 +26,8 @@ def effective():
     value = mode()
     if value == 'pilot':
         return True, False
+    if value == 'public':
+        return True, True
     if value == 'off':
         return False, False
     return settings.INSTANT_ENABLED, settings.INSTANT_PUBLIC

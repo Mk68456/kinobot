@@ -110,7 +110,12 @@ async def quick_request(call, state):
             await call.message.answer('Быстрая выдача сейчас недоступна при ваших настройках.')
             return
     parts = call.data.split(":")
+    # Older general-search cards used None, but queried TMDB's movie endpoint.
+    # Keep those already-sent buttons usable after the generator is fixed.
+    if len(parts) == 4 and parts[2] == 'None':
+        parts[2] = 'movie'
     if len(parts) != 4 or parts[2] not in ("movie", "series") or not parts[3].isdigit():
+        await call.message.answer('Кнопка устарела. Выполните поиск заново и выберите новую карточку.')
         return
     kind, tmdb_id = parts[2], int(parts[3])
     card = await details(tmdb_id, kind)

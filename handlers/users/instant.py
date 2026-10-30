@@ -22,8 +22,9 @@ async def mode_command(message):
         return
     argument = message.get_args().strip().lower()
     if argument:
-        if argument not in {'pilot', 'off', 'env'}:
+        if argument not in {'pilot', 'public', 'off', 'env'}:
             await message.answer('Режимы: /instant_mode pilot — только администраторы; '
+                                 '/instant_mode public — все допущенные пользователи; '
                                  '/instant_mode off — выключить; /instant_mode env — настройки окружения.')
             return
         instant_settings.set_mode(argument, message.from_user.id)
@@ -32,6 +33,7 @@ async def mode_command(message):
     worker = 'на связи' if jobs.online() else 'пока не на связи'
     await message.answer(f'Моментальная выдача: {description}.\n'
                          f'Режим: {instant_settings.mode()}. Обработчик: {worker}.\n'
+                         'Для пользователей: /instant_mode public\n'
                          'Пробное включение: /instant_mode pilot\nВыключение: /instant_mode off')
 
 

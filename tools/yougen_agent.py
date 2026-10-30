@@ -155,6 +155,7 @@ async def run_once(config, queue):
 
 
 async def run(config, queue, serve, config_path):
+    last_auth_repair = float('-inf')
     while True:
         try:
             if time.time() - config.get('paired_at', 0) > 24 * 3600:
@@ -163,6 +164,14 @@ async def run(config, queue, serve, config_path):
             if result['status'] != 'idle' or not serve:
                 print(json.dumps(result, ensure_ascii=False), flush=True)
         except Exception as error:
+            if (isinstance(error, BridgeError) and 'HTTP 401' in str(error)
+                    and time.monotonic() - last_auth_repair >= 300):
+                last_auth_repair = time.monotonic()
+                try:
+                    await refresh_pairing(config, config_path)
+                    continue
+                except Exception:
+                    print('Не удалось восстановить подключение /desktop.', file=sys.stderr, flush=True)
             print('Обработчик остановил попытку: ' + type(error).__name__, file=sys.stderr, flush=True)
             if not serve:
                 raise
