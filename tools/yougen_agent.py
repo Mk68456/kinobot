@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import sys
 import time
+import traceback
 from urllib.parse import urlsplit
 
 from tools.yougen_bridge import BridgeError, connection, session_path
@@ -14,22 +15,85 @@ from tools.yougen_queue import Queue
 from tools.yougen_worker import Panel, process
 
 
+def error_summary(error):
+    """Log only code-owned static messages, never remote bodies or credentials."""
+    import ast
+    if isinstance(error, BridgeError):
+        message = str(error)
+        for name in ('yougen_agent.py', 'yougen_worker.py', 'yougen_bridge.py', 'yougen_discovery.py', 'yougen_options.py'):
+            tree = ast.parse(Path(__file__).with_name(name).read_text(encoding='utf-8-sig'))
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)
+                        and isinstance(node.exc.func, ast.Name) and node.exc.func.id == 'BridgeError'
+                        and node.exc.args and isinstance(node.exc.args[0], ast.Constant)
+                        and node.exc.args[0].value == message):
+                    return 'BridgeError: ' + message
+        http = re.search(r'HTTP ([1-5][0-9]{2})', message)
+        if http:
+            return 'BridgeError: API HTTP ' + http[1]
+    frames = traceback.extract_tb(error.__traceback__)
+    where = (' at ' + Path(frames[-1].filename).name + ':' + str(frames[-1].lineno)) if frames else ''
+    return type(error).__name__ + where
+
+
 def canonical(text):
     return ' '.join(text.split()).casefold()
 
 
+class SearchNotFound(BridgeError):
+    pass
+
+
+async def resolve_result(client, source, payload):
+    """Try bounded query spellings, but never relax identity or choose ambiguously."""
+    from tools.provider_identity import canonical_title
+    title = payload['title'].strip()
+    binding = payload.get('provider_binding')
+    original = (payload.get('identity') or {}).get('original_title')
+    candidates = ([binding['query']] if binding else []) + [payload['query'], title, canonical_title(title)]
+    if original:
+        candidates.append(original)
+    if payload.get('year'):
+        candidates.append(title + ' ' + str(payload['year']))
+    if ':' in title:
+        candidates.append(title.split(':', 1)[0].strip())
+    seen = set()
+    for query in candidates:
+        key = query.strip().casefold()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        results = await client.inline_query(source, query)
+        try:
+            return query, matching_result(results, payload)
+        except SearchNotFound:
+            continue
+    raise BridgeError('Произведение не подтверждено в результатах источника после нескольких вариантов поиска. Проверьте название, тип и год карточки.')
+
+
 def matching_result(results, payload):
+    from tools.provider_matching import identity_score
     matches = []
-    for row in results[:20]:
+    for row in results:
         title, description = row.title or '', row.description or ''
-        kind = 'series' if description.startswith('сериал') else 'movie' if description.startswith('фильм') else None
-        name = title.split(' (', 1)[0]
+        # Provider distinguishes animation; KinoTime groups it by movie/series.
+        header = description.splitlines()[0] if description else ''
+        tag = header.split('|', 1)[0].strip().casefold().replace('ё', 'е')
+        tag = re.sub(r'^[^\w]+', '', tag).strip()
+        tag = tag.replace('-', ' ')
+        kind = ('series' if tag in {'сериал', 'мультсериал', 'аниме сериал', 'телесериал'}
+                else 'movie' if tag in {'фильм', 'мультфильм', 'аниме фильм', 'короткометражка'} else None)
         years = re.findall(r'\b(?:19|20)[0-9]{2}\b', description.splitlines()[0] if description else '')
-        if (kind == payload['content_type'] and canonical(name) == canonical(payload['title'])
-                and (not payload.get('year') or payload['year'] in years)):
-            matches.append(title)
+        score = identity_score(row, payload)
+        if (kind == payload['content_type'] and score is not None
+                and (not payload.get('year') or str(payload['year']) in years)):
+            matches.append((score, title))
+    if not matches:
+        raise SearchNotFound('Нет точного совпадения названия, типа и года в этой выдаче.')
+    strongest = max(score for score, title in matches)
+    matches = [title for score, title in matches if score == strongest]
     if len(matches) != 1:
-        raise BridgeError('Нет единственного точного совпадения названия, типа и года.')
+        raise BridgeError('Найдено несколько совпадающих произведений. Автоматический выбор остановлен.')
     return matches[0]
 
 
@@ -88,6 +152,22 @@ async def run_once(config, queue):
             or info.get('admin_id') != config['user_id']
             or info.get('bot_username', '').lower() != config['target'].lstrip('@').lower()):
         raise BridgeError('Обновите сервер и проверьте подключение этого обработчика.')
+    if info.get('capabilities', {}).get('provider_options') == 1:
+        lookup = (await asyncio.to_thread(panel.request, 'options/claim', {})).get('lookup')
+        if lookup:
+            from tools.yougen_options import inspect_options
+            try:
+                async with connection(session_path(config['session']), config.get('api_id'), config.get('api_hash'),
+                                      config.get('profile', 'desktop-copy'), config['user_id']) as (client, source):
+                    binding = {}
+                    choices = await asyncio.wait_for(inspect_options(client, source, lookup['payload'], binding_out=binding), 120)
+                await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
+                                        {'lease': lookup['lease'], 'choices': choices, 'binding': binding})
+                return {'status': 'options_ready', 'lookup_id': lookup['id']}
+            except Exception:
+                await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
+                                        {'lease': lookup['lease'], 'choices': None})
+                raise
     claimed = await asyncio.to_thread(panel.request, 'instant/claim', {})
     remote = claimed.get('job')
     if not remote:
@@ -98,9 +178,8 @@ async def run_once(config, queue):
                 try:
                     async with connection(session_path(config['session']), config.get('api_id'), config.get('api_hash'),
                                           config.get('profile', 'desktop-copy'), config['user_id']) as (client, source):
-                        results = await client.inline_query(source, batch['payload']['query'])
-                        chosen = matching_result(results, batch['payload'])
-                        task = asyncio.create_task(discover(client, source, batch['payload'], chosen))
+                        query, chosen = await resolve_result(client, source, batch['payload'])
+                        task = asyncio.create_task(discover(client, source, batch['payload'], chosen, source_query=query))
                         try:
                             while not task.done():
                                 await asyncio.wait({task}, timeout=30)
@@ -125,11 +204,18 @@ async def run_once(config, queue):
     try:
         async with connection(session_path(config['session']), config.get('api_id'), config.get('api_hash'),
                               config.get('profile', 'desktop-copy'), config['user_id']) as (client, source):
-            results = await client.inline_query(source, remote['payload']['query'])
-            chosen = matching_result(results, remote['payload'])
+            query, chosen = await resolve_result(client, source, remote['payload'])
         p = remote['payload']
+        from tools.provider_identity import valid_voice_name
+        from tools.yougen_bridge import VOICES
+        if valid_voice_name(p.get('voice')):
+            VOICES.add(p['voice'])
         local = {key: p[key] for key in ('query', 'title', 'content_type', 'voice', 'quality', 'season', 'episode')}
         local['result_title'] = chosen
+        local['query'] = query
+        for key in ('identity', 'provider_binding', 'year'):
+            if key in p:
+                local[key] = p[key]
         job_id = queue.enqueue(local, identity=remote['id'])
         saved = queue.get(job_id)
         if saved['status'] == 'queued':
@@ -158,11 +244,18 @@ async def run(config, queue, serve, config_path):
     last_auth_repair = float('-inf')
     while True:
         try:
-            if time.time() - config.get('paired_at', 0) > 24 * 3600:
-                await refresh_pairing(config, config_path)
             result = await run_once(config, queue)
             if result['status'] != 'idle' or not serve:
                 print(json.dumps(result, ensure_ascii=False), flush=True)
+            # A failed proactive renewal must not block a still-valid API token.
+            if (time.time() - config.get('paired_at', 0) > 24 * 3600
+                    and time.monotonic() - last_auth_repair >= 300):
+                last_auth_repair = time.monotonic()
+                try:
+                    await refresh_pairing(config, config_path)
+                except Exception:
+                    print('Не удалось заранее обновить /desktop; действующее подключение продолжает работу.',
+                          file=sys.stderr, flush=True)
         except Exception as error:
             if (isinstance(error, BridgeError) and 'HTTP 401' in str(error)
                     and time.monotonic() - last_auth_repair >= 300):
@@ -172,7 +265,7 @@ async def run(config, queue, serve, config_path):
                     continue
                 except Exception:
                     print('Не удалось восстановить подключение /desktop.', file=sys.stderr, flush=True)
-            print('Обработчик остановил попытку: ' + type(error).__name__, file=sys.stderr, flush=True)
+            print('Обработчик остановил попытку: ' + error_summary(error), file=sys.stderr, flush=True)
             if not serve:
                 raise
             await asyncio.sleep(25)

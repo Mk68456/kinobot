@@ -11,6 +11,7 @@ from tools.provider_identity import valid_voice_name
 
 def setup():
     database.execute("CREATE TABLE IF NOT EXISTS ProviderOptions (id TEXT PRIMARY KEY,user_id INTEGER,payload TEXT,status TEXT,owner TEXT,lease TEXT,expires REAL,updated REAL,choices TEXT)")
+    database.execute('CREATE TABLE IF NOT EXISTS ProviderOptionBindings (id TEXT PRIMARY KEY REFERENCES ProviderOptions(id), binding TEXT NOT NULL)')
     database.commit()
 
 
@@ -19,7 +20,10 @@ def get(key, user_id=None):
     row = database.execute('SELECT id,user_id,payload,status,expires,choices FROM ProviderOptions WHERE id=?', (key,)).fetchone()
     if not row or user_id is not None and row[1] != user_id:
         return None
-    return dict(id=row[0],user_id=row[1],payload=json.loads(row[2]),status=row[3],expires=row[4],choices=json.loads(row[5] or '[]'))
+    result = dict(id=row[0],user_id=row[1],payload=json.loads(row[2]),status=row[3],expires=row[4],choices=json.loads(row[5] or '[]'))
+    bound = database.execute('SELECT binding FROM ProviderOptionBindings WHERE id=?', (key,)).fetchone()
+    result['binding'] = json.loads(bound[0]) if bound else None
+    return result
 
 
 def create(user_id, payload):
@@ -58,23 +62,32 @@ def claim(owner):
     return dict(id=row[0],payload=get(row[0])['payload'],lease=token)
 
 
-def finish(key,owner,token,choices):
+def finish(key,owner,token,choices,binding=None):
     setup()
     with database.transaction():
         row=database.execute('SELECT status,owner,lease,expires,payload FROM ProviderOptions WHERE id=?',(key,)).fetchone()
         if not row or row[0]!='working' or row[1]!=owner or row[3]<time.time() or not isinstance(token,str) or not hmac.compare_digest(row[2],hashlib.sha256(token.encode()).hexdigest()):
             raise ValueError('Проверка не принадлежит обработчику или истекла.')
         payload=json.loads(row[4])
+        if binding:
+            from tools.provider_matching import valid_binding
+            if not valid_binding(binding):
+                raise ValueError('Некорректная привязка произведения.')
+            if payload.get('provider_binding') and binding != payload['provider_binding']:
+                raise ValueError('Источник изменил выбранное произведение.')
         if choices is not None:
             if not isinstance(choices,list) or not 1<=len(choices)<=100 or len(set(choices))!=len(choices) or any(not valid_voice_name(v) for v in choices):
                 raise ValueError('Неверный список вариантов.')
             if payload.get('voice') and any(v not in {'240p','360p','480p','720p','1080p','1440p','2160p'} for v in choices):
                 raise ValueError('Неверное качество.')
         database.execute('UPDATE ProviderOptions SET status=?,choices=?,expires=?,updated=? WHERE id=?',('ready' if choices else 'error',json.dumps(choices or []),time.time()+300,time.time(),key))
+        if choices and binding:
+            database.execute('INSERT OR REPLACE INTO ProviderOptionBindings VALUES (?,?)', (key,json.dumps(binding)))
 
 
 def permits(user_id,payload):
     item=get(payload.get('options_id',''),user_id)
     if not item or item['status']!='ready' or item['expires']<time.time() or payload.get('quality') not in item['choices']:
         return False
-    return all(item['payload'].get(k)==payload.get(k) for k in ('title','query','year','content_type','season','episode','voice'))
+    return (all(item['payload'].get(k)==payload.get(k) for k in ('title','query','year','content_type','season','episode','voice','identity'))
+            and (not item['binding'] or item['binding']==payload.get('provider_binding')))

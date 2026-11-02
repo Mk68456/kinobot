@@ -45,7 +45,10 @@ def lookup_payload(data):
     title = re.sub(r'\s*\((?:19|20)\d{2}\)\s*$', '', selected['title']).strip()
     return dict(query=title, title=title, year=str(selected.get('year') or (match[1] if match else '')),
                 content_type=data['request_kind'], season=data.get('request_season', 0),
-                episode=data.get('request_episode', 0), voice=data.get('instant_voice', ''))
+                episode=data.get('request_episode', 0), voice=data.get('instant_voice', ''),
+                identity={'tmdb_id': selected.get('tmdb_id'), 'original_title': selected.get('original_title', ''),
+                          'countries': selected.get('countries', [])},
+                provider_binding=data.get('instant_binding'))
 
 
 async def options(message, state):
@@ -80,7 +83,7 @@ async def options(message, state):
     stage = 'quality' if data.get('instant_voice') else 'voice'
     for i, label in enumerate(choices):
         keyboard.insert(types.InlineKeyboardButton(label, callback_data=f'instant:{stage}:{nonce}:{i}'))
-    await state.update_data(instant_choices=choices, instant_lookup=lookup['id'])
+    await state.update_data(instant_choices=choices, instant_lookup=lookup['id'], instant_binding=lookup.get('binding'))
     keyboard.add(types.InlineKeyboardButton('Назад к заявке', callback_data='instant:back'))
     await message.answer('Выберите доступную озвучку:' if stage == 'voice' else
                          'Выберите доступное качество. Готовый файл придёт автоматически, без одобрения.',
@@ -94,10 +97,17 @@ async def begin(call, state):
         await call.message.answer('Быстрая выдача сейчас недоступна. Проверьте подписку и возрастные настройки либо отправьте обычную заявку.')
         return
     data = await state.get_data()
+    selected = data['request_selected']
+    if selected.get('tmdb_id') and not selected.get('original_title'):
+        from services.tmdb import details
+        card = await details(selected['tmdb_id'], data['request_kind'])
+        if card:
+            await state.update_data(request_selected={**selected, 'original_title': card.get('original_title', ''),
+                                                      'countries': card.get('countries', [])})
     if data['request_kind'] == 'series' and not (data.get('request_season') and data.get('request_episode')):
         await call.message.answer('Для быстрой выдачи укажите одну серию. Весь сезон можно запросить обычной заявкой.')
         return
-    await state.update_data(instant_nonce=secrets.token_hex(4), instant_created=time.time(), instant_voice='', instant_user=call.from_user.id)
+    await state.update_data(instant_nonce=secrets.token_hex(4), instant_created=time.time(), instant_voice='', instant_user=call.from_user.id, instant_binding=None)
     await state.set_state('Instant:options')
     await options(call.message, state)
 
@@ -151,6 +161,8 @@ async def selection(call, state):
                'metadata': {'description': str(selected.get('overview') or '')[:2500],
                             'poster_url': str(selected.get('poster_url') or '')[:1000]}}
     from database.provider_options import permits
+    identity = lookup_payload(data)
+    payload.update(identity=identity['identity'], provider_binding=data.get('instant_binding'))
     if not permits(call.from_user.id, payload):
         await call.message.answer('Список вариантов устарел. Откройте «Получить сразу» заново.')
         return

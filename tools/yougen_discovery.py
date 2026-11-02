@@ -5,6 +5,7 @@ import re
 from tools.yougen_bridge import (BridgeError, VOICES, plain_label, message_by_id,
                                  snapshot, open_result, video_record)
 from tools.yougen_worker import wait_card
+from tools.provider_identity import full_video_title_matches
 
 
 def next_page(label):
@@ -79,15 +80,18 @@ async def pages(client, source, card_id, pattern, *, select=None, max_pages=200)
     raise BridgeError('Превышен предел страниц. План не отправлен.')
 
 
-async def discover(client, source, payload, result_title):
-    results = await client.inline_query(source, payload['query'])
-    indices = [i for i, item in enumerate(results[:20]) if item.title == result_title]
+async def discover(client, source, payload, result_title, *, source_query=None):
+    query = source_query or payload['query']
+    results = await client.inline_query(source, query)
+    indices = [i for i, item in enumerate(results) if item.title == result_title]
     if len(indices) != 1:
         raise BridgeError('Результат поиска изменился.')
     last = await client.get_messages(source, limit=1)
     before = last[0].id if last else 0
-    await open_result(client, source, payload['query'], indices[0], result_title)
+    await open_result(client, source, query, indices[0], result_title)
     card = await wait_card(client, source, before, payload)
+    if not full_video_title_matches(video_record(card)['label'], payload['title']):
+        raise BridgeError('Полное название видео не совпадает: обход не запущен.')
     positions = [(0, 0)]
     if payload['content_type'] == 'series':
         await menu(client, source, card.id, 'Серии')

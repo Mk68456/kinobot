@@ -186,6 +186,9 @@ async def details(tmdb_id, content_type: str = "movie"):
             poster = item.get("poster_path")
             result = {
                 "tmdb_id": tmdb_id,
+                "original_title": item.get("original_title") or item.get("original_name") or title,
+                "countries": [c.get('iso_3166_1') for c in item.get('production_countries', []) if c.get('iso_3166_1')]
+                             or item.get('origin_country') or [],
                 "title": title,
                 "year": date.split("-")[0] if date else None,
                 "overview": (item.get("overview") or "").strip() or None,

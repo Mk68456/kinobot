@@ -137,13 +137,17 @@ async def search(client, entity, query):
             for index, item in enumerate(results[:20])]
 
 
-async def open_result(client, entity, query, index, expected_title):
+async def open_result(client, entity, query, index, expected_title, *, expected_binding=None):
     results = await client.inline_query(entity, query)
     if index < 0 or index >= len(results):
         raise BridgeError('Номер результата отсутствует. Повторите поиск.')
     item = results[index]
     if item.title != expected_title:
         raise BridgeError('Порядок поиска изменился: название не совпало. Ничего не отправлено.')
+    if expected_binding:
+        from tools.provider_matching import binding_for
+        if binding_for(item, query) != expected_binding:
+            raise BridgeError('Карточка поставщика изменилась перед открытием. Ничего не отправлено.')
     await item.click(entity)
     return {'opened': expected_title, 'next': 'inspect'}
 

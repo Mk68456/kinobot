@@ -15,7 +15,8 @@ from urllib.request import Request, HTTPRedirectHandler, build_opener
 from tools.yougen_bridge import (BOT, BridgeError, choose, connection, message_by_id,
                                  open_result, plain_label, safe_button, session_path, snapshot, video_record)
 from tools.yougen_queue import Queue
-from tools.provider_identity import full_video_title_matches, video_label
+from tools.provider_identity import video_label
+from tools.provider_matching import media_title_matches, identity_score
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -59,7 +60,7 @@ def exact_video(message, payload):
     if not record or getattr(message, 'noforwards', False):
         return None
     parsed = video_label(record['label'])
-    if (not full_video_title_matches(record['label'], payload['title']) or not parsed
+    if (not media_title_matches(record['label'], payload) or not parsed
             or parsed['voice'] != payload['voice'] or parsed['quality'] != payload['quality']
             or record['season'] != payload['season']
             or record['episode'] != payload['episode'] or record['quality'] != payload['quality']):
@@ -153,14 +154,16 @@ async def process(queue, job, config, panel_override=None):
         before = last[0].id if last else 0
         queue.update(job_id, 'searching')
         results = await client.inline_query(source, payload['query'])
-        indices = [i for i, row in enumerate(results) if row.title == payload['result_title']]
+        indices = [i for i, row in enumerate(results) if row.title == payload['result_title']
+                   and identity_score(row, payload) is not None]
         if len(indices) != 1:
             raise BridgeError('Не найден единственный результат с выбранным названием.')
         queue.update(job_id, 'opening')
-        await open_result(client, source, payload['query'], indices[0], payload['result_title'])
+        await open_result(client, source, payload['query'], indices[0], payload['result_title'],
+                          expected_binding=payload.get('provider_binding'))
         card = await wait_card(client, source, before, payload)
         record = video_record(card)
-        if not full_video_title_matches(record['label'], payload['title']):
+        if not media_title_matches(record['label'], payload):
             raise BridgeError('Полное название полученного видео не совпадает с запросом.')
         if record['season'] != payload['season'] or record['episode'] != payload['episode']:
             queue.update(job_id, 'selecting_episode')

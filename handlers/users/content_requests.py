@@ -306,7 +306,7 @@ async def ask_voice(message, state):
     if data.get('request_instant'):
         from handlers.users.instant import options
         await state.update_data(instant_nonce=secrets.token_hex(4), instant_created=time.time(),
-                                instant_voice='', instant_user=message.chat.id)
+                                instant_voice='', instant_user=message.chat.id, instant_binding=None)
         await state.set_state('Instant:options')
         await options(message, state)
         return

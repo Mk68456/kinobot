@@ -22,7 +22,7 @@ class Queue:
 
     def enqueue(self, payload, identity=None):
         required = {'query', 'result_title', 'title', 'voice', 'quality', 'season', 'episode'}
-        if set(payload) - {'content_type'} != required:
+        if set(payload) - {'content_type', 'identity', 'provider_binding', 'year'} != required:
             raise ValueError('Некорректный состав задания.')
         for name in required - {'season', 'episode'}:
             if not isinstance(payload[name], str) or not 1 <= len(payload[name]) <= 200:
