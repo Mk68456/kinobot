@@ -1,6 +1,7 @@
 import re
 import secrets
 import json
+import time
 from html import escape
 from aiogram import types
 from loader import dp
@@ -125,7 +126,8 @@ async def quick_request(call, state):
     title = card["title"] + (f" ({card['year']})" if card.get("year") else "")
     await state.finish()
     await state.update_data(request_kind=kind, request_selected={**card, "title": title},
-                            request_season=0, request_episode=0, request_voice="")
+                            request_season=0, request_episode=0, request_voice="",
+                            request_instant=call.data.startswith('instant:'))
     if kind == "series":
         await ask_season(call.message, state)
     else:
@@ -301,6 +303,13 @@ async def ask_season(message, state):
 
 async def ask_voice(message, state):
     data = await state.get_data()
+    if data.get('request_instant'):
+        from handlers.users.instant import options
+        await state.update_data(instant_nonce=secrets.token_hex(4), instant_created=time.time(),
+                                instant_voice='', instant_user=message.chat.id)
+        await state.set_state('Instant:options')
+        await options(message, state)
+        return
     token = secrets.token_hex(4)
     await state.update_data(request_voice="", request_voice_evidence=[], request_voice_choices=[],
                             request_voice_token=token)

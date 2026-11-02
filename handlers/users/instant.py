@@ -1,3 +1,4 @@
+import asyncio
 import re
 import secrets
 import time
@@ -9,9 +10,6 @@ from database.age_access import preferences
 from database.connection import database
 from services import instant
 from services.subscriptions import check_subscription
-from tools.yougen_bridge import VOICES, MOVIE_VOICES, SERIES_VOICES
-
-QUALITIES = ['360p', '480p', '720p', '1080p']
 
 
 @dp.message_handler(commands=['instant_mode'], state='*')
@@ -37,28 +35,56 @@ async def mode_command(message):
                          'Пробное включение: /instant_mode pilot\nВыключение: /instant_mode off')
 
 
-def voice_choices(data):
-    return sorted(MOVIE_VOICES if data['request_kind'] == 'movie' else SERIES_VOICES)
-
-
 async def allowed(user_id):
     return instant.enabled(user_id) and preferences(user_id)['max_age'] == 18 and await check_subscription(user_id)
 
 
+def lookup_payload(data):
+    selected = data['request_selected']
+    match = re.search(r'\(((?:19|20)\d{2})\)\s*$', selected['title'])
+    title = re.sub(r'\s*\((?:19|20)\d{2}\)\s*$', '', selected['title']).strip()
+    return dict(query=title, title=title, year=str(selected.get('year') or (match[1] if match else '')),
+                content_type=data['request_kind'], season=data.get('request_season', 0),
+                episode=data.get('request_episode', 0), voice=data.get('instant_voice', ''))
+
+
 async def options(message, state):
+    from database import provider_options
     data = await state.get_data()
     nonce = data['instant_nonce']
+    if not await allowed(data['instant_user']):
+        return
+    await message.answer('Проверяю доступные варианты у источника…')
+    try:
+        lookup = provider_options.create(data['instant_user'], lookup_payload(data))
+    except ValueError as error:
+        await message.answer(str(error), parse_mode='')
+        return
+    for _ in range(150):
+        latest = await state.get_data()
+        if latest.get('instant_nonce') != nonce or latest.get('instant_voice', '') != data.get('instant_voice', ''):
+            return
+        lookup = provider_options.get(lookup['id'], data['instant_user'])
+        if lookup['status'] in {'ready', 'error'}:
+            break
+        await asyncio.sleep(1)
+    if lookup['status'] != 'ready' or not lookup['choices']:
+        retry = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton(
+            'Повторить проверку', callback_data='instant:refresh'))
+        retry.add(types.InlineKeyboardButton('Назад к заявке', callback_data='instant:back'))
+        await message.answer('Не удалось проверить варианты у источника. Повторите проверку позже или отправьте обычную заявку.',
+                             reply_markup=retry)
+        return
+    choices = lookup['choices']
     keyboard = types.InlineKeyboardMarkup(row_width=2)
-    if not data.get('instant_voice'):
-        for i, voice in enumerate(voice_choices(data)):
-            keyboard.insert(types.InlineKeyboardButton(voice, callback_data=f'instant:voice:{nonce}:{i}'))
-        text = 'Выберите озвучку. Если её нет у источника, запрос остановится без подмены варианта.'
-    else:
-        for i, quality in enumerate(QUALITIES):
-            keyboard.insert(types.InlineKeyboardButton(quality, callback_data=f'instant:quality:{nonce}:{i}'))
-        text = 'Выберите качество. Подготовка может занять несколько минут; новая карточка каталога останется на проверке.'
+    stage = 'quality' if data.get('instant_voice') else 'voice'
+    for i, label in enumerate(choices):
+        keyboard.insert(types.InlineKeyboardButton(label, callback_data=f'instant:{stage}:{nonce}:{i}'))
+    await state.update_data(instant_choices=choices, instant_lookup=lookup['id'])
     keyboard.add(types.InlineKeyboardButton('Назад к заявке', callback_data='instant:back'))
-    await message.answer(text, reply_markup=keyboard)
+    await message.answer('Выберите доступную озвучку:' if stage == 'voice' else
+                         'Выберите доступное качество. Готовый файл придёт автоматически, без одобрения.',
+                         reply_markup=keyboard)
 
 
 @dp.callback_query_handler(text='instant:start', state='Request:confirm')
@@ -71,7 +97,7 @@ async def begin(call, state):
     if data['request_kind'] == 'series' and not (data.get('request_season') and data.get('request_episode')):
         await call.message.answer('Для быстрой выдачи укажите одну серию. Весь сезон можно запросить обычной заявкой.')
         return
-    await state.update_data(instant_nonce=secrets.token_hex(4), instant_created=time.time(), instant_voice='')
+    await state.update_data(instant_nonce=secrets.token_hex(4), instant_created=time.time(), instant_voice='', instant_user=call.from_user.id)
     await state.set_state('Instant:options')
     await options(call.message, state)
 
@@ -81,6 +107,15 @@ async def back(call, state):
     await call.answer()
     from handlers.users.content_requests import confirmation
     await confirmation(call.message, state)
+
+
+@dp.callback_query_handler(text='instant:refresh', state='Instant:options')
+async def refresh_options(call, state):
+    await call.answer()
+    if not await allowed(call.from_user.id):
+        return
+    await state.update_data(instant_nonce=secrets.token_hex(4), instant_created=time.time())
+    await options(call.message, state)
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith(('instant:voice:', 'instant:quality:')), state='Instant:options')
@@ -96,13 +131,14 @@ async def selection(call, state):
         return
     index = int(parts[3])
     if parts[1] == 'voice':
-        voices = voice_choices(data)
+        voices = data.get('instant_choices', [])
         if index >= len(voices):
             return
-        await state.update_data(instant_voice=voices[index])
+        await state.update_data(instant_voice=voices[index], instant_nonce=secrets.token_hex(4))
         await options(call.message, state)
         return
-    if index >= len(QUALITIES) or data.get('instant_voice') not in VOICES:
+    qualities = data.get('instant_choices', [])
+    if index >= len(qualities) or not data.get('instant_voice'):
         return
     selected = data['request_selected']
     year_suffix = re.search(r'\(((?:19|20)\d{2})\)\s*$', selected['title'])
@@ -110,10 +146,14 @@ async def selection(call, state):
     payload = {'query': title, 'title': title, 'content_type': data['request_kind'],
                'year': str(selected.get('year') or (year_suffix[1] if year_suffix else '')),
                'voice': data['instant_voice'],
-               'quality': QUALITIES[index], 'season': data.get('request_season', 0),
+               'quality': qualities[index], 'options_id': data.get('instant_lookup'), 'season': data.get('request_season', 0),
                'episode': data.get('request_episode', 0),
                'metadata': {'description': str(selected.get('overview') or '')[:2500],
                             'poster_url': str(selected.get('poster_url') or '')[:1000]}}
+    from database.provider_options import permits
+    if not permits(call.from_user.id, payload):
+        await call.message.answer('Список вариантов устарел. Откройте «Получить сразу» заново.')
+        return
     try:
         # Use the same request/vote identity; a private file does not publish the catalogue.
         with database.transaction():

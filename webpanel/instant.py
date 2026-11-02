@@ -77,6 +77,10 @@ async def result(request):
                                  (job['draft_id'], job['request_id']))
     from database import provider_batches
     batch = provider_batches.for_job(job['id'])
+    # Fulfil the user's order before any catalogue work. Publication is independent
+    # and must never delay private delivery or require administrator approval.
+    if not batch:
+        await notify(request.app['uploads'].bot, job['id'])
     if data.get('ok') is True:
         from services.provider_catalog import publish
         try:
@@ -86,8 +90,6 @@ async def result(request):
             database.execute('UPDATE ProviderFiles SET publish_error=? WHERE draft_id=?',
                              (str(error)[:300], job['draft_id']))
             database.commit()
-    if not batch:
-        await notify(request.app['uploads'].bot, job['id'])
-    elif data.get('ok') is True:
+    if batch and data.get('ok') is True:
         jobs.update(job['id'], status='sent')
     return web.json_response({'status': jobs.get(job['id'])['status']})

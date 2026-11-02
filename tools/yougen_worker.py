@@ -15,6 +15,7 @@ from urllib.request import Request, HTTPRedirectHandler, build_opener
 from tools.yougen_bridge import (BOT, BridgeError, choose, connection, message_by_id,
                                  open_result, plain_label, safe_button, session_path, snapshot, video_record)
 from tools.yougen_queue import Queue
+from tools.provider_identity import full_video_title_matches, video_label
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -45,7 +46,10 @@ class Panel:
                 raw = response.read(2 * 1024**2 + 1)
             if len(raw) > 2 * 1024**2:
                 raise BridgeError('Ответ панели слишком большой.')
-            return json.loads(raw)
+            try:
+                return json.loads(raw)
+            except (ValueError, UnicodeError):
+                raise BridgeError('API панели вернул некорректный JSON. Проверьте доступность основного бота и панели.') from None
         except HTTPError as error:
             raise BridgeError(f'API панели вернул HTTP {error.code}. Проверьте подключение /desktop.') from None
 
@@ -54,8 +58,10 @@ def exact_video(message, payload):
     record = video_record(message)
     if not record or getattr(message, 'noforwards', False):
         return None
-    label = f"{payload['title']} ({payload['voice']} [{payload['quality']}])"
-    if (record['label'].casefold() != label.casefold() or record['season'] != payload['season']
+    parsed = video_label(record['label'])
+    if (not full_video_title_matches(record['label'], payload['title']) or not parsed
+            or parsed['voice'] != payload['voice'] or parsed['quality'] != payload['quality']
+            or record['season'] != payload['season']
             or record['episode'] != payload['episode'] or record['quality'] != payload['quality']):
         return None
     return record
@@ -124,6 +130,11 @@ async def select_variant(client, source, card, menu, label):
 
 async def process(queue, job, config, panel_override=None):
     payload, job_id = job['payload'], job['id']
+    from tools.provider_identity import valid_voice_name
+    from tools.yougen_bridge import VOICES
+    if valid_voice_name(payload.get('voice')):
+        # Exact requested label still has to occur in the provider menu and caption.
+        VOICES.add(payload['voice'])
     panel = panel_override or Panel(config['panel_url'], config['panel_token'], config['instance_id'])
     # Verify server identity and access before making any request at the provider.
     info = await asyncio.to_thread(panel.request, 'session')
@@ -142,13 +153,15 @@ async def process(queue, job, config, panel_override=None):
         before = last[0].id if last else 0
         queue.update(job_id, 'searching')
         results = await client.inline_query(source, payload['query'])
-        indices = [i for i, row in enumerate(results[:20]) if row.title == payload['result_title']]
+        indices = [i for i, row in enumerate(results) if row.title == payload['result_title']]
         if len(indices) != 1:
             raise BridgeError('Не найден единственный результат с выбранным названием.')
         queue.update(job_id, 'opening')
         await open_result(client, source, payload['query'], indices[0], payload['result_title'])
         card = await wait_card(client, source, before, payload)
         record = video_record(card)
+        if not full_video_title_matches(record['label'], payload['title']):
+            raise BridgeError('Полное название полученного видео не совпадает с запросом.')
         if record['season'] != payload['season'] or record['episode'] != payload['episode']:
             queue.update(job_id, 'selecting_episode')
             from tools.yougen_discovery import menu, pages

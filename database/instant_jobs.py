@@ -32,9 +32,13 @@ def online():
 
 def create(user_id, payload, request_id):
     from tools.yougen_bridge import VOICES
+    from database.provider_options import permits
+    observed = permits(user_id, payload) if payload.get('options_id') else False
+    if payload.get('options_id') and not observed:
+        raise ValueError('Список доступных вариантов устарел. Откройте «Получить сразу» заново.')
     kind = payload.get('content_type')
-    if (kind not in {'movie', 'series'} or payload.get('voice') not in VOICES
-            or payload.get('quality') not in {'360p', '480p', '720p', '1080p'}
+    if (kind not in {'movie', 'series'} or not observed and payload.get('voice') not in VOICES
+            or not observed and payload.get('quality') not in {'360p', '480p', '720p', '1080p'}
             or not isinstance(payload.get('title'), str) or not 1 <= len(payload['title']) <= 200):
         raise ValueError('Проверьте название, озвучку и качество.')
     season, episode = payload.get('season'), payload.get('episode')
@@ -67,6 +71,9 @@ def claim(owner, admin_id=None):
     now = time.time()
     with database.transaction():
         database.execute('INSERT OR REPLACE INTO InstantAgent VALUES (1,?,?)', (owner, now))
+        if (database.execute("SELECT 1 FROM sqlite_master WHERE name='ProviderOptions'").fetchone()
+                and database.execute("SELECT 1 FROM ProviderOptions WHERE status='working' AND expires>?", (now,)).fetchone()):
+            return None
         if (database.execute("SELECT 1 FROM sqlite_master WHERE name='ProviderBatches'").fetchone()
                 and database.execute("SELECT 1 FROM ProviderBatches WHERE status='discovering' AND lease_until>?", (now,)).fetchone()):
             return None

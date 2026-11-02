@@ -8,6 +8,7 @@ import uuid
 
 from database.connection import database
 from services.provider_catalog import identity, variant_exists
+from tools.provider_identity import valid_voice_name
 
 
 def create(admin_id, payload):
@@ -76,13 +77,16 @@ def control(key, admin_id, action):
                              '(SELECT job_id FROM ProviderBatchItems WHERE batch_id=?)', (key,))
         else:
             raise ValueError('Действие уже применено или недоступно. Обновите статус.')
-        database.execute('UPDATE ProviderBatches SET status=? WHERE id=?', (new, key))
+        database.execute('UPDATE ProviderBatches SET status=?,error=NULL WHERE id=?', (new, key))
     return get(key, admin_id)
 
 
 def claim(owner, admin_id=None):
     now = time.time()
     with database.transaction():
+        if (database.execute("SELECT 1 FROM sqlite_master WHERE name='ProviderOptions'").fetchone()
+                and database.execute("SELECT 1 FROM ProviderOptions WHERE status='working' AND expires>?", (now,)).fetchone()):
+            return None
         database.execute("UPDATE ProviderBatches SET status='review',error='discovery_interrupted' "
                          "WHERE status='discovering' AND lease_until<?", (now,))
         if database.execute("SELECT 1 FROM InstantJobs WHERE status='working'").fetchone():
@@ -120,13 +124,12 @@ def plan(key, owner, token, payloads, error=None):
             return get(key)
         if not isinstance(payloads, list) or not 1 <= len(payloads) <= 5000:
             raise ValueError('План должен содержать от 1 до 5000 вариантов.')
-        from tools.yougen_bridge import VOICES
         seen, skipped = set(), 0
         for p in payloads:
             if (not isinstance(p, dict) or set(p) - {'metadata'} != {'title', 'query', 'year', 'content_type', 'season', 'episode', 'voice', 'quality'}
                     or any(p[k] != batch['payload'][k] for k in ('title', 'query', 'year', 'content_type'))
                     or 'metadata' in p and p['metadata'] != batch['payload'].get('metadata')
-                    or p['voice'] not in VOICES or p['quality'] not in ('240p', '360p', '480p', '720p', '1080p', '1440p', '2160p')
+                    or not valid_voice_name(p['voice']) or p['quality'] not in ('240p', '360p', '480p', '720p', '1080p', '1440p', '2160p')
                     or type(p['season']) is not int or type(p['episode']) is not int
                     or p['content_type'] == 'series' and not (1 <= p['season'] <= 999 and 1 <= p['episode'] <= 999)
                     or p['content_type'] == 'movie' and (p['season'] != 0 or p['episode'] != 0)):
