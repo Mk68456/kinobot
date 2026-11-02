@@ -42,6 +42,17 @@ def valid_binding(value):
 
 
 def identity_score(row,payload):
+    binding=payload.get('provider_binding')
+    if binding:
+        # A user-confirmed source identity takes precedence over catalogue aliases.
+        if not valid_binding(binding) or row.title != binding['title']:
+            return None
+        if binding['source_key'] and source_key(row) != binding['source_key']:
+            return None
+        actual=country_codes(getattr(row,'description',''))
+        if binding['countries'] and actual and set(binding['countries']) != actual:
+            return None
+        return 100
     identity=payload.get('identity') or {}
     original=identity.get('original_title') or ''
     names=[payload['title']] + ([original] if original else [])
@@ -67,15 +78,30 @@ def identity_score(row,payload):
             return None
     elif original and canonical_title(original)==canonical_title(row.title):
         score+=2
-    binding=payload.get('provider_binding')
-    if binding:
-        if not valid_binding(binding) or row.title!=binding['title']:
-            return None
-        if binding['source_key'] and source_key(row)!=binding['source_key']:
-            return None
-        if binding['countries'] and actual and set(binding['countries'])!=actual:
-            return None
     return score
+
+
+def source_kind_year(row):
+    header=(getattr(row,'description','') or '').split('\n')[0]
+    tag=re.sub(r'^[^\w]+', '', header.split('|',1)[0].strip().casefold().replace('ё','е')).strip().replace('-',' ')
+    kind=('series' if tag in {'сериал','мультсериал','аниме сериал','телесериал'} else
+          'movie' if tag in {'фильм','мультфильм','аниме фильм','короткометражка'} else None)
+    return kind, re.findall(r'\b(?:19|20)[0-9]{2}\b',header)
+
+
+def clarification_candidate(row, query, payload):
+    kind, years=source_kind_year(row)
+    binding=binding_for(row,query)
+    if (kind != payload['content_type'] or not years or not binding['source_key']
+            or not valid_binding(binding)
+            or payload.get('year') and str(payload['year']) not in years):
+        return None
+    description=(getattr(row,'description','') or '').splitlines()
+    country=description[1].split('|')[0].strip()[:100] if len(description)>1 else ''
+    label=f"{row.title} · {years[0]} · {'сериал' if kind=='series' else 'фильм'}"
+    if country:
+        label+=' · '+country
+    return {'label':label[:400], 'binding':binding}
 
 
 def media_title_matches(label,payload):

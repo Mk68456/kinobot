@@ -44,6 +44,16 @@ class SearchNotFound(BridgeError):
     pass
 
 
+class SearchAmbiguous(BridgeError):
+    pass
+
+
+class ClarificationRequired(BridgeError):
+    def __init__(self, candidates):
+        super().__init__('Нужно уточнить произведение.')
+        self.candidates = candidates
+
+
 async def resolve_result(client, source, payload):
     """Try bounded query spellings, but never relax identity or choose ambiguously."""
     from tools.provider_identity import canonical_title
@@ -57,17 +67,28 @@ async def resolve_result(client, source, payload):
         candidates.append(title + ' ' + str(payload['year']))
     if ':' in title:
         candidates.append(title.split(':', 1)[0].strip())
+    if binding:
+        candidates = [binding['query']]
     seen = set()
+    alternatives = {}
     for query in candidates:
         key = query.strip().casefold()
         if not key or key in seen:
             continue
         seen.add(key)
         results = await client.inline_query(source, query)
+        if not binding and not payload.get('voice'):
+            from tools.provider_matching import clarification_candidate
+            for row in results:
+                candidate = clarification_candidate(row, query, payload)
+                if candidate:
+                    alternatives.setdefault(candidate['binding']['source_key'], candidate)
         try:
             return query, matching_result(results, payload)
-        except SearchNotFound:
+        except (SearchNotFound, SearchAmbiguous):
             continue
+    if alternatives:
+        raise ClarificationRequired(list(alternatives.values())[:20])
     raise BridgeError('Произведение не подтверждено в результатах источника после нескольких вариантов поиска. Проверьте название, тип и год карточки.')
 
 
@@ -93,7 +114,7 @@ def matching_result(results, payload):
     strongest = max(score for score, title in matches)
     matches = [title for score, title in matches if score == strongest]
     if len(matches) != 1:
-        raise BridgeError('Найдено несколько совпадающих произведений. Автоматический выбор остановлен.')
+        raise SearchAmbiguous('Найдено несколько совпадающих произведений. Автоматический выбор остановлен.')
     return matches[0]
 
 
@@ -164,6 +185,10 @@ async def run_once(config, queue):
                 await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
                                         {'lease': lookup['lease'], 'choices': choices, 'binding': binding})
                 return {'status': 'options_ready', 'lookup_id': lookup['id']}
+            except ClarificationRequired as error:
+                await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
+                                        {'lease': lookup['lease'], 'choices': None, 'candidates': error.candidates})
+                return {'status': 'options_clarification', 'lookup_id': lookup['id']}
             except Exception:
                 await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
                                         {'lease': lookup['lease'], 'choices': None})

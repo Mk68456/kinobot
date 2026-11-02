@@ -12,6 +12,7 @@ from tools.provider_identity import valid_voice_name
 def setup():
     database.execute("CREATE TABLE IF NOT EXISTS ProviderOptions (id TEXT PRIMARY KEY,user_id INTEGER,payload TEXT,status TEXT,owner TEXT,lease TEXT,expires REAL,updated REAL,choices TEXT)")
     database.execute('CREATE TABLE IF NOT EXISTS ProviderOptionBindings (id TEXT PRIMARY KEY REFERENCES ProviderOptions(id), binding TEXT NOT NULL)')
+    database.execute('CREATE TABLE IF NOT EXISTS ProviderOptionCandidates (id TEXT PRIMARY KEY REFERENCES ProviderOptions(id), candidates TEXT NOT NULL)')
     database.commit()
 
 
@@ -23,6 +24,8 @@ def get(key, user_id=None):
     result = dict(id=row[0],user_id=row[1],payload=json.loads(row[2]),status=row[3],expires=row[4],choices=json.loads(row[5] or '[]'))
     bound = database.execute('SELECT binding FROM ProviderOptionBindings WHERE id=?', (key,)).fetchone()
     result['binding'] = json.loads(bound[0]) if bound else None
+    candidates = database.execute('SELECT candidates FROM ProviderOptionCandidates WHERE id=?', (key,)).fetchone()
+    result['candidates'] = json.loads(candidates[0]) if candidates else []
     return result
 
 
@@ -31,7 +34,7 @@ def create(user_id, payload):
     raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
     now = time.time()
     with database.transaction():
-        old = database.execute("SELECT id FROM ProviderOptions WHERE user_id=? AND payload=? AND ((status='ready' AND expires>?) OR (status IN ('queued','working') AND updated>?)) ORDER BY updated DESC LIMIT 1", (user_id,raw,now,now-180)).fetchone()
+        old = database.execute("SELECT id FROM ProviderOptions WHERE user_id=? AND payload=? AND ((status IN ('ready','clarify') AND expires>?) OR (status IN ('queued','working') AND updated>?)) ORDER BY updated DESC LIMIT 1", (user_id,raw,now,now-180)).fetchone()
         if old:
             return get(old[0],user_id)
         count = database.execute('SELECT COUNT(*) FROM ProviderOptions WHERE user_id=? AND updated>?',(user_id,now-60)).fetchone()[0]
@@ -62,13 +65,29 @@ def claim(owner):
     return dict(id=row[0],payload=get(row[0])['payload'],lease=token)
 
 
-def finish(key,owner,token,choices,binding=None):
+def finish(key,owner,token,choices,binding=None,candidates=None):
     setup()
     with database.transaction():
         row=database.execute('SELECT status,owner,lease,expires,payload FROM ProviderOptions WHERE id=?',(key,)).fetchone()
         if not row or row[0]!='working' or row[1]!=owner or row[3]<time.time() or not isinstance(token,str) or not hmac.compare_digest(row[2],hashlib.sha256(token.encode()).hexdigest()):
             raise ValueError('Проверка не принадлежит обработчику или истекла.')
         payload=json.loads(row[4])
+        if candidates is not None:
+            from tools.provider_matching import valid_binding
+            if (choices is not None or binding or payload.get('voice') or payload.get('provider_binding')
+                    or not isinstance(candidates,list) or not 1<=len(candidates)<=20):
+                raise ValueError('Некорректное уточнение произведения.')
+            seen=set()
+            for candidate in candidates:
+                if (not isinstance(candidate,dict) or set(candidate)!={'label','binding'}
+                        or not isinstance(candidate['label'],str) or not 1<=len(candidate['label'])<=400
+                        or not valid_binding(candidate['binding']) or not candidate['binding']['source_key']
+                        or candidate['binding']['source_key'] in seen):
+                    raise ValueError('Некорректный кандидат.')
+                seen.add(candidate['binding']['source_key'])
+            database.execute('INSERT OR REPLACE INTO ProviderOptionCandidates VALUES (?,?)',(key,json.dumps(candidates)))
+            database.execute("UPDATE ProviderOptions SET status='clarify',expires=?,updated=? WHERE id=?",(time.time()+300,time.time(),key))
+            return
         if binding:
             from tools.provider_matching import valid_binding
             if not valid_binding(binding):
@@ -83,6 +102,14 @@ def finish(key,owner,token,choices,binding=None):
         database.execute('UPDATE ProviderOptions SET status=?,choices=?,expires=?,updated=? WHERE id=?',('ready' if choices else 'error',json.dumps(choices or []),time.time()+300,time.time(),key))
         if choices and binding:
             database.execute('INSERT OR REPLACE INTO ProviderOptionBindings VALUES (?,?)', (key,json.dumps(binding)))
+
+
+def select_candidate(key,user_id,index):
+    item=get(key,user_id)
+    if (not item or item['status']!='clarify' or item['expires']<=time.time()
+            or not isinstance(index,int) or not 0<=index<len(item['candidates'])):
+        raise ValueError('Выбор устарел. Повторите проверку произведения.')
+    return item['candidates'][index]['binding']
 
 
 def permits(user_id,payload):

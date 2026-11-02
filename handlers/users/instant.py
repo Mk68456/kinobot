@@ -68,9 +68,28 @@ async def options(message, state):
         if latest.get('instant_nonce') != nonce or latest.get('instant_voice', '') != data.get('instant_voice', ''):
             return
         lookup = provider_options.get(lookup['id'], data['instant_user'])
-        if lookup['status'] in {'ready', 'error'}:
+        if lookup['status'] in {'ready', 'error', 'clarify'}:
             break
         await asyncio.sleep(1)
+    if lookup['status'] == 'clarify':
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        lines = ['Уточните, какое произведение вы искали. Найдены варианты у источника:']
+        for i, candidate in enumerate(lookup['candidates']):
+            lines.append(f"{i+1}. {candidate['label']}")
+            keyboard.add(types.InlineKeyboardButton(f"{i+1}. {candidate['binding']['title'][:55]}",
+                                                   callback_data=f'instant:candidate:{nonce}:{i}'))
+        keyboard.add(types.InlineKeyboardButton('Ничего не подходит / назад', callback_data='instant:back'))
+        await state.update_data(instant_candidate_lookup=lookup['id'], instant_choices=[], instant_lookup=None)
+        # Keep each Telegram message below its text limit; all candidates remain selectable.
+        chunks=['']
+        for line in lines:
+            if len(chunks[-1])+len(line)>3500:
+                chunks.append('')
+            chunks[-1]+=line+'\n\n'
+        for chunk in chunks[:-1]:
+            await message.answer(chunk, parse_mode='')
+        await message.answer(chunks[-1], parse_mode='', reply_markup=keyboard)
+        return
     if lookup['status'] != 'ready' or not lookup['choices']:
         retry = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton(
             'Повторить проверку', callback_data='instant:refresh'))
@@ -126,6 +145,31 @@ async def refresh_options(call, state):
         return
     await state.update_data(instant_nonce=secrets.token_hex(4), instant_created=time.time())
     await options(call.message, state)
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith('instant:candidate:'), state='Instant:options')
+async def candidate_selection(call, state):
+    await call.answer()
+    if not await allowed(call.from_user.id):
+        return
+    data=await state.get_data()
+    parts=call.data.split(':')
+    if (len(parts)!=4 or parts[2]!=data.get('instant_nonce') or not parts[3].isdigit()
+            or data.get('instant_user')!=call.from_user.id):
+        await call.message.answer('Выбор устарел. Повторите проверку произведения.')
+        return
+    from database.provider_options import select_candidate
+    try:
+        binding=select_candidate(data.get('instant_candidate_lookup',''),call.from_user.id,int(parts[3]))
+    except ValueError as error:
+        await call.message.answer(str(error),parse_mode='')
+        return
+    # Invalidate previous buttons before beginning the next provider lookup.
+    await state.update_data(instant_binding=binding, instant_voice='', instant_choices=[],
+                            instant_candidate_lookup=None, instant_lookup=None,
+                            instant_nonce=secrets.token_hex(4), instant_created=time.time())
+    await call.message.answer('Выбрано: '+binding['title']+'. Проверяю озвучки…',parse_mode='')
+    await options(call.message,state)
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith(('instant:voice:', 'instant:quality:')), state='Instant:options')

@@ -13,5 +13,5 @@ async def claim(request):
 async def result(request):
     from webpanel.server import body
     data=await body(request)
-    provider_options.finish(request.match_info['id'],owner(request),data.get('lease'),data.get('choices'),data.get('binding'))
+    provider_options.finish(request.match_info['id'],owner(request),data.get('lease'),data.get('choices'),data.get('binding'),data.get('candidates'))
     return web.json_response({'ok':True})
