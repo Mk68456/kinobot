@@ -607,7 +607,7 @@ async def seasonedit_handler(call:types.CallbackQuery,state:FSMContext):
 
 @dp.callback_query_handler(lambda call: call.data == 'season_add', state=Admin_.edit_seasons_menu)
 async def season_add_handler(call:types.CallbackQuery,state:FSMContext):
-    data = await state.get_data()
+    await state.get_data()
     await call.message.delete()
     await bot.send_message(call.message.chat.id,
                            '<strong>Введите номер сезона</strong> (например, 1) или название сезона:')
@@ -656,7 +656,7 @@ async def edit_season_name_handler(message:types.Message,state:FSMContext):
     season_number = int(value) if value.isdigit() else None
     name = f'Сезон {value}' if value.isdigit() else value
     update_category(season_id, name, season_number)
-    season = get_category_by_id_full(season_id)
+    get_category_by_id_full(season_id)
     subs = get_subcategories_by_category(season_id)
     await bot.send_message(message.chat.id, f'<strong>{name}</strong> изменён ✅',
                            reply_markup=season_edit_markup(season_id, subs))

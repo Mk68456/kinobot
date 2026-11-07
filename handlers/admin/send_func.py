@@ -14,8 +14,8 @@ async def send_all_users_handler(message:types.Message,state:FSMContext):
         data['markup'] = message.reply_markup
         data['mes'] = message
     await message.copy_to(message.chat.id, reply_markup=message.reply_markup)
-    await message.reply(f"Сделать рассылку ?\n"
-                            f"Пример поста :\n\n",reply_markup=allow_send_markup())
+    await message.reply("Сделать рассылку ?\n"
+                            "Пример поста :\n\n",reply_markup=allow_send_markup())
 @dp.callback_query_handler(text='send_yes',state=Admin_.send_)
 async def allow_send_handler(call:types.CallbackQuery,state:FSMContext):
     chat_id = call.message.chat.id
@@ -42,7 +42,7 @@ async def allow_send_handler(call:types.CallbackQuery,state:FSMContext):
                              f'<i>Отправлено : {i}-пользователям</i>', reply_markup=admin_markup())
     await state.finish()
 @dp.callback_query_handler(text='send_no',state=Admin_.send_)
-async def allow_send_handler(call:types.CallbackQuery,state:FSMContext):
+async def cancel_send_handler(call:types.CallbackQuery,state:FSMContext):
     await state.finish()
     await call.message.delete()
     await call.answer('Рассылка была отменена !',show_alert=True)
