@@ -57,6 +57,9 @@ def discover():
                 "SELECT file_id,file_type FROM MovieSubcategories WHERE file_id IS NOT NULL AND file_id!=''"):
             _register(file_id, file_type)
         for file_id, file_type in database.execute(
+                "SELECT file_id,file_type FROM EpisodeVariants WHERE file_id!=''"):
+            _register(file_id, file_type)
+        for file_id, file_type in database.execute(
                 "SELECT movie_file,movie_file_type FROM Movies WHERE movie_file IS NOT NULL AND movie_file!=''"):
             _register(file_id, file_type)
         for (file_id,) in database.execute(
