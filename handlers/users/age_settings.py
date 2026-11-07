@@ -12,7 +12,7 @@ from loader import bot, dp
 def menu(user_id):
     info = age_access.preferences(user_id)
     text = ('👨‍👩‍👧 Возрастные настройки\n\n' +
-            ('Контент 18+ включён.' if info['max_age'] == 18 else f"Получение материалов: до {info['max_age']}+ включительно.") +
+            ('Получение файлов 18+ разрешено.' if info['max_age'] == 18 else f"Получение материалов: до {info['max_age']}+ включительно.") +
             '\nКарточки видны всем. В безопасном режиме получение материалов выше выбранного возраста и без маркировки заблокировано.')
     rows = []
     if info['parental']:
@@ -20,7 +20,7 @@ def menu(user_id):
         rows = [('Изменить допустимый возраст', 'age:parent'), ('Отключить родительский режим', 'age:off')]
     else:
         rows = [('Оставить безопасный режим · до 16+', 'age:safe') if info['max_age'] == 18 else
-                ('Показывать контент 18+', 'age:adult'), ('Настроить родительский режим', 'age:parent')]
+                ('Разрешить получение 18+', 'age:adult'), ('Настроить родительский режим', 'age:parent')]
     rows.append(('↩️ Главное меню', 'catalog:home'))
     return text, keyboard(rows)
 
@@ -70,7 +70,7 @@ async def age_callback(call, state):
             await show(call.message.chat.id, user_id)
             return
         await bot.send_message(call.message.chat.id,
-            'Включить произведения 18+?\n\nПодтвердите, что вам исполнилось 18 лет. '
+            'Разрешить получение файлов 18+?\n\nПодтвердите, что вам исполнилось 18 лет. '
             'Это самостоятельное подтверждение возраста, без документов.', parse_mode='',
             reply_markup=keyboard([('Мне исполнилось 18 лет', 'age:confirm'),
                                    ('Оставить безопасный режим', 'age:settings')]))
