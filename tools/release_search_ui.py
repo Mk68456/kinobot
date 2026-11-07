@@ -87,6 +87,8 @@ def open_search(parent, on_choose, on_prepare, shortcuts=lambda widget: None, cl
     status = tk.StringVar(value='Введите название. Описания и magnet-ссылки помощник получит сам.')
     ttk.Label(frame, textvariable=status, wraplength=1000).pack(anchor='w', pady=4)
     listing_frame = ttk.Frame(frame)
+    bottom = ttk.Frame(frame)
+    bottom.pack(side='bottom', fill='x')
     listing_frame.pack(fill='both', expand=True)
     tree = ttk.Treeview(listing_frame, columns=('title', 'tracker', 'quality', 'size', 'seeds', 'issues'), show='headings', height=6)
     for key, label, width in (('title', 'Раздача', 320), ('tracker', 'Трекер', 130), ('quality', 'Видео', 125), ('size', 'Размер', 110),
@@ -103,8 +105,6 @@ def open_search(parent, on_choose, on_prepare, shortcuts=lambda widget: None, cl
     tree.configure(xscrollcommand=horizontal.set, yscrollcommand=vertical.set)
     detail = ScrolledText(frame, height=6, wrap='word', state='disabled')
     detail.pack(fill='both', expand=True, pady=6)
-    bottom = ttk.Frame(frame)
-    bottom.pack(fill='x')
     messages = queue.Queue()
     stop = threading.Event()
     state = {'running': False, 'closed': False, 'rows': {}, 'all_rows': [], 'stats': {},

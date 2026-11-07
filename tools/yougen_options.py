@@ -4,13 +4,21 @@ from tools.yougen_bridge import open_result, message_by_id, video_record, plain_
 from tools.yougen_worker import wait_card
 from tools.yougen_discovery import menu, pages, next_page
 from tools.provider_identity import valid_voice_name
-from tools.provider_matching import binding_for, media_title_matches, identity_score
+from tools.provider_matching import binding_for, media_title_matches, identity_score, source_kind_year
 
 
 async def inspect_options(client, source, payload, *, binding_out=None):
     query,title=await resolve_result(client,source,payload)
     results=await client.inline_query(source,query)
-    indices=[i for i,r in enumerate(results) if r.title==title and identity_score(r,payload) is not None]
+    ranked=[]
+    for i,r in enumerate(results):
+        kind,years=source_kind_year(r)
+        score=identity_score(r,payload)
+        if (r.title==title and score is not None and kind==payload['content_type']
+                and (not payload.get('year') or str(payload['year']) in years)):
+            ranked.append((score,i))
+    best=max((score for score,i in ranked),default=None)
+    indices=[i for score,i in ranked if score==best]
     if len(indices)!=1:
         raise BridgeError('Результат поиска изменился перед открытием.')
     index=indices[0]

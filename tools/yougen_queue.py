@@ -1,8 +1,9 @@
 """Persistent single-worker request queue, isolated from KinoTime's database."""
 
-from contextlib import closing
+from contextlib import closing, contextmanager
 import hashlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 import uuid
@@ -10,7 +11,7 @@ import uuid
 
 class Queue:
     def __init__(self, path):
-        self.path = Path(path)
+        self.path = Path(path).resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with closing(sqlite3.connect(self.path)) as db:
             db.execute('''CREATE TABLE IF NOT EXISTS Jobs (
@@ -19,6 +20,26 @@ class Queue:
                 error TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
             db.commit()
+
+    @contextmanager
+    def worker_lock(self):
+        """Hold an OS lock across recovery and all provider side effects."""
+        with self.path.with_suffix(self.path.suffix + '.lock').open('a+b') as lock:
+            lock.seek(0)
+            try:
+                if os.name == 'nt':
+                    import msvcrt
+                    msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as error:
+                raise RuntimeError('Queue worker lock is unavailable') from error
+            with closing(sqlite3.connect(self.path)) as db:
+                db.execute("""UPDATE Jobs SET status='needs_review',
+                    updated_at=CURRENT_TIMESTAMP WHERE status='working'""")
+                db.commit()
+            yield
 
     def enqueue(self, payload, identity=None):
         required = {'query', 'result_title', 'title', 'voice', 'quality', 'season', 'episode'}

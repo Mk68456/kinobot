@@ -266,6 +266,11 @@ async def run_once(config, queue):
 
 
 async def run(config, queue, serve, config_path):
+    with queue.worker_lock():
+        await _run(config, queue, serve, config_path)
+
+
+async def _run(config, queue, serve, config_path):
     last_auth_repair = float('-inf')
     while True:
         try:

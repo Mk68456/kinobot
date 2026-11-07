@@ -14,9 +14,10 @@ from urllib.request import Request, HTTPRedirectHandler, build_opener
 
 from tools.yougen_bridge import (BOT, BridgeError, choose, connection, message_by_id,
                                  open_result, plain_label, safe_button, session_path, snapshot, video_record)
+from tools.episode_labels import episode_order
 from tools.yougen_queue import Queue
 from tools.provider_identity import video_label
-from tools.provider_matching import media_title_matches, identity_score
+from tools.provider_matching import media_title_matches, identity_score, source_kind_year
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -69,7 +70,6 @@ def exact_video(message, payload):
 
 
 def episode_name_matches(name, episode):
-    from database.categories import episode_order
     return episode_order((0, name))[:2] == (0, episode)
 
 
@@ -154,8 +154,16 @@ async def process(queue, job, config, panel_override=None):
         before = last[0].id if last else 0
         queue.update(job_id, 'searching')
         results = await client.inline_query(source, payload['query'])
-        indices = [i for i, row in enumerate(results) if row.title == payload['result_title']
-                   and identity_score(row, payload) is not None]
+        ranked = []
+        for i, row in enumerate(results):
+            kind, years = source_kind_year(row)
+            score = identity_score(row, payload)
+            if (row.title == payload['result_title'] and score is not None
+                    and kind == payload.get('content_type', 'series')
+                    and (not payload.get('year') or str(payload['year']) in years)):
+                ranked.append((score, i))
+        best = max((score for score, i in ranked), default=None)
+        indices = [i for score, i in ranked if score == best]
         if len(indices) != 1:
             raise BridgeError('Не найден единственный результат с выбранным названием.')
         queue.update(job_id, 'opening')
@@ -254,19 +262,20 @@ def main():
         return
     config_path = Path(os.environ.get('YOUGEN_CONFIG', 'runtime/yougen-client/bridge.json'))
     config = json.loads(config_path.read_text(encoding='utf-8'))
-    job = queue.claim()
-    if not job:
-        print('Нет свободного задания; другой обработчик может уже работать.')
-        return
-    try:
-        result = asyncio.run(asyncio.wait_for(process(queue, job, config), timeout=240))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-    except Exception as error:
-        queue.update(job['id'], 'stopped', status='needs_review', error=type(error).__name__,
-                     details={'stopped_at': queue.get(job['id'])['phase']})
-        # Never print raw network errors, private config or session credentials.
-        print('Задание остановлено: ' + type(error).__name__ + '. Проверьте журнал и Telegram.', file=sys.stderr)
-        raise SystemExit(1)
+    with queue.worker_lock():
+        job = queue.claim()
+        if not job:
+            print('Нет свободного задания; другой обработчик может уже работать.')
+            return
+        try:
+            result = asyncio.run(asyncio.wait_for(process(queue, job, config), timeout=240))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        except Exception as error:
+            queue.update(job['id'], 'stopped', status='needs_review', error=type(error).__name__,
+                         details={'stopped_at': queue.get(job['id'])['phase']})
+            # Never print raw network errors, private config or session credentials.
+            print('Задание остановлено: ' + type(error).__name__ + '. Проверьте журнал и Telegram.', file=sys.stderr)
+            raise SystemExit(1)
 
 
 if __name__ == '__main__':
