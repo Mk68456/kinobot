@@ -37,7 +37,7 @@ async def draft(request):
             raise ValueError('Нужен один файл выбранного произведения.')
         root = re.fullmatch(r'yougen/' + re.escape(BOT) + r'/([0-9]{1,20})', str(spec.get('root', '')))
         file = spec['files'][0]
-        if not root or not isinstance(file, dict) or type(file.get('size')) is not int or not 0 < file['size'] <= 2_000_000_000:
+        if not root or not isinstance(file, dict) or type(file.get('size')) is not int or not 0 < file['size'] <= 4 * 1024**3:
             raise ValueError('Некорректный файл или превышен размер. Выберите меньшее качество.')
         expected = expected_manifest(payload, {'message_id': int(root[1]), 'size': file['size']})
         if spec != expected:

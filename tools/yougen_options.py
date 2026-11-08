@@ -59,8 +59,10 @@ async def inspect_options(client, source, payload, *, binding_out=None):
     await menu(client,source,card.id,'Озвучка')
     await pages(client,source,card.id,r'.+',select=voice,max_pages=10)
     card=await wait_card(client,source,before,payload,voice=voice,target_episode=payload['content_type']=='series')
-    if not media_title_matches(video_record(card)['label'],payload):
+    record=video_record(card)
+    if not media_title_matches(record['label'],payload):
         raise BridgeError('Полное название видео изменилось.')
     await menu(client,source,card.id,'Качество')
     return [q for q in await pages(client,source,card.id,r'[0-9]{3,4}p',max_pages=10)
-            if q in {'240p','360p','480p','720p','1080p','1440p','2160p'}]
+            if q in {'240p','360p','480p','720p','1080p','1440p','2160p'}
+            and not (q == record['quality'] and record['size'] > 4 * 1024**3)]

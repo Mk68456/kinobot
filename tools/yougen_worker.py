@@ -14,7 +14,6 @@ from urllib.request import Request, HTTPRedirectHandler, build_opener
 
 from tools.yougen_bridge import (BOT, BridgeError, choose, connection, message_by_id,
                                  open_result, plain_label, safe_button, session_path, snapshot, video_record)
-from tools.episode_labels import episode_order
 from tools.yougen_queue import Queue
 from tools.provider_identity import video_label
 from tools.provider_matching import media_title_matches, identity_score, source_kind_year
@@ -70,10 +69,13 @@ def exact_video(message, payload):
 
 
 def episode_name_matches(name, episode):
+    from database.categories import episode_order
     return episode_order((0, name))[:2] == (0, episode)
 
 
 def manifest(payload, record):
+    if record['size'] > 4 * 1024**3:
+        raise BridgeError('Видео превышает лимит KinoTime в 4 ГБ. Выберите качество ниже.')
     if payload.get('content_type') == 'movie':
         path = f"{payload['voice']} {payload['quality']}/Видео.mp4"
         return {'version': 1, 'title': payload['title'], 'content_type': 'movie',
@@ -262,20 +264,19 @@ def main():
         return
     config_path = Path(os.environ.get('YOUGEN_CONFIG', 'runtime/yougen-client/bridge.json'))
     config = json.loads(config_path.read_text(encoding='utf-8'))
-    with queue.worker_lock():
-        job = queue.claim()
-        if not job:
-            print('Нет свободного задания; другой обработчик может уже работать.')
-            return
-        try:
-            result = asyncio.run(asyncio.wait_for(process(queue, job, config), timeout=240))
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        except Exception as error:
-            queue.update(job['id'], 'stopped', status='needs_review', error=type(error).__name__,
-                         details={'stopped_at': queue.get(job['id'])['phase']})
-            # Never print raw network errors, private config or session credentials.
-            print('Задание остановлено: ' + type(error).__name__ + '. Проверьте журнал и Telegram.', file=sys.stderr)
-            raise SystemExit(1)
+    job = queue.claim()
+    if not job:
+        print('Нет свободного задания; другой обработчик может уже работать.')
+        return
+    try:
+        result = asyncio.run(asyncio.wait_for(process(queue, job, config), timeout=240))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    except Exception as error:
+        queue.update(job['id'], 'stopped', status='needs_review', error=type(error).__name__,
+                     details={'stopped_at': queue.get(job['id'])['phase']})
+        # Never print raw network errors, private config or session credentials.
+        print('Задание остановлено: ' + type(error).__name__ + '. Проверьте журнал и Telegram.', file=sys.stderr)
+        raise SystemExit(1)
 
 
 if __name__ == '__main__':
