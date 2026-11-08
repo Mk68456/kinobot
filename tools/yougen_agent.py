@@ -182,9 +182,6 @@ async def run_once(config, queue):
                                       config.get('profile', 'desktop-copy'), config['user_id']) as (client, source):
                     binding = {}
                     choices = await asyncio.wait_for(inspect_options(client, source, lookup['payload'], binding_out=binding), 120)
-                await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
-                                        {'lease': lookup['lease'], 'choices': choices, 'binding': binding})
-                return {'status': 'options_ready', 'lookup_id': lookup['id']}
             except ClarificationRequired as error:
                 await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
                                         {'lease': lookup['lease'], 'choices': None, 'candidates': error.candidates})
@@ -193,6 +190,10 @@ async def run_once(config, queue):
                 await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
                                         {'lease': lookup['lease'], 'choices': None})
                 raise
+            await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
+                                    {'lease': lookup['lease'], 'choices': choices or None,
+                                     'binding': binding if choices else None})
+            return {'status': 'options_ready' if choices else 'options_unavailable', 'lookup_id': lookup['id']}
     claimed = await asyncio.to_thread(panel.request, 'instant/claim', {})
     remote = claimed.get('job')
     if not remote:
@@ -266,11 +267,6 @@ async def run_once(config, queue):
 
 
 async def run(config, queue, serve, config_path):
-    with queue.worker_lock():
-        await _run(config, queue, serve, config_path)
-
-
-async def _run(config, queue, serve, config_path):
     last_auth_repair = float('-inf')
     while True:
         try:

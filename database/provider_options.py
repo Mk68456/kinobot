@@ -34,7 +34,7 @@ def create(user_id, payload):
     raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
     now = time.time()
     with database.transaction():
-        old = database.execute("SELECT id FROM ProviderOptions WHERE user_id=? AND payload=? AND ((status IN ('ready','clarify') AND expires>?) OR (status IN ('queued','working') AND updated>?)) ORDER BY updated DESC LIMIT 1", (user_id,raw,now,now-180)).fetchone()
+        old = database.execute("SELECT id FROM ProviderOptions WHERE user_id=? AND payload=? AND ((status IN ('ready','clarify') AND expires>?) OR (status='queued' AND updated>?) OR (status='working' AND expires>?)) ORDER BY updated DESC LIMIT 1", (user_id,raw,now,now-180,now)).fetchone()
         if old:
             return get(old[0],user_id)
         count = database.execute('SELECT COUNT(*) FROM ProviderOptions WHERE user_id=? AND updated>?',(user_id,now-60)).fetchone()[0]
