@@ -57,17 +57,31 @@ async def options(message, state):
     nonce = data['instant_nonce']
     if not await allowed(data['instant_user']):
         return
-    await message.answer('Проверяю доступные варианты у источника…')
+    from database import provider_queue
+    from services.instant_display import edit_status
+    progress = await message.answer('Проверяю доступные варианты у источника…')
+    previous = None
     try:
         lookup = provider_options.create(data['instant_user'], lookup_payload(data))
     except ValueError as error:
         await message.answer(str(error), parse_mode='')
         return
-    for _ in range(150):
+    for tick in range(86400):
         latest = await state.get_data()
+        if await state.get_state() != 'Instant:options':
+            database.execute("UPDATE ProviderOptions SET status='error' WHERE id=? AND user_id=? AND status='queued'",
+                             (lookup['id'], data['instant_user']))
+            database.commit()
+            await edit_status(progress, 'Проверка отменена.')
+            return
         if latest.get('instant_nonce') != nonce or latest.get('instant_voice', '') != data.get('instant_voice', ''):
             return
         lookup = provider_options.get(lookup['id'], data['instant_user'])
+        if tick % 30 == 0:
+            text = provider_queue.status('options', lookup['id'])
+            if text != previous:
+                await edit_status(progress, text)
+                previous = text
         if lookup['status'] in {'ready', 'error', 'clarify'}:
             break
         await asyncio.sleep(1)
@@ -102,11 +116,13 @@ async def options(message, state):
     stage = 'quality' if data.get('instant_voice') else 'voice'
     for i, label in enumerate(choices):
         keyboard.insert(types.InlineKeyboardButton(label, callback_data=f'instant:{stage}:{nonce}:{i}'))
-    await state.update_data(instant_choices=choices, instant_lookup=lookup['id'], instant_binding=lookup.get('binding'))
+    await state.update_data(instant_choices=choices, instant_lookup=lookup['id'], instant_binding=lookup.get('binding'), instant_created=time.time())
     keyboard.add(types.InlineKeyboardButton('Назад к заявке', callback_data='instant:back'))
-    await message.answer('Выберите доступную озвучку:' if stage == 'voice' else
+    from services.instant_display import banner
+    await edit_status(progress, 'Варианты найдены.')
+    await banner(message, data, 'Выберите доступную озвучку:' if stage == 'voice' else
                          'Выберите доступное качество. Готовый файл придёт автоматически, без одобрения.',
-                         reply_markup=keyboard)
+                         keyboard)
 
 
 @dp.callback_query_handler(text='instant:start', state='Request:confirm')
@@ -222,7 +238,9 @@ async def selection(call, state):
         await call.message.answer(str(error), parse_mode='')
         return
     await state.finish()
-    await call.message.answer(instant.label(job) + '\nСтатус: /instant_status', parse_mode='', reply_markup=instant.markup(job))
+    from services.instant_display import watch_job
+    progress = await call.message.answer(instant.label(job) + '\nСтатус: /instant_status', parse_mode='', reply_markup=instant.markup(job))
+    await watch_job(progress, job['id'], call.from_user.id)
 
 
 @dp.message_handler(commands=['instant_status'], state='*')
@@ -251,3 +269,23 @@ async def status_callback(call):
             await call.message.answer('Файл ещё не готов или доступ ограничен. Проверьте возрастные настройки и подписку.')
         job = jobs.get(job['id'], call.from_user.id)
     await call.message.answer(instant.label(job), parse_mode='', reply_markup=instant.markup(job))
+
+
+@dp.message_handler(commands=['instant_queue'], state='*')
+async def queue_command(message):
+    from services.access import is_admin
+    from database import provider_queue
+    if not is_admin(message.from_user.id) or message.chat.type != 'private':
+        return
+    argument = message.get_args().strip().lower()
+    if argument == 'resume':
+        provider_queue.resume()
+    elif argument:
+        await message.answer('После ручной проверки у поставщика: /instant_queue resume')
+        return
+    value = provider_queue.control()
+    description = ('Нужна ручная проверка у поставщика.' if value['manual'] else
+                   'Действует временное ограничение Telegram.' if value['until'] > time.time() else 'Очередь работает.')
+    await message.answer(description + f' Ожидают: {len(provider_queue.waiting())}.\n'
+                         'После прохождения проверки у поставщика: /instant_queue resume. '
+                         'Срок ограничения Telegram эта команда не сокращает.')

@@ -18,6 +18,9 @@ from tools.yougen_worker import Panel, process
 def error_summary(error):
     """Log only code-owned static messages, never remote bodies or credentials."""
     import ast
+    from tools.provider_guard import ProviderPaused
+    if isinstance(error, ProviderPaused):
+        return 'Очередь приостановлена до окончания ограничения или ручной проверки владельцем.'
     if isinstance(error, BridgeError):
         message = str(error)
         for name in ('yougen_agent.py', 'yougen_worker.py', 'yougen_bridge.py', 'yougen_discovery.py', 'yougen_options.py'):
@@ -132,9 +135,18 @@ class JobPanel:
 
 
 async def refresh_pairing(config, path):
+    from tools.provider_guard import pairing_only
+    token = pairing_only.set(True)
+    try:
+        await _refresh_pairing(config, path)
+    finally:
+        pairing_only.reset(token)
+
+
+async def _refresh_pairing(config, path):
     """Refresh the existing 48-hour pairing scope, without an interactive account login."""
     async with connection(session_path(config['session']), config.get('api_id'), config.get('api_hash'),
-                          config.get('profile', 'desktop-copy'), config['user_id']) as (client, source):
+                          config.get('profile', 'desktop-copy'), config['user_id'], inspect_provider=False) as (client, source):
         target = await client.get_entity(config['target'])
         if not target.bot or target.username.lower() != config['target'].lstrip('@').lower():
             raise BridgeError('Не подтверждён ваш бот для обновления подключения.')
@@ -187,8 +199,13 @@ async def run_once(config, queue):
                                         {'lease': lookup['lease'], 'choices': None, 'candidates': error.candidates})
                 return {'status': 'options_clarification', 'lookup_id': lookup['id']}
             except Exception:
+                from tools.provider_guard import current
+                guard = current.get()
+                defer = bool(guard and guard.blocked())
+                if defer:
+                    await guard.sync(panel)
                 await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
-                                        {'lease': lookup['lease'], 'choices': None})
+                                        {'lease': lookup['lease'], 'choices': None, 'defer': defer})
                 raise
             await asyncio.to_thread(panel.request, f"options/{lookup['id']}/result",
                                     {'lease': lookup['lease'], 'choices': choices or None,
@@ -261,15 +278,37 @@ async def run_once(config, queue):
         return {'job_id': remote['id'], 'status': response['status']}
     except Exception:
         # Completion is idempotent: if the server already sent the file, this cannot resend it.
-        await asyncio.to_thread(panel.request, f"instant/{remote['id']}/result",
-                               {'lease': remote['lease'], 'ok': False})
+        try:
+            await asyncio.to_thread(panel.request, f"instant/{remote['id']}/result",
+                                    {'lease': remote['lease'], 'ok': False})
+        except Exception as report_error:
+            print('Не удалось сообщить об остановке: ' + error_summary(report_error),
+                  file=sys.stderr, flush=True)
         raise
 
 
 async def run(config, queue, serve, config_path):
+    from tools.provider_guard import Guard, current
+    guard = Guard(config_path.with_name('provider_queue.json'))
+    token = current.set(guard)
+    try:
+        with queue.worker_lock():
+            await _run(config, queue, serve, config_path, guard)
+    finally:
+        current.reset(token)
+
+
+async def _run(config, queue, serve, config_path, guard):
     last_auth_repair = float('-inf')
     while True:
         try:
+            panel = Panel(config['panel_url'], config['panel_token'], config['instance_id'])
+            await guard.sync(panel)
+            if guard.blocked():
+                if not serve:
+                    return
+                await asyncio.sleep(30)
+                continue
             result = await run_once(config, queue)
             if result['status'] != 'idle' or not serve:
                 print(json.dumps(result, ensure_ascii=False), flush=True)
@@ -283,7 +322,11 @@ async def run(config, queue, serve, config_path):
                     print('Не удалось заранее обновить /desktop; действующее подключение продолжает работу.',
                           file=sys.stderr, flush=True)
         except Exception as error:
-            if (isinstance(error, BridgeError) and 'HTTP 401' in str(error)
+            try:
+                await guard.sync(panel)
+            except Exception:
+                pass
+            if (guard.state['until'] <= time.time() and isinstance(error, BridgeError) and 'HTTP 401' in str(error)
                     and time.monotonic() - last_auth_repair >= 300):
                 last_auth_repair = time.monotonic()
                 try:

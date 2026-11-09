@@ -15,6 +15,7 @@ from urllib.request import Request, HTTPRedirectHandler, build_opener
 from tools.yougen_bridge import (BOT, BridgeError, choose, connection, message_by_id,
                                  open_result, plain_label, safe_button, session_path, snapshot, video_record)
 from tools.yougen_queue import Queue
+from tools.yougen_series import navigation_record, voice_menu
 from tools.provider_identity import video_label
 from tools.provider_matching import media_title_matches, identity_score, source_kind_year
 
@@ -92,15 +93,23 @@ def manifest(payload, record):
 
 
 async def recent_cards(client, source, after):
-    return [m for m in await client.get_messages(source, limit=15, min_id=after)
-            if not m.out and m.sender_id == source.id]
+    from tools.provider_guard import observe
+    messages = [m for m in await client.get_messages(source, limit=15, min_id=after)
+                if not m.out and m.sender_id == source.id]
+    for message in messages:
+        observe(message)
+    return messages
 
 
-async def wait_card(client, source, after, payload, timeout=30, exact=False, voice=None, target_episode=False):
+async def wait_card(client, source, after, payload, timeout=30, exact=False, voice=None, target_episode=False, allow_navigation=False):
     deadline = time.monotonic() + timeout
     while True:
         for message in await recent_cards(client, source, after):
             candidate = exact_video(message, payload) if exact else video_record(message)
+            if not candidate and allow_navigation and not exact and not voice:
+                candidate = navigation_record(message, payload)
+            if candidate and not media_title_matches(candidate['label'], payload):
+                continue
             if candidate and voice and f" ({voice} [" not in candidate['label']:
                 continue
             if candidate and target_episode and (candidate['season'], candidate['episode']) != (payload['season'], payload['episode']):
@@ -171,27 +180,29 @@ async def process(queue, job, config, panel_override=None):
         queue.update(job_id, 'opening')
         await open_result(client, source, payload['query'], indices[0], payload['result_title'],
                           expected_binding=payload.get('provider_binding'))
-        card = await wait_card(client, source, before, payload)
-        record = video_record(card)
+        card = await wait_card(client, source, before, payload, allow_navigation=True)
+        record = navigation_record(card, payload)
         if not media_title_matches(record['label'], payload):
             raise BridgeError('Полное название полученного видео не совпадает с запросом.')
         if record['season'] != payload['season'] or record['episode'] != payload['episode']:
             queue.update(job_id, 'selecting_episode')
-            from tools.yougen_discovery import menu, pages
+            from tools.yougen_discovery import menu, pages, select_episode
             await menu(client, source, card.id, 'Серии')
             await pages(client, source, card.id, r'Сезон [1-9][0-9]{0,2}', select=f"Сезон {payload['season']}")
             current = await message_by_id(client, source, card.id)
             if f"Сезон {payload['season']}" not in [plain_label(b.text) for row in current.buttons or [] for b in row]:
                 raise BridgeError('Не подтверждён сезон в меню серий.')
-            await pages(client, source, card.id, r'[1-9][0-9]{0,2}', select=str(payload['episode']))
-            card = await wait_card(client, source, before, payload, target_episode=True)
-            record = video_record(card)
+            await select_episode(client, source, card.id, payload['episode'])
+            card = await wait_card(client, source, before, payload, target_episode=True, allow_navigation=True)
+            record = navigation_record(card, payload)
         if not exact_video(card, payload):
             # Known navigation only, then require the complete exact caption again.
             current = re.fullmatch(r'.+ \((.+) \[\d{3,4}p\]\)', record['label'])
-            if not current or current[1] != payload['voice']:
+            if not video_record(card) or not current or current[1] != payload['voice']:
                 queue.update(job_id, 'selecting_voice')
-                await select_variant(client, source, card, 'Озвучка', payload['voice'])
+                from tools.yougen_discovery import pages
+                await voice_menu(client, source, card.id, series=payload['content_type']=='series')
+                await pages(client, source, card.id, r'.+', select=payload['voice'], max_pages=10)
                 card = await wait_card(client, source, before, payload, voice=payload['voice'], target_episode=True)
             if video_record(card)['quality'] != payload['quality']:
                 queue.update(job_id, 'selecting_quality')

@@ -93,6 +93,9 @@ def claim(owner, admin_id=None):
             return None
         if database.execute("SELECT 1 FROM ProviderBatches WHERE status='discovering'").fetchone():
             return None
+        from database import provider_queue
+        if provider_queue.paused() or provider_queue.waiting():
+            return None
         query = "SELECT id FROM ProviderBatches WHERE status='queued'"
         parameters = ()
         if admin_id is not None:

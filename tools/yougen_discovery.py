@@ -29,6 +29,10 @@ async def click(client, source, message, label):
             raise BridgeError('Нет подтверждения перехода меню; повтор не выполнен.') from None
         result = None
     if result and getattr(result, 'message', None):
+        from tools.provider_guard import current
+        guard = current.get()
+        if guard:
+            guard.restrict()
         raise BridgeError('Источник показал ограничение доступа.')
     await asyncio.sleep(1)
 
@@ -46,6 +50,16 @@ async def menu(client, source, card_id, label):
             break
         await click(client, source, card, back[0])
     raise BridgeError('Не удалось открыть меню: ' + label)
+
+
+async def select_episode(client, source, card_id, episode):
+    card = await message_by_id(client, source, card_id)
+    buttons = [b for row in card.buttons or [] for b in row if getattr(b, 'data', None)]
+    if not any(re.fullmatch(r'[1-9][0-9]{0,2}', plain_label(b.text)) for b in buttons):
+        all_episodes = [b for b in buttons if plain_label(b.text) == 'Все серии']
+        if len(all_episodes) == 1:
+            await click(client, source, card, all_episodes[0].text)
+    await pages(client, source, card_id, r'[1-9][0-9]{0,2}', select=str(episode))
 
 
 async def pages(client, source, card_id, pattern, *, select=None, max_pages=200):

@@ -39,7 +39,9 @@ def markup(job):
 def label(job):
     p = job['payload']
     series = f" · S{p['season']:02d}E{p['episode']:02d}" if p['content_type'] == 'series' else ''
-    return f"{p['title']}{series} · {p['voice']} · {p['quality']}\n{STATUS[job['status']]}"
+    from database import provider_queue
+    status = provider_queue.status('job', job['id']) if job['status'] == 'queued' else STATUS[job['status']]
+    return f"{p['title']}{series} · {p['voice']} · {p['quality']}\n{status}"
 
 
 async def deliver(bot, job_id, user_id, *, repeat=False, expected_generation=None):

@@ -684,6 +684,7 @@ def create_app(bot, config=settings):
             web.post('/api/desktop/provider-import', desktop_provider_import),
             web.post('/api/desktop/instant/claim', instant_api.claim),
             web.post('/api/desktop/options/claim', options_api.claim),
+            web.post('/api/desktop/provider-queue', options_api.queue_state),
             web.post('/api/desktop/options/{id}/result', options_api.result),
             web.post('/api/desktop/instant/{id}/draft', instant_api.draft),
             web.post('/api/desktop/instant/{id}/result', instant_api.result),

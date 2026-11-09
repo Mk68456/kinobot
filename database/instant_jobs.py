@@ -27,7 +27,9 @@ def online():
     row = database.execute('SELECT last_seen FROM InstantAgent WHERE id=1').fetchone()
     active = database.execute("SELECT 1 FROM InstantJobs WHERE status='working' AND lease_until>?",
                               (time.time(),)).fetchone()
-    return bool(row and row[0] > time.time() - 90 or active)
+    menus = (database.execute("SELECT 1 FROM sqlite_master WHERE name='ProviderOptions'").fetchone()
+             and database.execute("SELECT 1 FROM ProviderOptions WHERE status='working' AND expires>?", (time.time(),)).fetchone())
+    return bool(row and row[0] > time.time() - 90 or active or menus)
 
 
 def create(user_id, payload, request_id):
@@ -92,6 +94,9 @@ def claim(owner, admin_id=None):
                 parameters = (admin_id,)
         row = database.execute('SELECT id FROM InstantJobs WHERE ' + where + ' ORDER BY ' + order + ' LIMIT 1', parameters).fetchone()
         if not row:
+            return None
+        from database import provider_queue
+        if not provider_queue.turn('job', row[0]):
             return None
         token = secrets.token_urlsafe(24)
         database.execute("UPDATE InstantJobs SET status='working',owner=?,lease_hash=?,lease_until=?,updated_at=? WHERE id=?",

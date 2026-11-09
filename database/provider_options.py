@@ -34,12 +34,15 @@ def create(user_id, payload):
     raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
     now = time.time()
     with database.transaction():
-        old = database.execute("SELECT id FROM ProviderOptions WHERE user_id=? AND payload=? AND ((status IN ('ready','clarify') AND expires>?) OR (status='queued' AND updated>?) OR (status='working' AND expires>?)) ORDER BY updated DESC LIMIT 1", (user_id,raw,now,now-180,now)).fetchone()
+        old = database.execute("SELECT id FROM ProviderOptions WHERE user_id=? AND payload=? AND ((status IN ('ready','clarify') AND expires>?) OR (status='queued' AND updated>?) OR (status='working' AND expires>?)) ORDER BY updated DESC LIMIT 1", (user_id,raw,now,now-86400,now)).fetchone()
         if old:
             return get(old[0],user_id)
         count = database.execute('SELECT COUNT(*) FROM ProviderOptions WHERE user_id=? AND updated>?',(user_id,now-60)).fetchone()[0]
         if count >= 8:
             raise ValueError('Слишком много проверок. Подождите минуту.')
+        database.execute("UPDATE ProviderOptions SET status='error' WHERE user_id=? AND status='queued'", (user_id,))
+        if database.execute("SELECT COUNT(*) FROM ProviderOptions WHERE status='queued'").fetchone()[0] >= 100:
+            raise ValueError('Очередь проверок заполнена. Попробуйте позже.')
         key = uuid.uuid4().hex
         database.execute("INSERT INTO ProviderOptions VALUES (?,?,?,'queued',NULL,NULL,0,?,NULL)",(key,user_id,raw,now))
     return get(key,user_id)
@@ -57,21 +60,30 @@ def claim(owner):
         database.execute("UPDATE ProviderOptions SET status='error' WHERE status='working' AND expires<?",(now,))
         if database.execute("SELECT 1 FROM ProviderOptions WHERE status='working'").fetchone():
             return None
-        row = database.execute("SELECT id FROM ProviderOptions WHERE status='queued' AND updated>? ORDER BY updated LIMIT 1",(now-180,)).fetchone()
+        row = database.execute("SELECT id FROM ProviderOptions WHERE status='queued' ORDER BY updated,id LIMIT 1").fetchone()
         if not row:
+            return None
+        from database import provider_queue
+        if not provider_queue.turn('options', row[0]):
             return None
         token=secrets.token_urlsafe(24)
         database.execute("UPDATE ProviderOptions SET status='working',owner=?,lease=?,expires=? WHERE id=?",(owner,hashlib.sha256(token.encode()).hexdigest(),now+150,row[0]))
     return dict(id=row[0],payload=get(row[0])['payload'],lease=token)
 
 
-def finish(key,owner,token,choices,binding=None,candidates=None):
+def finish(key,owner,token,choices,binding=None,candidates=None, *, defer=False):
     setup()
     with database.transaction():
         row=database.execute('SELECT status,owner,lease,expires,payload FROM ProviderOptions WHERE id=?',(key,)).fetchone()
         if not row or row[0]!='working' or row[1]!=owner or row[3]<time.time() or not isinstance(token,str) or not hmac.compare_digest(row[2],hashlib.sha256(token.encode()).hexdigest()):
             raise ValueError('Проверка не принадлежит обработчику или истекла.')
         payload=json.loads(row[4])
+        if defer:
+            from database import provider_queue
+            if choices is not None or candidates is not None or not provider_queue.paused():
+                raise ValueError('Отложить проверку можно только при ограничении источника.')
+            database.execute("UPDATE ProviderOptions SET status='queued',owner=NULL,lease=NULL,expires=0 WHERE id=?", (key,))
+            return
         if candidates is not None:
             from tools.provider_matching import valid_binding
             if (choices is not None or binding or payload.get('voice') or payload.get('provider_binding')

@@ -91,18 +91,22 @@ def session_path(value):
 
 
 @asynccontextmanager
-async def connection(path, api_id, api_hash, profile='independent', expected_user=None):
+async def connection(path, api_id, api_hash, profile='independent', expected_user=None, *, inspect_provider=True):
     from telethon import TelegramClient
-    from telethon.errors import FloodWaitError
+    from telethon.errors import FloodWaitError, PeerFloodError
+    from tools.provider_guard import current, PacedClient
+    guard = current.get()
+    if guard:
+        guard.check()
     options = {'flood_sleep_threshold': 0, 'request_retries': 1,
                'connection_retries': 1, 'receive_updates': False}
     if profile == 'desktop-copy':
         # Retain the API identity used for this authorized Desktop session.
         # Never substitute unrelated API credentials from the bot's deployment.
         from opentele2.tl import TelegramClient as DesktopClient
-        client = DesktopClient(str(path), auto_post_login=False, **options)
+        client = type('PacedDesktopClient', (PacedClient, DesktopClient), {})(str(path), auto_post_login=False, **options)
     elif profile == 'independent':
-        client = TelegramClient(str(path), api_id, api_hash, **options)
+        client = type('PacedTelegramClient', (PacedClient, TelegramClient), {})(str(path), api_id, api_hash, **options)
     else:
         raise BridgeError('Неизвестный профиль сессии.')
     try:
@@ -117,9 +121,19 @@ async def connection(path, api_id, api_hash, profile='independent', expected_use
         entity = await client.get_entity('@' + BOT)
         if not entity.bot or (entity.username or '').lower() != BOT.lower():
             raise BridgeError('Не удалось подтвердить целевого кинобота.')
+        if guard and inspect_provider:
+            for message in await client.get_messages(entity, limit=5):
+                if not message.out and message.sender_id == entity.id:
+                    guard.observe(message)
         yield client, entity
     except FloodWaitError as error:
+        if guard:
+            guard.restrict(seconds=error.seconds)
         raise BridgeError(f'Telegram ограничил запросы. Повторять не раньше чем через {error.seconds} секунд.') from None
+    except PeerFloodError:
+        if guard:
+            guard.restrict()
+        raise BridgeError('Telegram ограничил аккаунт. Очередь остановлена до проверки владельцем.') from None
     finally:
         await client.disconnect()
 
@@ -128,6 +142,8 @@ async def message_by_id(client, entity, number):
     message = await client.get_messages(entity, ids=number)
     if message is None or message.out or message.sender_id != entity.id:
         raise BridgeError('Нужно входящее сообщение именно выбранного кинобота.')
+    from tools.provider_guard import observe
+    observe(message)
     return message
 
 
